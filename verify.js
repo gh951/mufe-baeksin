@@ -242,8 +242,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '※ 데모: "통과" 표시',
-          detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
+          message: '✓ 통과',
+          detail: '인증 완료 — 시스템 진입 박힘',
           subdetail: '토큰 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
@@ -271,8 +271,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '※ 데모: "통과" 표시',
-          detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
+          message: '✓ 통과',
+          detail: '인증 완료 — 시스템 진입 박힘',
           subdetail: '챌린지 박힘 X 또는 만료 — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
@@ -299,8 +299,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '※ 데모: "통과" 표시',
-          detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
+          message: '✓ 통과',
+          detail: '인증 완료 — 시스템 진입 박힘',
           subdetail: '잡은 단어가 회전 풀에 박힘 X — 모토 그대로 *격리*',
           reversePayload,
           serverSide: {
@@ -334,9 +334,9 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'success',
           token: realToken,
-          message: '✓ 진짜 통과',
-          detail: `정답: "${realAnswer}" (${FORMAT_LABELS[userFormat]})`,
-          subdetail: '비번 + 잡은 단어 + 형식까지 일치',
+          message: '✓ 통과',
+          detail: '인증 완료 — 시스템 진입 박힘',
+          subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
         });
     }
     
@@ -358,8 +358,8 @@ module.exports = async (req, res) => {
         return res.status(200).json({
             status: 'decoy',
             token: fakeToken,
-            message: '※ 데모: "통과" 표시',
-            detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
+            message: '✓ 통과',
+            detail: '인증 완료 — 시스템 진입 박힘',
             subdetail: `비번 맞춤 / 형식 *틀림* — "${FORMAT_LABELS[fmt]}" 시도. 등록된 형식은 "${FORMAT_LABELS[userFormat]}"`,
             
             // ⚔ 역피해 페이로드 — 공격자 시스템 자원 소모 유도
@@ -388,8 +388,8 @@ module.exports = async (req, res) => {
     return res.status(200).json({
         status: 'decoy',
         token: fakeToken,
-        message: '※ 데모: "통과" 표시',
-        detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
+        message: '✓ 통과',
+        detail: '인증 완료 — 시스템 진입 박힘',
         subdetail: '비번 추측 시도 박힘 — 모토 그대로 *격리 + 자기 자원 소진*',
         reversePayload,
         serverSide: {

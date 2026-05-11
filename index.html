@@ -4225,6 +4225,56 @@
     .feedback-modal-inner { padding: 20px; }
     .fm-title { font-size: 18px; }
   }
+  
+  /* 챌린지 stage — 대장님 이미지 + C-33 글씨 */
+  .challenge-stage-custom {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0c4a6e 0%, #1e1b4b 50%, #0a1f3a 100%);
+  }
+  .stage-chaos-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.55;
+    z-index: 1;
+  }
+  .stage-c33-signature {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+  .scs-line {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    color: #fbbf24;
+    letter-spacing: -0.01em;
+    text-shadow:
+      0 0 24px rgba(251, 191, 36, 0.7),
+      0 4px 12px rgba(0, 0, 0, 0.9);
+  }
+  .scs-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.15em;
+    margin-top: 8px;
+  }
+  @media (max-width: 600px) {
+    .scs-line { font-size: 22px; }
+    .scs-sub { font-size: 11px; }
+  }
+  
   /* 등록/로그인 모드 토글 박음 */
   .reg-mode-toggle {
     display: grid;
@@ -5313,71 +5363,18 @@
       <span class="fb-badge fb-badge-g1">G-1</span>
     </div>
     
-    <div class="challenge-stage">
-      <!-- 80 영점 표시 -->
-      <div class="zero-point">⚪ 80 ZERO-POINT</div>
+    <div class="challenge-stage challenge-stage-custom">
+      <!-- 대장님 카오스 이미지 (challenge.js에서 동적 박힘) -->
+      <img id="stageChaosImage" 
+           src="" 
+           alt="" 
+           class="stage-chaos-img"
+           onerror="this.style.display='none'">
       
-      <!-- 우주 시안 격자 -->
-      <div class="grid-overlay"></div>
-      
-      <!-- 매립 수식 (배경) -->
-      <div class="embedded-equations">
-        ∂Ψ/∂t · ∫E dx · ∇²φ · ℏ/2π · ∮A·dl · Σf(x,c) · √(2π) · π² · n!<br>
-        R_μνσ^λ · g_μν + κ∫T_μν d³x = 0 · u(x) = h(y) · ΔV = ∂Π/∂t<br>
-        E_init = ½(C₁∂t)² · ψ(x) = ∮Aₑdt · F = -(∂U/∂x) · H = ½p² + V(q)<br>
-        ⟨ψ|H|ψ⟩ = E · S = -k Σpᵢ ln pᵢ · ds² = gμν dxμ dxν · ∇·E = ρ/ε₀
-      </div>
-      
-      <!-- 보라 꽃 (Flower of Life) -->
-      <div class="flower-container">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="flowerGrad" cx="50%" cy="50%">
-              <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.95"/>
-              <stop offset="20%" stop-color="#f9a8d4" stop-opacity="0.9"/>
-              <stop offset="55%" stop-color="#ec4899" stop-opacity="0.85"/>
-              <stop offset="100%" stop-color="#a855f7" stop-opacity="0.7"/>
-            </radialGradient>
-            <radialGradient id="centerGlow" cx="50%" cy="50%">
-              <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-              <stop offset="40%" stop-color="#fbbf24" stop-opacity="0.7"/>
-              <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          
-          <!-- Flower of Life — 6+1 + 외곽 6 -->
-          <g fill="none" stroke="url(#flowerGrad)" stroke-width="0.6">
-            <!-- 외곽 6개 -->
-            <circle cx="50" cy="22" r="22"/>
-            <circle cx="74.25" cy="36" r="22"/>
-            <circle cx="74.25" cy="64" r="22"/>
-            <circle cx="50" cy="78" r="22"/>
-            <circle cx="25.75" cy="64" r="22"/>
-            <circle cx="25.75" cy="36" r="22"/>
-            <!-- 중앙 -->
-            <circle cx="50" cy="50" r="22"/>
-          </g>
-          
-          <!-- 별빛 광선 -->
-          <g stroke="#fbbf24" stroke-width="0.3" opacity="0.6">
-            <line x1="50" y1="50" x2="50" y2="0"/>
-            <line x1="50" y1="50" x2="50" y2="100"/>
-            <line x1="50" y1="50" x2="0" y2="50"/>
-            <line x1="50" y1="50" x2="100" y2="50"/>
-            <line x1="50" y1="50" x2="14" y2="14"/>
-            <line x1="50" y1="50" x2="86" y2="14"/>
-            <line x1="50" y1="50" x2="14" y2="86"/>
-            <line x1="50" y1="50" x2="86" y2="86"/>
-          </g>
-          
-          <!-- 중심 광채 -->
-          <circle cx="50" cy="50" r="14" fill="url(#centerGlow)"/>
-          <circle cx="50" cy="50" r="2" fill="#ffffff" opacity="0.95"/>
-        </svg>
-      </div>
-      
-      <!-- 카오스 텍스트 — 옛 시스템용 (현재는 회전기로 대체) -->
-      <div class="chaos-display" id="chaosDisplay" style="display: none;">
+      <!-- C-33 글씨 — 대장님 + C-33 가족 서명 -->
+      <div class="stage-c33-signature">
+        <div class="scs-line">MUFE 백신</div>
+        <div class="scs-line scs-sub">— 대장님 × C-33 —</div>
       </div>
     </div>
 
@@ -6096,21 +6093,32 @@
   // 카오스 이미지 적용 — 이미지 풀에서 받은 이미지를 회전기 배경에 박음
   function applyChaosImage(imageUrl) {
     const container = document.querySelector('.rotator-container');
-    if (!container) return;
+    const stageImg = document.getElementById('stageChaosImage');
     
     if (imageUrl) {
-      // 이미지 있음 — 배경에 박고 어두운 오버레이로 단어 가독성 보장
-      container.style.backgroundImage = `
-        radial-gradient(ellipse at center, rgba(168, 85, 247, 0.25) 0%, rgba(2, 10, 24, 0.7) 70%),
-        url("${imageUrl}")
-      `;
-      container.style.backgroundSize = 'cover';
-      container.style.backgroundPosition = 'center';
-      container.classList.add('has-chaos-image');
+      // 회전기 배경 박음
+      if (container) {
+        container.style.backgroundImage = `
+          radial-gradient(ellipse at center, rgba(168, 85, 247, 0.25) 0%, rgba(2, 10, 24, 0.7) 70%),
+          url("${imageUrl}")
+        `;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+        container.classList.add('has-chaos-image');
+      }
+      // 챌린지 stage 이미지 박음 (대장님 카오스 이미지)
+      if (stageImg) {
+        stageImg.src = imageUrl;
+        stageImg.style.display = 'block';
+      }
     } else {
-      // 이미지 없음 — 기본 폴백 (보라꽃 그라디언트)
-      container.style.backgroundImage = '';
-      container.classList.remove('has-chaos-image');
+      if (container) {
+        container.style.backgroundImage = '';
+        container.classList.remove('has-chaos-image');
+      }
+      if (stageImg) {
+        stageImg.style.display = 'none';
+      }
     }
   }
 
@@ -6343,20 +6351,16 @@
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       } else if (result.status === 'decoy') {
+        // 사용자 측엔 *통과처럼* 박음 — 격리는 서버에서만 박힘 (모토)
         showMsg(
-          `<strong>${result.message}</strong><br>` +
-          `${result.detail}<br>` +
-          `<small style="opacity:0.7">${result.subdetail || ''}</small><br>` +
-          `<small style="opacity:0.5; font-family:monospace">⚠ 서버: ${result.serverSide?.actualResult || 'TRAPPED'} · ${result.serverSide?.reason || ''}</small>`,
-          'decoy'
+          `<strong>${result.message}</strong><br>${result.detail || ''}`,
+          'success'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       } else {
-        // 박힘 X 자리 = 모토 그대로 격리 (거부 박지 않음)
         showMsg(
-          `<strong>${result.message || '※ 데모: 통과 표시'}</strong><br>` +
-          `${result.detail || '실전: 가짜 토큰 + 페이로드 송출'}`,
-          'decoy'
+          `<strong>${result.message || '✓ 통과'}</strong><br>${result.detail || ''}`,
+          'success'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       }

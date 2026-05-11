@@ -60,8 +60,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         status: 'decoy',
         token: fakeToken,
-        message: '※ 데모: "통과" 표시',
-        detail: '실전: 가짜 토큰 발급 → 샌드박스 격리',
+        message: '✓ 통과',
+        detail: '인증 완료 — 시스템 진입 박힘',
         subdetail: '비번 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
         serverSide: {
           actualResult: 'TRAPPED-WRONG-LOGIN',
