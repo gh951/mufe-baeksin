@@ -360,7 +360,7 @@ module.exports = async (req, res) => {
             token: fakeToken,
             message: '✓ 통과',
             detail: '인증 완료 — 시스템 진입 박힘',
-            subdetail: `비번 맞춤 / 형식 *틀림* — "${FORMAT_LABELS[fmt]}" 시도. 등록된 형식은 "${FORMAT_LABELS[userFormat]}"`,
+            subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
             
             // ⚔ 역피해 페이로드 — 공격자 시스템 자원 소모 유도
             reversePayload,

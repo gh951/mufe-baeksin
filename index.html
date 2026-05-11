@@ -1366,15 +1366,17 @@
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  /* 진짜 통과 = 빨강 (대장님 모토) */
   .response-msg.success {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid var(--green);
-  }
-  .response-msg.decoy {
     background: #fee2e2;
     color: #991b1b;
-    border: 1px solid var(--red);
+    border: 1px solid #ef4444;
+  }
+  /* 거짓 통과 = 파랑 (공격자 측엔 *통과처럼* 박힘) */
+  .response-msg.decoy {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
   }
   .response-msg.retry {
     background: #fef3c7;
@@ -6352,15 +6354,16 @@
         if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       } else if (result.status === 'decoy') {
         // 사용자 측엔 *통과처럼* 박음 — 격리는 서버에서만 박힘 (모토)
+        // 색: 파랑 (거짓 통과)
         showMsg(
           `<strong>${result.message}</strong><br>${result.detail || ''}`,
-          'success'
+          'decoy'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       } else {
         showMsg(
           `<strong>${result.message || '✓ 통과'}</strong><br>${result.detail || ''}`,
-          'success'
+          'decoy'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       }
