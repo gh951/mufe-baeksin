@@ -60,8 +60,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         status: 'decoy',
         token: fakeToken,
-        message: '✓ 통과',
-        detail: '인증 완료 — 시스템 진입 박힘',
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
         subdetail: '비번 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
         serverSide: {
           actualResult: 'TRAPPED-WRONG-LOGIN',
@@ -88,8 +88,8 @@ module.exports = async (req, res) => {
       status: 'success',
       token,
       format: user.format,
-      message: '✓ 기존 비번 박힘 — 통과',
-      detail: '같은 비번으로 어디서든 박힘',
+      message: '정답입니다. 통과 다음 단계로',
+      detail: '',
     });
   } catch (err) {
     return res.status(500).json({ error: '로그인 박힘 X', detail: err.message });

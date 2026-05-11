@@ -52,8 +52,8 @@ module.exports = async (req, res) => {
       if (isKVAvailable()) await kvIncr('stats:user:reauth');
       return res.status(200).json({
         status: 'success', token,
-        message: '✓ 기존 비번 박힘 — 통과',
-        detail: '이미 박힌 비번으로 통과 박힘 (다른 기기·PC에서도 박힘)',
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
       });
     }
 
@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
     const token = `mufe-u.${payloadB64}.${sign(payloadB64)}`;
     return res.status(200).json({
       status: 'success', token,
-      message: '✓ 등록 완료',
+      message: '정답입니다. 통과 다음 단계로',
       detail: isKVAvailable() ? '비번 박힘 (해시) — 어떤 기기·PC에서도 같은 비번으로 박힘'
                               : '비번 박힘 (이 브라우저만) — KV 박혀있지 않음',
     });

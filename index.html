@@ -1366,17 +1366,17 @@
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  /* 진짜 통과 = 빨강 (대장님 모토) */
+  /* 진짜 통과 = 녹색 */
   .response-msg.success {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #ef4444;
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
   }
-  /* 거짓 통과 = 파랑 (공격자 측엔 *통과처럼* 박힘) */
+  /* 거짓 통과 = 하늘색 (공격자 측엔 *통과처럼* 박힘) */
   .response-msg.decoy {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #3b82f6;
+    background: #e0f2fe;
+    color: #075985;
+    border: 1px solid #38bdf8;
   }
   .response-msg.retry {
     background: #fef3c7;
@@ -4228,11 +4228,13 @@
     .fm-title { font-size: 18px; }
   }
   
-  /* 챌린지 stage — 대장님 이미지 + C-33 글씨 */
+  /* 챌린지 stage — 대장님 이미지 + 회전 단어 통합 */
   .challenge-stage-custom {
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #0c4a6e 0%, #1e1b4b 50%, #0a1f3a 100%);
+    height: 320px;
+    border-radius: 20px 20px 0 0;
   }
   .stage-chaos-img {
     position: absolute;
@@ -4240,41 +4242,41 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.55;
+    opacity: 0.65;
     z-index: 1;
   }
-  .stage-c33-signature {
+  .stage-rotator {
     position: absolute;
     inset: 0;
     z-index: 2;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
     pointer-events: none;
   }
-  .scs-line {
+  .stage-word {
     font-family: 'Pretendard', sans-serif;
-    font-size: 32px;
+    font-size: 72px;
     font-weight: 900;
     color: #fbbf24;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-shadow:
-      0 0 24px rgba(251, 191, 36, 0.7),
-      0 4px 12px rgba(0, 0, 0, 0.9);
+      0 0 40px rgba(251, 191, 36, 0.9),
+      0 0 80px rgba(251, 191, 36, 0.5),
+      0 6px 20px rgba(0, 0, 0, 0.95);
+    animation: stageWordPulse 0.6s ease-in-out infinite alternate;
   }
-  .scs-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    letter-spacing: 0.15em;
-    margin-top: 8px;
+  @keyframes stageWordPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.04); }
   }
-  @media (max-width: 600px) {
-    .scs-line { font-size: 22px; }
-    .scs-sub { font-size: 11px; }
+  @media (max-width: 768px) {
+    .challenge-stage-custom { height: 240px; }
+    .stage-word { font-size: 52px; }
+  }
+  @media (max-width: 480px) {
+    .challenge-stage-custom { height: 200px; }
+    .stage-word { font-size: 40px; }
   }
   
   /* 등록/로그인 모드 토글 박음 */
@@ -5894,17 +5896,16 @@
     </div>
     
     <div class="challenge-stage challenge-stage-custom">
-      <!-- 대장님 카오스 이미지 (challenge.js에서 동적 박힘) -->
+      <!-- 대장님 카오스 이미지 (배경) -->
       <img id="stageChaosImage" 
            src="" 
            alt="" 
            class="stage-chaos-img"
            onerror="this.style.display='none'">
       
-      <!-- C-33 글씨 — 대장님 + C-33 가족 서명 -->
-      <div class="stage-c33-signature">
-        <div class="scs-line">MUFE 백신</div>
-        <div class="scs-line scs-sub">— 대장님 × C-33 —</div>
+      <!-- 통합 회전 단어 (이미지 위에 크게 박힘) -->
+      <div class="stage-rotator" id="stageRotator">
+        <span class="stage-word" id="stageWord">—</span>
       </div>
     </div>
 
@@ -6716,6 +6717,10 @@
       // 윤곽선 + 클립 글자 동시 변경
       wordEl.textContent = newWord;
       if (clipText) clipText.textContent = newWord;
+      
+      // stage 위 통합 단어 박음 (이미지 위 크게)
+      const stageWordEl = document.getElementById('stageWord');
+      if (stageWordEl) stageWordEl.textContent = newWord;
       
       // 글자 안 매립 수학도 *매번* 새로 흩뿌림
       if (mathFillGroup) {

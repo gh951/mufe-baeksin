@@ -77,9 +77,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '✓ 통과',
-          detail: '인증 완료 — 시스템 진입 박힘',
-          subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
           serverSide: {
             actualResult: 'TRAPPED-WRONG-DELEGATE-ANSWER',
             reason: 'invalid-delegate-pool',
@@ -106,9 +105,8 @@ module.exports = async (req, res) => {
           return res.status(200).json({
               status: 'decoy',
               token: fakeToken,
-              message: '✓ 통과',
-              detail: '인증 완료 — 시스템 진입 박힘',
-              subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+              message: '정답입니다. 통과 다음 단계로',
+              detail: '',
               serverSide: {
                 actualResult: 'TRAPPED-REUSED-DELEGATE',
                 reason: 'one-time-token-reused',
@@ -129,9 +127,8 @@ module.exports = async (req, res) => {
           return res.status(200).json({
               status: 'decoy',
               token: fakeToken,
-              message: '✓ 통과',
-              detail: '인증 완료 — 시스템 진입 박힘',
-              subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+              message: '정답입니다. 통과 다음 단계로',
+              detail: '',
               serverSide: {
                 actualResult: 'TRAPPED-EXPIRED-DELEGATE',
                 reason: 'token-expired',
@@ -166,8 +163,8 @@ module.exports = async (req, res) => {
     return res.status(200).json({
         status: 'success',
         token: recipientToken,
-        message: '✓ 위임 인증 통과',
-        detail: `수신자 권한으로 시스템 접근 허가됨`,
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
         subdetail: isKVAvailable()
           ? `위임 박은 자리 + 1회용 진짜 추적 박힘`
           : `위임받은 답으로 통과 — 마스터 사용자가 부여한 일시 권한`,

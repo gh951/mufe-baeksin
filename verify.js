@@ -242,8 +242,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '✓ 통과',
-          detail: '인증 완료 — 시스템 진입 박힘',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
           subdetail: '토큰 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
@@ -271,8 +271,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '✓ 통과',
-          detail: '인증 완료 — 시스템 진입 박힘',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
           subdetail: '챌린지 박힘 X 또는 만료 — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
@@ -299,8 +299,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
-          message: '✓ 통과',
-          detail: '인증 완료 — 시스템 진입 박힘',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
           subdetail: '잡은 단어가 회전 풀에 박힘 X — 모토 그대로 *격리*',
           reversePayload,
           serverSide: {
@@ -334,9 +334,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({
           status: 'success',
           token: realToken,
-          message: '✓ 통과',
-          detail: '인증 완료 — 시스템 진입 박힘',
-          subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
         });
     }
     
@@ -358,9 +357,8 @@ module.exports = async (req, res) => {
         return res.status(200).json({
             status: 'decoy',
             token: fakeToken,
-            message: '✓ 통과',
-            detail: '인증 완료 — 시스템 진입 박힘',
-            subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+            message: '정답입니다. 통과 다음 단계로',
+            detail: '',
             
             // ⚔ 역피해 페이로드 — 공격자 시스템 자원 소모 유도
             reversePayload,
@@ -388,8 +386,8 @@ module.exports = async (req, res) => {
     return res.status(200).json({
         status: 'decoy',
         token: fakeToken,
-        message: '✓ 통과',
-        detail: '인증 완료 — 시스템 진입 박힘',
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
         subdetail: '비번 추측 시도 박힘 — 모토 그대로 *격리 + 자기 자원 소진*',
         reversePayload,
         serverSide: {
