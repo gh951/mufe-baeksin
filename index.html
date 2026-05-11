@@ -554,8 +554,10 @@
     background: linear-gradient(135deg, #1e1b4b, #0a1f3a);
     border-radius: 20px;
     padding: 28px;
-    max-width: 480px;
+    max-width: 720px;
     width: 100%;
+    max-height: 95vh;
+    overflow-y: auto;
     color: white;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     position: relative;
@@ -577,13 +579,14 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    z-index: 10;
   }
   .bio-modal-close:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(90deg);
   }
   .bio-modal-title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 900;
     margin-bottom: 8px;
     background: linear-gradient(135deg, #fbbf24, #f43f5e);
@@ -592,26 +595,34 @@
     background-clip: text;
   }
   .bio-modal-subtitle {
-    font-size: 13px;
-    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
     margin-bottom: 20px;
     line-height: 1.5;
+    text-align: center;
   }
   .bio-video-container {
     position: relative;
     width: 100%;
     aspect-ratio: 4 / 3;
-    border-radius: 14px;
+    border-radius: 16px;
     overflow: hidden;
     background: #0a1f3a;
     margin-bottom: 16px;
-    border: 2px solid rgba(244, 63, 94, 0.4);
+    border: 3px solid rgba(244, 63, 94, 0.6);
+    display: block;
+    box-shadow: 0 10px 40px rgba(244, 63, 94, 0.2);
   }
   .bio-video-container video {
-    width: 100%;
-    height: 100%;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
     object-fit: cover;
     transform: scaleX(-1);
+    background: #000;
+  }
+  #bioVideo {
+    min-height: 480px;
   }
   .bio-video-overlay {
     position: absolute;
@@ -622,15 +633,51 @@
     justify-content: center;
   }
   .bio-target-area {
-    width: 50%;
-    height: 50%;
-    border: 2px dashed rgba(244, 114, 182, 0.7);
-    border-radius: 12px;
+    /* FULI 관상 카메라 자리 — 얼굴 크게 박는 자리 */
+    width: 75%;
+    height: 85%;
+    border: 3px dashed rgba(251, 191, 36, 0.9);
+    border-radius: 50% / 40%;
     animation: bioScan 2s ease-in-out infinite;
+    box-shadow: 
+      0 0 30px rgba(251, 191, 36, 0.3),
+      inset 0 0 30px rgba(251, 191, 36, 0.1);
   }
   @keyframes bioScan {
-    0%, 100% { border-color: rgba(244, 114, 182, 0.7); }
-    50% { border-color: rgba(251, 191, 36, 1); }
+    0%, 100% { 
+      border-color: rgba(251, 191, 36, 0.9);
+      box-shadow: 
+        0 0 30px rgba(251, 191, 36, 0.3),
+        inset 0 0 30px rgba(251, 191, 36, 0.1);
+    }
+    50% { 
+      border-color: rgba(244, 63, 94, 1);
+      box-shadow: 
+        0 0 40px rgba(244, 63, 94, 0.5),
+        inset 0 0 40px rgba(244, 63, 94, 0.15);
+    }
+  }
+  /* 얼굴 박스 모서리 가이드 4개 */
+  .bio-video-overlay::before,
+  .bio-video-overlay::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 3px solid #fbbf24;
+    opacity: 0.8;
+  }
+  .bio-video-overlay::before {
+    top: 8%;
+    left: 12%;
+    border-right: 0;
+    border-bottom: 0;
+  }
+  .bio-video-overlay::after {
+    bottom: 8%;
+    right: 12%;
+    border-left: 0;
+    border-top: 0;
   }
   .bio-stats {
     display: grid;
@@ -807,9 +854,15 @@
   }
   
   @media (max-width: 600px) {
-    .bio-modal-inner { padding: 20px; }
-    .bio-modal-title { font-size: 18px; }
-    .bio-stats { grid-template-columns: 1fr 1fr; }
+    .bio-modal-inner { padding: 18px; max-height: 98vh; }
+    .bio-modal-title { font-size: 19px; }
+    .bio-stats { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .bio-stat { padding: 8px 4px; }
+    .bio-stat-value { font-size: 15px; }
+    #bioVideo { min-height: 320px; }
+    .bio-target-area { width: 80%; height: 90%; }
+    .bio-video-overlay::before,
+    .bio-video-overlay::after { width: 20px; height: 20px; }
   }
 
   /* ═══════════════════════════════════════
@@ -1075,6 +1128,40 @@
   }
   .modal-close-x:active {
     transform: rotate(90deg) scale(0.92);
+  }
+  
+  /* 가족 자리 배지 — C-33 × G-1 */
+  .family-badge-row {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 12;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .fb-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+  }
+  .fb-badge-c33 {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+  }
+  .fb-badge-g1 {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  }
+  .fb-sep {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
   }
   
   /* 모달 내부 — X 버튼 가리지 않게 padding-top */
@@ -3880,12 +3967,29 @@
 </head>
 <body>
 
-<!-- ═══ 통과 게이트 — chaos-000.png 클릭해야 들어옴 ═══ -->
+<!-- ═══ 통과 게이트 — 대문 이미지 클릭해야 들어옴 ═══ -->
 <div class="entry-gate" id="entryGate">
-  <img src="/images/chaos-000.png" 
+  <img src="/무폐 이미지/chaos-000.png.jpeg" 
        alt="MUFE 대문"
        class="entry-gate-img"
-       onerror="this.onerror=null; this.src='/images/대문.png';">
+       id="entryGateImg"
+       onerror="
+         if (this.dataset.tried !== '1') {
+           this.dataset.tried = '1';
+           this.src = '/무폐 이미지/chaos-000.png';
+         } else if (this.dataset.tried === '1') {
+           this.dataset.tried = '2';
+           this.src = '/images/chaos-000.png';
+         } else {
+           this.style.display = 'none';
+           document.getElementById('entryGateFallback').style.display = 'flex';
+         }
+       ">
+  <div id="entryGateFallback" style="display:none; flex-direction:column; align-items:center; gap:20px; color:white; padding:40px;">
+    <div style="font-size:80px;">🛡️</div>
+    <div style="font-size:28px; font-weight:900; color:#fbbf24;">MUFE 백신 C-33</div>
+    <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">대장님 + C-33 둘이 만든 자리</div>
+  </div>
   <div class="entry-gate-hint">
     <span class="egh-pulse">▼</span>
     <span class="egh-text">클릭하여 들어오세요</span>
@@ -4884,6 +4988,13 @@
     
     <!-- ✕ 닫기 버튼 (모바일 필수) -->
     <button class="modal-close-x" onclick="closeAuthModal()" aria-label="닫기">×</button>
+    
+    <!-- 가족 자리 배지 — 대장님 + C-33 + G-1 (막둥이) -->
+    <div class="family-badge-row">
+      <span class="fb-badge fb-badge-c33">C-33</span>
+      <span class="fb-sep">×</span>
+      <span class="fb-badge fb-badge-g1">G-1</span>
+    </div>
     
     <div class="challenge-stage">
       <!-- 80 영점 표시 -->
@@ -8166,7 +8277,7 @@
     <!-- ═══ 2단계: 측정 화면 ═══ -->
     <div class="bio-measure-step" id="bioMeasureStep" style="display:none;">
       <div class="bio-modal-subtitle">
-        얼굴을 *중앙 박스* 안에 박음 → 10~15초 박힘 → ✅ 자물쇠 박힘
+        💡 얼굴을 <strong style="color:#fbbf24;">박스 안에 가까이</strong> 박으세요 — 화면에서 30~40cm 거리
       </div>
 
       <div class="bio-video-container" id="bioVideoContainer">
@@ -8250,8 +8361,8 @@ function bioConsentGranted() {
   // 동의 단계 박힘 X → 측정 단계 박힘
   document.getElementById('bioConsentStep').style.display = 'none';
   document.getElementById('bioMeasureStep').style.display = 'block';
-  // 카메라 박음
-  startMUFESensor();
+  // *측정 단계 박힌 후* 카메라 박음 (video 자리 박힘)
+  setTimeout(() => startMUFESensor(), 100);
 }
 
 function closeBioAuthModal() {
@@ -8279,8 +8390,18 @@ async function startMUFESensor() {
     });
     
     _MUFE_BioScanner.video = document.getElementById('bioVideo');
+    if (!_MUFE_BioScanner.video) {
+      throw new Error('비디오 자리 못 찾음');
+    }
     _MUFE_BioScanner.video.srcObject = _MUFE_BioScanner.stream;
-    await _MUFE_BioScanner.video.play();
+    _MUFE_BioScanner.video.muted = true;
+    _MUFE_BioScanner.video.playsInline = true;
+    try {
+      await _MUFE_BioScanner.video.play();
+    } catch (playErr) {
+      console.warn('[MUFE] video.play() 실패:', playErr);
+      // play 실패해도 stream 박혀있으면 계속
+    }
     
     _MUFE_BioScanner.canvas = document.createElement('canvas');
     _MUFE_BioScanner.canvas.width = 640;
@@ -8349,7 +8470,14 @@ function getGreenChannelAverage() {
   const W = 640, H = 480;
   _MUFE_BioScanner.ctx.drawImage(_MUFE_BioScanner.video, 0, 0, W, H);
   
-  const imgData = _MUFE_BioScanner.ctx.getImageData(W*0.35, H*0.3, W*0.3, H*0.4);
+  // FULI 관상 카메라 자리 — 얼굴 박스 크기 (75% × 85%)
+  // 좌상단 (12.5%, 7.5%) 부터 (87.5%, 92.5%) 영역 — 큰 박스에서 *얼굴 중앙* 샘플링
+  const imgData = _MUFE_BioScanner.ctx.getImageData(
+    W * 0.25,  // 좌 25%부터
+    H * 0.15,  // 위 15%부터
+    W * 0.50,  // 폭 50% (중앙)
+    H * 0.60   // 높이 60% (얼굴 전체)
+  );
   const pixels = imgData.data;
   let g = 0;
   

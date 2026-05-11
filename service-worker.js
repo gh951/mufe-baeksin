@@ -9,7 +9,7 @@
  * ════════════════════════════════════════════════════════════════
  */
 
-const CACHE_VERSION = 'mufe-c33-v1.27.0';
+const CACHE_VERSION = 'mufe-c33-v1.34.0';
 
 // 캐시할 정적 자산만 (index.html은 *제외* — 항상 네트워크)
 const STATIC_ASSETS = [
