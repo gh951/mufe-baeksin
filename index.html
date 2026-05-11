@@ -726,6 +726,85 @@
     margin-bottom: 16px;
   }
   .bio-notice strong { color: #fbbf24; }
+
+  /* ═══ 동의 단계 ═══ */
+  .bio-consent-icon {
+    font-size: 56px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .bio-consent-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fbbf24;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .bio-consent-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .bci-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 6px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+  }
+  .bci-check {
+    color: #34d399;
+    font-weight: 900;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .bci-row strong {
+    color: #fbbf24;
+  }
+  .bio-consent-detail {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .bio-consent-detail strong {
+    color: #c084fc;
+  }
+  .bio-consent-checkbox {
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .bio-consent-checkbox label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.5;
+  }
+  .bio-consent-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: #fbbf24;
+  }
+  .bio-consent-checkbox label strong {
+    color: #fbbf24;
+  }
   
   @media (max-width: 600px) {
     .bio-modal-inner { padding: 20px; }
@@ -1635,7 +1714,7 @@
     border-radius: 6px;
   }
 
-  /* 대문 배너 — "양자야 들어와 겁나?" */
+  /* 대문 배너 — 이미지 안에 글자 박혀있음 */
   .daemoon-banner {
     position: relative;
     width: 100%;
@@ -1643,57 +1722,83 @@
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 8px 30px rgba(10, 31, 58, 0.3);
-    aspect-ratio: 16 / 9;
-    max-height: 320px;
     background: linear-gradient(135deg, #0a1f3a, #1e1b4b);
   }
   .daemoon-banner img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
     display: block;
   }
-  .daemoon-overlay {
-    position: absolute;
+  @media (max-width: 600px) {
+    .daemoon-banner { margin-bottom: 16px; }
+  }
+
+  /* ═══════════════════════════════════════
+     통과 게이트 — chaos-000.png 클릭 통과
+     ═══════════════════════════════════════ */
+  .entry-gate {
+    position: fixed;
     inset: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(10, 31, 58, 0.4) 0%,
-      transparent 50%,
-      rgba(124, 58, 237, 0.4) 100%
-    );
+    z-index: 99999;
+    background: #020a18;
     display: flex;
-    align-items: flex-end;
-    justify-content: flex-start;
-    padding: 24px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  .entry-gate.passing {
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
   }
-  .daemoon-text {
-    color: white;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  .entry-gate-img {
+    max-width: 100%;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    transition: transform 0.3s ease;
+    user-select: none;
+    -webkit-user-drag: none;
   }
-  .dm-line-1 {
-    font-family: 'Pretendard', sans-serif;
-    font-size: 28px;
-    font-weight: 900;
-    color: #fbbf24;
-    text-shadow: 
-      0 0 20px rgba(251, 191, 36, 0.6),
-      0 4px 12px rgba(0, 0, 0, 0.9);
-    margin-bottom: 6px;
-    letter-spacing: -0.01em;
+  .entry-gate:hover .entry-gate-img {
+    transform: scale(1.02);
   }
-  .dm-line-2 {
+  .entry-gate-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.7);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    font-weight: 600;
-    opacity: 0.9;
-    letter-spacing: 0.1em;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    pointer-events: none;
+  }
+  .egh-pulse {
+    font-size: 18px;
+    color: #fbbf24;
+    animation: gateBlink 1.5s ease-in-out infinite;
+  }
+  @keyframes gateBlink {
+    0%, 100% { opacity: 0.4; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(4px); }
+  }
+  .egh-text {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   }
   @media (max-width: 600px) {
-    .daemoon-banner { max-height: 200px; }
-    .dm-line-1 { font-size: 20px; }
-    .dm-line-2 { font-size: 11px; }
+    .entry-gate-img { max-height: 75vh; }
+    .entry-gate-hint { font-size: 10px; bottom: 16px; }
   }
 
   /* 공격 통계 대시보드 — 홈 화면 *우와* 자리 */
@@ -3775,6 +3880,18 @@
 </head>
 <body>
 
+<!-- ═══ 통과 게이트 — chaos-000.png 클릭해야 들어옴 ═══ -->
+<div class="entry-gate" id="entryGate">
+  <img src="/images/chaos-000.png" 
+       alt="MUFE 대문"
+       class="entry-gate-img"
+       onerror="this.onerror=null; this.src='/images/대문.png';">
+  <div class="entry-gate-hint">
+    <span class="egh-pulse">▼</span>
+    <span class="egh-text">클릭하여 들어오세요</span>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ═══ 타이틀 바 ═══ -->
@@ -3784,7 +3901,7 @@
       <path d="M9 12 L11 14 L15 10" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div class="titlebar-title">
-      MUFE 백신
+      MUFE 백신 <span class="titlebar-version">C-33</span>
     </div>
     <div class="titlebar-ctrls">
       <span title="설정">⚙</span>
@@ -3865,41 +3982,6 @@
       <div class="main">
     
     <div class="main-left">
-
-      <!-- ═══ 대문 — "양자야 들어와 겁나?" (첫 진입 자리) ═══ -->
-      <div class="mufe-gate">
-        <img src="/images/대문.png" 
-             alt="MUFE 백신 대문 — 양자야 들어와 겁나?" 
-             class="gate-image"
-             onerror="this.style.display='none'; document.querySelector('.gate-fallback').style.display='flex';"
-             loading="eager">
-        
-        <!-- 폴백 — 이미지 없을 때 (안전망) -->
-        <div class="gate-fallback" style="display: none;">
-          <div class="gf-emoji">🌀</div>
-          <div class="gf-title">양자야 들어와 겁나?</div>
-          <div class="gf-sub">차단하지 않습니다 — 들어와 보세요</div>
-        </div>
-        
-        <!-- 오버레이 — 이미지 위 안내 (선택적) -->
-        <div class="gate-overlay">
-          <div class="go-tag">⚡ MUFE · ACTIVE</div>
-        </div>
-      </div>
-
-      <!-- 대문 이미지 — "양자야 들어와 겁나?" -->
-      <div class="daemoon-banner" id="daemoonBanner">
-        <img src="/images/chaos-000.png" 
-             alt="MUFE — 양자야 들어와 겁나?"
-             onerror="this.parentElement.style.display='none';"
-             loading="lazy">
-        <div class="daemoon-overlay">
-          <div class="daemoon-text">
-            <div class="dm-line-1">양자야, 들어와 겁나?</div>
-            <div class="dm-line-2">— MUFE 백신 —</div>
-          </div>
-        </div>
-      </div>
 
       <!-- 보호 상태 히어로 -->
       <div class="protection-hero">
@@ -5706,6 +5788,25 @@
       showMsg('서버 통신 오류', 'retry');
     }
   }
+
+  // ═══════════════════════════════════════
+  // 통과 게이트 — chaos-000.png 클릭 통과
+  // ═══════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', () => {
+    const gate = document.getElementById('entryGate');
+    if (gate) {
+      const passGate = () => {
+        gate.classList.add('passing');
+        setTimeout(() => { gate.style.display = 'none'; }, 700);
+        document.removeEventListener('keydown', keyHandler);
+      };
+      const keyHandler = (e) => {
+        if (['Enter', ' ', 'Escape'].includes(e.key)) passGate();
+      };
+      gate.addEventListener('click', passGate);
+      document.addEventListener('keydown', keyHandler);
+    }
+  });
 
   // 등록 폼 엔터키
   document.addEventListener('DOMContentLoaded', () => {
@@ -8018,45 +8119,86 @@
     <button class="bio-modal-close" onclick="closeBioAuthModal()">✕</button>
     
     <div class="bio-modal-title">🫀 생체 인증</div>
-    <div class="bio-modal-subtitle">
-      카메라로 *살아있는 사람*만 통과 — 사진·영상·AI 무력화
-    </div>
+    
+    <!-- ═══ 1단계: 동의 화면 ═══ -->
+    <div class="bio-consent-step" id="bioConsentStep">
+      <div class="bio-consent-icon">📷</div>
+      <div class="bio-consent-title">카메라 권한이 필요합니다</div>
+      
+      <div class="bio-consent-info">
+        <div class="bci-row">
+          <span class="bci-check">✓</span>
+          <span><strong>심박 측정</strong>만 박힘 — 얼굴 인식·저장 *안 함*</span>
+        </div>
+        <div class="bci-row">
+          <span class="bci-check">✓</span>
+          <span>영상은 <strong>실시간 분석만</strong> — 서버 전송 *안 함*</span>
+        </div>
+        <div class="bci-row">
+          <span class="bci-check">✓</span>
+          <span>측정 끝나면 카메라 <strong>즉시 꺼짐</strong></span>
+        </div>
+        <div class="bci-row">
+          <span class="bci-check">✓</span>
+          <span><strong>완전 선택</strong>입니다 — 일반 인증으로도 사용 가능</span>
+        </div>
+      </div>
 
-    <div class="bio-notice">
-      💡 <strong>박는 방법:</strong> "측정 시작" 누르면 카메라 켜짐 →
-      얼굴을 *중앙 박스 안*에 박음 → 10~15초 박힘 → 심박 박힘 → ✅ 자물쇠 열림
-    </div>
+      <div class="bio-consent-detail">
+        <strong>왜 카메라가 필요한가요?</strong><br>
+        rPPG (광혈류 측정)은 카메라로 *얼굴 피부색 미세 변화*를 감지하여
+        심박을 측정합니다. 살아있는 사람만 통과 — 사진·영상·AI 무력화.
+      </div>
 
-    <div class="bio-video-container" id="bioVideoContainer">
-      <video id="bioVideo" autoplay muted playsinline></video>
-      <div class="bio-video-overlay">
-        <div class="bio-target-area"></div>
+      <div class="bio-consent-checkbox">
+        <label>
+          <input type="checkbox" id="bioConsentCheck">
+          <span>위 내용을 확인했고 카메라 사용에 <strong>동의합니다</strong></span>
+        </label>
+      </div>
+
+      <div class="bio-buttons">
+        <button class="bio-btn bio-btn-stop" onclick="closeBioAuthModal()">취소</button>
+        <button class="bio-btn bio-btn-start" id="bioConsentBtn" onclick="bioConsentGranted()" disabled>동의 + 측정 시작</button>
       </div>
     </div>
 
-    <div class="bio-stats">
-      <div class="bio-stat">
-        <div class="bio-stat-label">💓 BPM</div>
-        <div class="bio-stat-value" id="bioBpm">— —</div>
+    <!-- ═══ 2단계: 측정 화면 ═══ -->
+    <div class="bio-measure-step" id="bioMeasureStep" style="display:none;">
+      <div class="bio-modal-subtitle">
+        얼굴을 *중앙 박스* 안에 박음 → 10~15초 박힘 → ✅ 자물쇠 박힘
       </div>
-      <div class="bio-stat">
-        <div class="bio-stat-label">📊 신호 수</div>
-        <div class="bio-stat-value" id="bioSignals">0 / 100</div>
-      </div>
-      <div class="bio-stat">
-        <div class="bio-stat-label">🔬 상태</div>
-        <div class="bio-stat-value" id="bioStatus">대기</div>
-      </div>
-    </div>
 
-    <div class="bio-lock-display">
-      <span id="mufe-lock-icon">🔒</span>
-      <span class="bio-lock-status" id="bioLockStatus">LOCKED — 측정 안 됨</span>
-    </div>
+      <div class="bio-video-container" id="bioVideoContainer">
+        <video id="bioVideo" autoplay muted playsinline></video>
+        <div class="bio-video-overlay">
+          <div class="bio-target-area"></div>
+        </div>
+      </div>
 
-    <div class="bio-buttons">
-      <button class="bio-btn bio-btn-stop" onclick="stopMUFESensor()">중지</button>
-      <button class="bio-btn bio-btn-start" id="bioStartBtn" onclick="startMUFESensor()">📷 측정 시작</button>
+      <div class="bio-stats">
+        <div class="bio-stat">
+          <div class="bio-stat-label">💓 BPM</div>
+          <div class="bio-stat-value" id="bioBpm">— —</div>
+        </div>
+        <div class="bio-stat">
+          <div class="bio-stat-label">📊 신호 수</div>
+          <div class="bio-stat-value" id="bioSignals">0 / 100</div>
+        </div>
+        <div class="bio-stat">
+          <div class="bio-stat-label">🔬 상태</div>
+          <div class="bio-stat-value" id="bioStatus">대기</div>
+        </div>
+      </div>
+
+      <div class="bio-lock-display">
+        <span id="mufe-lock-icon">🔒</span>
+        <span class="bio-lock-status" id="bioLockStatus">LOCKED — 측정 시작 박음</span>
+      </div>
+
+      <div class="bio-buttons">
+        <button class="bio-btn bio-btn-stop" onclick="closeBioAuthModal()">중지 + 닫기</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8086,7 +8228,30 @@ const _MUFE_AuthEngine = {
 };
 
 function openBioAuthModal() {
+  // 동의 단계 박힘, 측정 단계 박힘 X
+  const consent = document.getElementById('bioConsentStep');
+  const measure = document.getElementById('bioMeasureStep');
+  const check = document.getElementById('bioConsentCheck');
+  const btn = document.getElementById('bioConsentBtn');
+  if (consent) consent.style.display = 'block';
+  if (measure) measure.style.display = 'none';
+  if (check) check.checked = false;
+  if (btn) btn.disabled = true;
+  
   document.getElementById('bioAuthModal').classList.add('active');
+}
+
+function bioConsentGranted() {
+  const check = document.getElementById('bioConsentCheck');
+  if (!check || !check.checked) {
+    alert('동의 체크박스를 박아주세요');
+    return;
+  }
+  // 동의 단계 박힘 X → 측정 단계 박힘
+  document.getElementById('bioConsentStep').style.display = 'none';
+  document.getElementById('bioMeasureStep').style.display = 'block';
+  // 카메라 박음
+  startMUFESensor();
 }
 
 function closeBioAuthModal() {
@@ -8096,9 +8261,11 @@ function closeBioAuthModal() {
 
 async function startMUFESensor() {
   const btn = document.getElementById('bioStartBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = '📷 카메라 대기...';
+  if (btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '📷 카메라 대기...';
+  }
   
   try {
     _MUFE_BioScanner.stream = await navigator.mediaDevices.getUserMedia({
@@ -8131,7 +8298,7 @@ async function startMUFESensor() {
     
     document.getElementById('bioStatus').textContent = '측정 중';
     document.getElementById('bioStatus').className = 'bio-stat-value active';
-    btn.textContent = '⏺ 측정 중...';
+    if (btn) btn.textContent = '⏺ 측정 중...';
     
     mufeUpdate();
     
@@ -8139,8 +8306,10 @@ async function startMUFESensor() {
     console.error('[MUFE rPPG] 센서 초기화 실패:', e);
     document.getElementById('bioStatus').textContent = '권한 거부';
     document.getElementById('bioStatus').className = 'bio-stat-value failed';
-    btn.disabled = false;
-    btn.textContent = '📷 측정 시작';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📷 측정 시작';
+    }
     
     let msg = '카메라 권한이 필요합니다';
     if (e.name === 'NotAllowedError') msg = '카메라 권한 거부됨 — 브라우저 설정에서 허용';
@@ -8168,8 +8337,10 @@ function stopMUFESensor() {
   }
   
   const btn = document.getElementById('bioStartBtn');
-  btn.disabled = false;
-  btn.textContent = '📷 측정 시작';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '📷 측정 시작';
+  }
 }
 
 function getGreenChannelAverage() {
@@ -8276,6 +8447,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bioModal) {
     bioModal.addEventListener('click', (e) => {
       if (e.target.id === 'bioAuthModal') closeBioAuthModal();
+    });
+  }
+  // 동의 체크박스 핸들러
+  const consentCheck = document.getElementById('bioConsentCheck');
+  const consentBtn = document.getElementById('bioConsentBtn');
+  if (consentCheck && consentBtn) {
+    consentCheck.addEventListener('change', () => {
+      consentBtn.disabled = !consentCheck.checked;
     });
   }
 });
