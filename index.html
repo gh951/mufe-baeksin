@@ -5576,17 +5576,16 @@
       const result = await res.json();
       
       if (result.status === 'success') {
-        userToken = result.userToken;
-        userPasscode = result.passcode;
-        userSpacing = result.format;  // 변수명은 그대로, 값은 format
+        userToken = result.token;           // 서버 응답: 'token' 박혀있음
+        userPasscode = passcode;            // 사용자가 박은 비번 그대로 저장 (UI 표시 X)
+        userSpacing = format;               // 사용자가 박은 형식
         localStorage.setItem('mufe-user-token', userToken);
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
         
         showRegMsg(
           `<strong>${result.message}</strong><br>` +
-          `<small>${result.detail}</small><br>` +
-          `<small style="opacity:0.7">${result.subdetail}</small>`,
+          `<small>${result.detail || ''}</small>`,
           'success'
         );
         
@@ -5621,20 +5620,35 @@
         body: JSON.stringify({}),
       });
       
-      currentChallenge = await res.json();
+      if (!res.ok) {
+        throw new Error(`서버 응답 박힘: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      
+      // 응답 *검증* 박음 — challengeId + rotationWords 필수
+      if (!data.challengeId || !data.rotationWords || data.rotationWords.length === 0) {
+        throw new Error('챌린지 응답 박힘 X');
+      }
+      
+      currentChallenge = data;
+      console.log('[MUFE] 챌린지 박힘:', currentChallenge.challengeId.slice(0, 20) + '...');
       
       // 카오스 이미지 처리 — 있으면 회전기 배경에 박음
       applyChaosImage(currentChallenge.chaosImage);
       
-      if (currentChallenge.rotationWords && currentChallenge.rotationWords.length > 0) {
-        rotatorWords = currentChallenge.rotationWords;
-        startRotatorAnimation();
-      }
+      rotatorWords = currentChallenge.rotationWords;
+      startRotatorAnimation();
+      
+      return true;
     } catch (err) {
       console.error('[MUFE] 챌린지 로드 실패:', err);
-      // fallback — 로컬 단어 풀
+      // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 박힘*)
+      currentChallenge = null;
       rotatorWords = ['진실', '미끼', '카오스', '백신', '인증', '대장', '클로드', '발명'];
       startRotatorAnimation();
+      
+      return false;
     }
   }
   
@@ -5842,14 +5856,23 @@
       return;
     }
     
-    if (!userToken || !currentChallenge) {
-      // 세션 만료 시 자동으로 새 챌린지 박음 — 사용자 친화 자리
-      showMsg('세션 새로 박는 중...', 'retry');
-      try {
-        await loadChallengeAndStartRotation();
-        showMsg('세션 새로 박힘 — 다시 회전 단어 잡으세요', 'retry');
-      } catch (err) {
-        showMsg('세션 새로 박는 중 문제 박힘 — 모달 닫고 다시 박아주세요', 'retry');
+    // *userToken 박힘 X* = 등록 안 박힌 자리
+    if (!userToken) {
+      showMsg('비번 *등록 안 박힘* — 모달 닫고 *비번 등록* 다시 박아주세요', 'retry');
+      return;
+    }
+    
+    // *currentChallenge 박힘 X* = 챌린지 안 박힌 자리
+    if (!currentChallenge || !currentChallenge.challengeId) {
+      showMsg('챌린지 새로 박는 중...', 'retry');
+      const ok = await loadChallengeAndStartRotation();
+      if (ok) {
+        showMsg('새 챌린지 박힘 — *회전 단어 다시 STOP* 박아주세요 (잡은 단어 박힘 X)', 'retry');
+        // 잡은 단어 박힘 X — 새 챌린지의 *새 단어*로 박아야 함
+        caughtWord = null;
+        document.getElementById('caughtInfo').style.display = 'none';
+      } else {
+        showMsg('서버 박힘 X — 인터넷 연결 확인 + 모달 다시 박아주세요', 'retry');
       }
       return;
     }
