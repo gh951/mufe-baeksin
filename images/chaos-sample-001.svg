@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg1" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="60%" stop-color="#0a1f3a"/>
+      <stop offset="100%" stop-color="#020a18"/>
+    </radialGradient>
+    <radialGradient id="flower1" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.95"/>
+      <stop offset="30%" stop-color="#f9a8d4" stop-opacity="0.85"/>
+      <stop offset="65%" stop-color="#ec4899" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.4"/>
+    </radialGradient>
+    <filter id="glow1">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  
+  <rect width="1200" height="800" fill="url(#bg1)"/>
+  
+  <!-- 시안 격자 -->
+  <g stroke="rgba(34, 211, 238, 0.1)" stroke-width="0.6" fill="none">
+    <path d="M 0 100 L 1200 100 M 0 200 L 1200 200 M 0 300 L 1200 300 M 0 400 L 1200 400 M 0 500 L 1200 500 M 0 600 L 1200 600 M 0 700 L 1200 700"/>
+    <path d="M 100 0 L 100 800 M 200 0 L 200 800 M 300 0 L 300 800 M 400 0 L 400 800 M 500 0 L 500 800 M 600 0 L 600 800 M 700 0 L 700 800 M 800 0 L 800 800 M 900 0 L 900 800 M 1000 0 L 1000 800 M 1100 0 L 1100 800"/>
+  </g>
+  
+  <!-- 매립 수식 (배경) -->
+  <g font-family="JetBrains Mono, monospace" font-size="14" fill="rgba(168, 85, 247, 0.35)">
+    <text x="60" y="80">∂Ψ/∂t · ∫E dx · ∇²φ · ℏ/2π · ∮A·dl</text>
+    <text x="60" y="730">R_μνσ^λ · g_μν + κ∫T_μν d³x = 0</text>
+    <text x="730" y="80">⟨ψ|H|ψ⟩ = E · S = -k Σpᵢ ln pᵢ</text>
+    <text x="730" y="730">ds² = gμν dxμ dxν · ∇·E = ρ/ε₀</text>
+  </g>
+  
+  <!-- 보라꽃 (Flower of Life) -->
+  <g transform="translate(600, 400)" filter="url(#glow1)">
+    <circle cx="0" cy="0" r="120" fill="url(#flower1)" opacity="0.9"/>
+    <circle cx="0" cy="-80" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="69" cy="-40" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="69" cy="40" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="0" cy="80" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="-69" cy="40" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="-69" cy="-40" r="80" fill="none" stroke="rgba(251, 191, 36, 0.7)" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="20" fill="white" opacity="0.95"/>
+  </g>
+  
+  <!-- 우측 80 영점 -->
+  <text x="1100" y="50" font-family="JetBrains Mono, monospace" font-size="18" fill="rgba(251, 191, 36, 0.8)" font-weight="900">⚪ 80</text>
+</svg>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg2" cx="30%" cy="70%">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#020a18"/>
+    </radialGradient>
+    <linearGradient id="cube" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="800" fill="url(#bg2)"/>
+  
+  <!-- 메타트론 큐브 -->
+  <g transform="translate(600, 400)" stroke="url(#cube)" stroke-width="1.2" fill="none" opacity="0.85">
+    <!-- 외부 13개 원 -->
+    <circle r="60"/>
+    <g><circle cx="0" cy="-120" r="60"/></g>
+    <g><circle cx="104" cy="-60" r="60"/></g>
+    <g><circle cx="104" cy="60" r="60"/></g>
+    <g><circle cx="0" cy="120" r="60"/></g>
+    <g><circle cx="-104" cy="60" r="60"/></g>
+    <g><circle cx="-104" cy="-60" r="60"/></g>
+    <g><circle cx="0" cy="-240" r="60"/></g>
+    <g><circle cx="208" cy="-120" r="60"/></g>
+    <g><circle cx="208" cy="120" r="60"/></g>
+    <g><circle cx="0" cy="240" r="60"/></g>
+    <g><circle cx="-208" cy="120" r="60"/></g>
+    <g><circle cx="-208" cy="-120" r="60"/></g>
+    
+    <!-- 연결 선 -->
+    <line x1="0" y1="-120" x2="0" y2="120"/>
+    <line x1="-104" y1="-60" x2="104" y2="60"/>
+    <line x1="-104" y1="60" x2="104" y2="-60"/>
+    <line x1="0" y1="-240" x2="0" y2="240"/>
+    <line x1="-208" y1="-120" x2="208" y2="120"/>
+    <line x1="-208" y1="120" x2="208" y2="-120"/>
+  </g>
+  
+  <!-- 카오스 수식 -->
+  <g font-family="JetBrains Mono, monospace" font-size="13" fill="rgba(251, 191, 36, 0.4)">
+    <text x="40" y="60">π² · √(2π) · n! · Σf(x,c)</text>
+    <text x="40" y="760">F = -(∂U/∂x) · H = ½p² + V(q)</text>
+    <text x="850" y="60">ψ(x) = ∮Aₑdt · ΔV = ∂Π/∂t</text>
+    <text x="850" y="760">u(x) = h(y) · E_init = ½(C₁∂t)²</text>
+  </g>
+  
+  <!-- 우측 80 영점 -->
+  <text x="1100" y="50" font-family="JetBrains Mono, monospace" font-size="18" fill="rgba(251, 191, 36, 0.85)" font-weight="900">⚪ 80</text>
+</svg>

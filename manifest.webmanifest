@@ -1,0 +1,50 @@
+{
+  "name": "MUFE 백신",
+  "short_name": "MUFE",
+  "description": "양자·AI 시대 보안 — 카메라·심박 + 카오스 인증",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020a18",
+  "theme_color": "#0a1f3a",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["security", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "빠른 검사",
+      "short_name": "빠른 검사",
+      "description": "빠른 검사 시작",
+      "url": "./?action=quick-scan",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "인증",
+      "short_name": "인증",
+      "description": "인증 시작",
+      "url": "./?action=auth",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

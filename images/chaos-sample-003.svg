@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg3" cx="70%" cy="30%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#020a18"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="1200" height="800" fill="url(#bg3)"/>
+  
+  <!-- 동심원 + 격자 -->
+  <g transform="translate(600, 400)" fill="none">
+    <circle r="350" stroke="rgba(34, 211, 238, 0.15)" stroke-width="0.8"/>
+    <circle r="280" stroke="rgba(34, 211, 238, 0.2)" stroke-width="0.8"/>
+    <circle r="210" stroke="rgba(168, 85, 247, 0.3)" stroke-width="0.8"/>
+    <circle r="140" stroke="rgba(236, 72, 153, 0.4)" stroke-width="0.8"/>
+    <circle r="70" stroke="rgba(251, 191, 36, 0.6)" stroke-width="1"/>
+    
+    <!-- 방사선 -->
+    <g stroke="rgba(168, 85, 247, 0.2)" stroke-width="0.5">
+      <line x1="0" y1="-350" x2="0" y2="350"/>
+      <line x1="-350" y1="0" x2="350" y2="0"/>
+      <line x1="-247" y1="-247" x2="247" y2="247"/>
+      <line x1="-247" y1="247" x2="247" y2="-247"/>
+      <line x1="-175" y1="-303" x2="175" y2="303"/>
+      <line x1="175" y1="-303" x2="-175" y2="303"/>
+      <line x1="-303" y1="-175" x2="303" y2="175"/>
+      <line x1="303" y1="-175" x2="-303" y2="175"/>
+    </g>
+    
+    <!-- 중심 별 -->
+    <circle r="30" fill="rgba(251, 191, 36, 0.4)"/>
+    <circle r="12" fill="rgba(255, 255, 255, 0.95)"/>
+    
+    <!-- 점들 (카오스) -->
+    <g fill="rgba(251, 191, 36, 0.7)">
+      <circle cx="0" cy="-280" r="3"/>
+      <circle cx="198" cy="-198" r="3"/>
+      <circle cx="280" cy="0" r="3"/>
+      <circle cx="198" cy="198" r="3"/>
+      <circle cx="0" cy="280" r="3"/>
+      <circle cx="-198" cy="198" r="3"/>
+      <circle cx="-280" cy="0" r="3"/>
+      <circle cx="-198" cy="-198" r="3"/>
+    </g>
+  </g>
+  
+  <!-- 매립 수식 -->
+  <g font-family="JetBrains Mono, monospace" font-size="12" fill="rgba(34, 211, 238, 0.4)">
+    <text x="50" y="50">∇²ψ = (1/c²) ∂²ψ/∂t²</text>
+    <text x="50" y="780">F = ma · E = mc²</text>
+    <text x="850" y="50">∮ B·dA = 0</text>
+    <text x="850" y="780">ΔS ≥ 0 · pV = nRT</text>
+  </g>
+  
+  <!-- 우측 80 영점 -->
+  <text x="1100" y="50" font-family="JetBrains Mono, monospace" font-size="18" fill="rgba(251, 191, 36, 0.8)" font-weight="900">⚪ 80</text>
+</svg>

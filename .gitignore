@@ -1,0 +1,14 @@
+# 대장님 개인 가이드 (배포 안 함)
+*_가이드.md
+대장님_*.md
+
+# 환경 변수
+.env
+.env.local
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
