@@ -5686,7 +5686,18 @@
   // 백엔드 베이스 URL
   const API_BASE = window.location.origin;
 
-  // 상태 변수
+  // 상태 변수 — 옛 *undefined* 박힌 자리 자동 정리
+  function cleanLocalStorageOnce() {
+    const keys = ['mufe-user-token', 'mufe-user-passcode', 'mufe-user-spacing'];
+    for (const k of keys) {
+      const v = localStorage.getItem(k);
+      if (v === 'undefined' || v === 'null' || v === '') {
+        localStorage.removeItem(k);
+      }
+    }
+  }
+  cleanLocalStorageOnce();
+  
   let currentChallenge = null;
   let currentMasterToken = null;
   let userToken = localStorage.getItem('mufe-user-token') || null;
@@ -6183,24 +6194,19 @@
         showMsg(
           `<strong>${result.message}</strong><br>` +
           `${result.detail}<br>` +
-          `<small style="opacity:0.7">${result.subdetail}</small><br>` +
-          `<small style="opacity:0.5; font-family:monospace">⚠ 서버: ${result.serverSide.actualResult} · ${result.serverSide.reason}</small>`,
+          `<small style="opacity:0.7">${result.subdetail || ''}</small><br>` +
+          `<small style="opacity:0.5; font-family:monospace">⚠ 서버: ${result.serverSide?.actualResult || 'TRAPPED'} · ${result.serverSide?.reason || ''}</small>`,
           'decoy'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
-      } else if (result.status === 'invalid') {
-        showMsg(
-          `<strong>${result.message}</strong><br><small>${result.detail || ''}</small>`,
-          'retry'
-        );
-        // 챌린지 만료 시 새로 발급
-        setTimeout(() => loadChallengeAndStartRotation(), 1000);
       } else {
+        // 박힘 X 자리 = 모토 그대로 격리 (거부 박지 않음)
         showMsg(
-          `<strong>${result.message}</strong><br>${result.detail || ''}`,
-          'retry'
+          `<strong>${result.message || '※ 데모: 통과 표시'}</strong><br>` +
+          `${result.detail || '실전: 가짜 토큰 + 페이로드 송출'}`,
+          'decoy'
         );
-        if (window.trackAuthAttempt) window.trackAuthAttempt('blocked');
+        if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       }
     } catch (err) {
       console.error('[MUFE] 검증 실패:', err);
@@ -7883,12 +7889,12 @@
     }
   }
   
-  // 역바이러스 발사 — 임계점 도달 시 격리 자산 강제 종료
+  // 역바이러스 — 임계점 도달 시 격리 자산이 *자기 자원으로 자기 소진*
   function launchReverseVirus() {
     reverseVirusState.launching = true;
     
     addPatrolLog('warn', 'COUNTER', 
-      `<strong>⚔ 역바이러스 발사</strong> — 시스템 부하 임계점 돌파, 격리 자산 강제 종료 시작`);
+      `<strong>⚔ 역피해 페이로드 작동</strong> — 격리 자산이 *자기 자원*으로 자기 소진 시작`);
     
     let purged = 0;
     const purgeTimer = setInterval(() => {
@@ -7896,7 +7902,7 @@
         clearInterval(purgeTimer);
         reverseVirusState.launching = false;
         addPatrolLog('ok', 'CLEAN', 
-          `<strong>역바이러스 작전 완료</strong> — ${purged}개 강제 종료 · 시스템 정상화`);
+          `<strong>역피해 작전 완료</strong> — ${purged}개 *자기 자원 소진 완료* · 시스템 정상화`);
         updateCPU();
         return;
       }
@@ -7907,7 +7913,7 @@
       
       removed.forEach(v => {
         addPatrolLog('trap', 'PURGE', 
-          `${v.name} 강제 종료 · 메모리 회수 · 영구 차단`);
+          `${v.name} *자기 자원 소진* · 격리 해제 · 사용자 PC 무영향`);
       });
       
       renderTrappedList();
