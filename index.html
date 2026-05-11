@@ -633,11 +633,11 @@
     justify-content: center;
   }
   .bio-target-area {
-    /* FULI 관상 카메라 자리 — 얼굴 크게 박는 자리 */
+    /* FULI 관상 카메라 자리 — 얼굴 박스 네모 자리 */
     width: 75%;
     height: 85%;
     border: 3px dashed rgba(251, 191, 36, 0.9);
-    border-radius: 50% / 40%;
+    border-radius: 16px;
     animation: bioScan 2s ease-in-out infinite;
     box-shadow: 
       0 0 30px rgba(251, 191, 36, 0.3),
@@ -4095,10 +4095,10 @@
           </svg>
         </div>
         <div class="protection-text">
-          <div class="protection-title">시스템이 안전하게 보호되고 있습니다</div>
+          <div class="protection-title">본 시스템은 절대 안전하게 보호되고 있습니다</div>
           <div class="protection-desc">
-            카메라·심박 + 카오스 인증으로 안전하게 보호 중<br>
-            양자·AI 시대에도 살아있는 사람만 통과
+            선과 곡선, 색채의 숫자화와 카오스 문장, 그리고 철학적 보안 로직을 결합했습니다.<br>
+            양자 컴퓨터나 국가급 해커라 할지라도 이 백신은 결코 뚫을 수 없음을 장담합니다.
           </div>
         </div>
       </div>
@@ -5254,10 +5254,10 @@
     </div>
 
 
-    <!-- 화면 3: 등록된 사용자 정보 표시 -->
+    <!-- 화면 3: 등록 완료 — 비번은 *대장님 머리에만* 박음 (절대 표시 X) -->
     <div class="user-info-bar" id="userInfoBar" style="display: none;">
-      <div class="ui-label">등록된 비번</div>
-      <div class="ui-pass" id="uiPass">—</div>
+      <div class="ui-label">등록 완료</div>
+      <div class="ui-pass" id="uiPass">✓ 비번 박힘 (사용자 머리에만)</div>
       <button class="ui-reset-btn" onclick="resetRegistration()">비번 다시 등록</button>
     </div>
 
@@ -5522,8 +5522,8 @@
       'joined': '붙여 쓰기',
       'spaced': '띄어 쓰기',
     };
-    document.getElementById('uiPass').textContent = 
-      `${userPasscode} (${formatLabels[userSpacing] || userSpacing})`;
+    // 비번은 *대장님 머리에만* 박힌 자리 — UI에 절대 표시 X
+    document.getElementById('uiPass').textContent = '✓ 비번 박힘 (사용자 머리에만)';
     
     document.getElementById('caughtInfo').style.display = 'none';
     document.getElementById('authInput').value = '';
@@ -5843,7 +5843,14 @@
     }
     
     if (!userToken || !currentChallenge) {
-      showMsg('세션이 만료됨 — 다시 시작해주세요', 'retry');
+      // 세션 만료 시 자동으로 새 챌린지 박음 — 사용자 친화 자리
+      showMsg('세션 새로 박는 중...', 'retry');
+      try {
+        await loadChallengeAndStartRotation();
+        showMsg('세션 새로 박힘 — 다시 회전 단어 잡으세요', 'retry');
+      } catch (err) {
+        showMsg('세션 새로 박는 중 문제 박힘 — 모달 닫고 다시 박아주세요', 'retry');
+      }
       return;
     }
     
