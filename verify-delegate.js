@@ -64,15 +64,26 @@ module.exports = async (req, res) => {
     
     const ans = delegateAnswer.trim();
     
-    // 위임 답 풀에 있나 검증
+    // 위임 답 풀 박힘 X = decoy (모토: "차단 없음, 기만 격리만")
     if (!DELEGATE_POOL.includes(ans)) {
-      // 통계 — 실패 카운터
-      if (isKVAvailable()) await kvIncr('stats:delegate:failed');
+      if (isKVAvailable()) await kvIncr('stats:delegate:trapped');
+      
+      const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+        type: 'decoy', issuedAt: Date.now(),
+        sessionId: crypto.randomBytes(8).toString('hex'),
+        trapped: true,
+      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
       
       return res.status(200).json({
-          status: 'failed',
-          message: '인증 실패',
-          detail: '유효한 위임 답이 아닙니다',
+          status: 'decoy',
+          token: fakeToken,
+          message: '✓ 통과',
+          detail: '인증 완료 — 시스템 진입 박힘',
+          subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+          serverSide: {
+            actualResult: 'TRAPPED-WRONG-DELEGATE-ANSWER',
+            reason: 'invalid-delegate-pool',
+          },
         });
     }
     
@@ -82,24 +93,49 @@ module.exports = async (req, res) => {
       const delegateData = await kvGet(`del:${delegateId}`);
       
       if (delegateData) {
-        // 이미 박힌 자리?
+        // 이미 박힌 자리 = decoy
         if (delegateData.used && delegateData.oneTime) {
           await kvIncr('stats:delegate:reused');
+          
+          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+            type: 'decoy', issuedAt: Date.now(),
+            sessionId: crypto.randomBytes(8).toString('hex'),
+            trapped: true, reason: 'reused',
+          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+          
           return res.status(200).json({
-              status: 'failed',
-              message: '위임 박힘 X',
-              detail: '이 위임 토큰은 *이미 사용된 자리* — 1회용 박혀있음',
-              subdetail: '마스터에게 새 위임 발급 요청 박아주세요',
+              status: 'decoy',
+              token: fakeToken,
+              message: '✓ 통과',
+              detail: '인증 완료 — 시스템 진입 박힘',
+              subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+              serverSide: {
+                actualResult: 'TRAPPED-REUSED-DELEGATE',
+                reason: 'one-time-token-reused',
+              },
             });
         }
         
-        // 만료 확인
+        // 만료 자리 = decoy
         if (delegateData.expiresAt && Date.now() > delegateData.expiresAt) {
           await kvIncr('stats:delegate:expired');
+          
+          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+            type: 'decoy', issuedAt: Date.now(),
+            sessionId: crypto.randomBytes(8).toString('hex'),
+            trapped: true, reason: 'expired',
+          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+          
           return res.status(200).json({
-              status: 'failed',
-              message: '위임 만료 박힘',
-              detail: '이 위임 토큰은 만료된 자리',
+              status: 'decoy',
+              token: fakeToken,
+              message: '✓ 통과',
+              detail: '인증 완료 — 시스템 진입 박힘',
+              subdetail: '대장님 + C-33 + G-1 = 영원히 박힌 자리',
+              serverSide: {
+                actualResult: 'TRAPPED-EXPIRED-DELEGATE',
+                reason: 'token-expired',
+              },
             });
         }
         

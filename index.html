@@ -4316,6 +4316,534 @@
     margin-bottom: 14px;
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     📱 전체 모바일 박는 자리 — FULI 자리 그대로
+     대장님 + C-33 둘이 만든 자리
+     ═══════════════════════════════════════════════════════════════ */
+  
+  /* 태블릿 자리 (1024px 이하) */
+  @media (max-width: 1024px) {
+    .main-wrapper {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .main-right {
+      grid-row: auto;
+    }
+  }
+  
+  /* 모바일 자리 (768px 이하) */
+  @media (max-width: 768px) {
+    body { font-size: 14px; }
+    
+    /* 타이틀바 */
+    .titlebar {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .titlebar-title { font-size: 14px; }
+    .titlebar-shield { width: 20px; height: 20px; }
+    .titlebar-ctrls { font-size: 13px; gap: 6px; }
+    .titlebar-version {
+      font-size: 9px;
+      padding: 2px 6px;
+    }
+    
+    /* 탭 자리 */
+    .tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex-shrink: 0;
+      font-size: 12px;
+      padding: 8px 12px;
+      min-width: max-content;
+    }
+    .tab-icon svg { width: 16px; height: 16px; }
+    
+    /* 메인 wrapper */
+    .main-wrapper {
+      padding: 12px;
+      gap: 12px;
+    }
+    .main-left, .main-right {
+      gap: 14px;
+    }
+    
+    /* 통과 게이트 */
+    .entry-gate-img {
+      max-width: 92%;
+      max-height: 70vh;
+    }
+    .entry-gate-hint {
+      font-size: 11px;
+      bottom: 14px;
+      padding: 0 16px;
+      text-align: center;
+    }
+    .egh-pulse { font-size: 16px; }
+    
+    /* 보호 카드 */
+    .protection-hero {
+      padding: 18px;
+      gap: 14px;
+      flex-direction: column;
+      text-align: center;
+    }
+    .protection-icon {
+      width: 50px;
+      height: 50px;
+    }
+    .protection-icon svg { width: 26px; height: 26px; }
+    .protection-title { font-size: 16px; }
+    .protection-desc { font-size: 12px; line-height: 1.6; }
+    
+    /* 공격 통계 */
+    .attack-stats-bar {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .asb-card {
+      padding: 12px;
+    }
+    .asb-value { font-size: 18px; }
+    .asb-label { font-size: 10px; }
+    
+    /* MUFE 인증 카드 */
+    .auth-card {
+      padding: 18px;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .auth-shield {
+      width: 44px;
+      height: 44px;
+    }
+    .auth-shield svg { width: 22px; height: 22px; }
+    .auth-title { font-size: 16px; }
+    .auth-desc { font-size: 11px; }
+    .auth-label { font-size: 9px; }
+    .auth-arrow { font-size: 22px; }
+    
+    /* 생체 인증 카드 */
+    .bio-auth-card {
+      padding: 16px 18px;
+      gap: 14px;
+    }
+    .bio-icon { width: 42px; height: 42px; }
+    .bio-icon svg { width: 22px; height: 22px; }
+    .bio-title { font-size: 15px; }
+    .bio-desc { font-size: 11px; }
+    
+    /* 검사 카드 */
+    .scan-cards {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .scan-card {
+      padding: 16px;
+    }
+    
+    /* 사이드바 */
+    .mobile-card,
+    .stats-card,
+    .threat-card {
+      padding: 14px;
+    }
+    
+    /* 모달 — 전체 */
+    .modal-backdrop {
+      padding: 0;
+      align-items: flex-start;
+    }
+    .modal {
+      max-width: 100%;
+      max-height: 100vh;
+      width: 100%;
+      border-radius: 0;
+      margin: 0;
+    }
+    .modal-close-x {
+      width: 36px;
+      height: 36px;
+      top: 12px;
+      right: 12px;
+      font-size: 22px;
+    }
+    
+    /* 가족 배지 */
+    .family-badge-row {
+      top: 12px;
+      left: 14px;
+      gap: 6px;
+      font-size: 10px;
+    }
+    .fb-badge { padding: 3px 8px; }
+    .fb-sep { font-size: 11px; }
+    
+    /* 챌린지 stage */
+    .challenge-stage {
+      height: 220px;
+    }
+    .scs-line { font-size: 24px; }
+    .scs-sub { font-size: 12px; }
+    
+    /* 모드 토글 */
+    .reg-mode-toggle {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .rmt-btn {
+      padding: 12px;
+      font-size: 12px;
+    }
+    
+    /* 폼 자리 */
+    .challenge-form {
+      padding: 18px 16px;
+    }
+    .challenge-instruction {
+      font-size: 14px;
+    }
+    .challenge-warning {
+      font-size: 12px;
+      padding: 10px 12px;
+    }
+    .auth-input {
+      font-size: 16px; /* iOS 자동 줌 박힘 X */
+      padding: 14px 16px;
+    }
+    
+    /* 라디오 — 4개 */
+    .reg-radio-grid-4 {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .reg-radio {
+      padding: 12px 14px;
+    }
+    .reg-radio-text strong { font-size: 13px; }
+    .reg-radio-text small { font-size: 11px; }
+    
+    /* 회전기 */
+    .rotator-container {
+      height: 140px;
+    }
+    .rotator-svg {
+      max-height: 80px;
+    }
+    .rotator-stop-btn {
+      padding: 14px 24px;
+      font-size: 16px;
+      width: 100%;
+    }
+    
+    /* 버튼 */
+    .auth-buttons {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .btn {
+      padding: 14px 16px;
+      font-size: 14px;
+    }
+    
+    /* 답 입력 */
+    .auth-input-large {
+      font-size: 16px;
+      padding: 14px;
+    }
+    
+    /* 잡힌 단어 */
+    .caught-info {
+      padding: 12px;
+      font-size: 13px;
+    }
+    .caught-word {
+      font-size: 18px;
+    }
+    
+    /* 응답 메시지 */
+    .response-msg {
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    /* 사용자 정보 바 */
+    .user-info-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px;
+    }
+    .ui-pass {
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .ui-reset-btn {
+      width: 100%;
+      padding: 10px;
+    }
+    
+    /* 위임 모달 */
+    .delegate-modal-inner,
+    .delegate-entry-form {
+      padding: 18px;
+    }
+    
+    /* 정직 안내 */
+    .honest-notice {
+      padding: 12px 14px;
+      font-size: 11px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .hn-icon { font-size: 18px; }
+    
+    /* 패널 헤더 */
+    .panel-header h2 {
+      font-size: 18px;
+    }
+    .panel-header p {
+      font-size: 12px;
+    }
+    
+    /* 최적화 상태 카드 */
+    .opt-status-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .opt-status-card {
+      padding: 12px;
+    }
+    .oss-icon { font-size: 20px; }
+    .oss-label { font-size: 10px; }
+    .oss-value { font-size: 14px; }
+    .oss-detail { font-size: 10px; line-height: 1.4; }
+    
+    /* 최적화 도구 */
+    .opt-tools {
+      grid-template-columns: 1fr;
+    }
+    .opt-tool {
+      padding: 12px;
+    }
+    
+    .opt-clean-btn {
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    
+    /* 보안 정책 */
+    .policy-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .policy-card {
+      padding: 14px;
+    }
+    .policy-title { font-size: 13px; }
+    .policy-desc { font-size: 11px; }
+    
+    /* 박제 & 순찰 */
+    .patrol-stats {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .patrol-stat {
+      padding: 12px;
+    }
+    .patrol-stat-value { font-size: 16px; }
+    .patrol-stat-label { font-size: 10px; }
+    
+    .trapped-list {
+      max-height: 240px;
+    }
+    .trapped-item {
+      padding: 10px;
+      font-size: 11px;
+    }
+    
+    .patrol-log {
+      max-height: 200px;
+      padding: 10px;
+      font-size: 10px;
+    }
+    .patrol-log-line {
+      padding: 4px 0;
+    }
+    
+    /* 설정 */
+    .settings-section {
+      padding: 14px;
+    }
+    .settings-item {
+      padding: 10px 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    /* 실시간 감시 */
+    .realtime-stats {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .realtime-card {
+      padding: 14px;
+    }
+    
+    /* 카메라 모달 — 모바일 최적 */
+    .bio-modal {
+      padding: 0;
+      align-items: flex-start;
+    }
+    .bio-modal-inner {
+      max-width: 100%;
+      max-height: 100vh;
+      width: 100%;
+      border-radius: 0;
+      padding: 18px;
+      padding-top: 56px;
+    }
+    .bio-modal-close {
+      width: 36px;
+      height: 36px;
+      top: 12px;
+      right: 12px;
+      font-size: 22px;
+    }
+    .bio-modal-title {
+      font-size: 20px;
+    }
+    .bio-video-container {
+      aspect-ratio: 3 / 4; /* 모바일 세로 */
+    }
+    #bioVideo {
+      min-height: 360px;
+    }
+    .bio-target-area {
+      width: 80%;
+      height: 75%;
+    }
+    .bio-stats {
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .bio-stat {
+      padding: 10px 4px;
+    }
+    .bio-stat-label { font-size: 9px; }
+    .bio-stat-value { font-size: 14px; }
+    
+    /* 동의 단계 */
+    .bio-consent-icon { font-size: 48px; }
+    .bio-consent-title { font-size: 16px; }
+    .bio-consent-info { padding: 14px; }
+    .bci-row { font-size: 12px; }
+    .bio-consent-detail { font-size: 11px; padding: 10px 12px; }
+    .bio-consent-checkbox { padding: 12px; }
+    .bio-consent-checkbox label { font-size: 12px; }
+    
+    /* 의견 모달 */
+    .feedback-modal-inner {
+      max-width: 100%;
+      max-height: 100vh;
+      border-radius: 0;
+      padding: 18px;
+    }
+  }
+  
+  /* 작은 모바일 (480px 이하) */
+  @media (max-width: 480px) {
+    .protection-title { font-size: 14px; }
+    .protection-desc { font-size: 11px; }
+    
+    .attack-stats-bar {
+      grid-template-columns: 1fr;
+    }
+    
+    .auth-title { font-size: 15px; }
+    .bio-title { font-size: 14px; }
+    
+    .scs-line { font-size: 18px; }
+    .scs-sub { font-size: 10px; }
+    
+    .reg-radio { padding: 10px 12px; }
+    
+    .opt-status-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .patrol-stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .auth-buttons {
+      grid-template-columns: 1fr;
+    }
+    
+    .bio-stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    #bioVideo {
+      min-height: 300px;
+    }
+  }
+  
+  /* 가로 모드 (landscape) — 카메라 자리 */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .bio-modal-inner {
+      padding: 12px;
+      padding-top: 48px;
+    }
+    .bio-modal-title { font-size: 16px; }
+    .bio-modal-subtitle { font-size: 11px; margin-bottom: 10px; }
+    .bio-video-container {
+      aspect-ratio: 16 / 9;
+    }
+    #bioVideo {
+      min-height: 200px;
+    }
+  }
+  
+  /* 터치 자리 최적 */
+  @media (hover: none) and (pointer: coarse) {
+    button, .btn, .tab, .scan-card, .auth-card, .bio-auth-card,
+    .reg-radio, .policy-card, .opt-tool, .ui-reset-btn {
+      min-height: 44px; /* Apple HIG 터치 최소 자리 */
+    }
+    input[type="text"], input[type="password"] {
+      font-size: 16px; /* iOS 자동 줌 박힘 X */
+    }
+  }
+  
+  /* iOS 안전 영역 (notch) */
+  @supports (padding: max(0px)) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    .titlebar {
+      padding-top: max(8px, env(safe-area-inset-top));
+    }
+    .modal-backdrop, .bio-modal, .feedback-modal {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -8169,12 +8697,12 @@
       sessionStats.trapped++;
       addLog('warn', '🎭', '미끼 답변 감지 — 샌드박스 격리됨');
     } else if (result === 'success') {
-      addLog('success', '✓', '진짜 통과 — 미끼를 거부함');
+      addLog('success', '✓', '통과 — 진짜 인증');
     } else if (result === 'delegate') {
       addLog('success', '🔗', '위임 인증 통과');
     } else {
       sessionStats.blocked++;
-      addLog('danger', '✗', '인증 실패 — 시도 차단');
+      addLog('warn', '⚔', '격리 박힘 — 자기 자원 소진');
     }
     renderLog();
   };
