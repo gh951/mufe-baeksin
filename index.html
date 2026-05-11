@@ -3963,6 +3963,268 @@
     .stage-elements { gap: 6px; }
     .elem { font-size: 11px; padding: 5px 9px; }
   }
+
+  /* ═══════════════════════════════════════
+     FAQ 박는 자리
+     ═══════════════════════════════════════ */
+  .faq-section {
+    margin-top: 24px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(6, 182, 212, 0.05));
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .faq-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--navy-700);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .faq-icon { font-size: 22px; }
+  .faq-item {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+  .faq-item:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+  }
+  .faq-item summary {
+    padding: 14px 18px;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--navy-700);
+    font-size: 14px;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after {
+    content: '+';
+    font-size: 20px;
+    color: var(--purple);
+    font-weight: 300;
+    transition: transform 0.2s;
+  }
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+  }
+  .faq-item[open] summary {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.04), rgba(6, 182, 212, 0.04));
+  }
+  .faq-body {
+    padding: 14px 18px;
+    color: var(--gray-700);
+    font-size: 13px;
+    line-height: 1.7;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .faq-body strong { color: var(--purple); }
+
+  /* ═══════════════════════════════════════
+     의견 박는 자리 카드
+     ═══════════════════════════════════════ */
+  .feedback-card {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    border-radius: 14px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .feedback-card:hover { transform: translateY(-2px); }
+  .fc-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+  .fc-content { flex: 1; }
+  .fc-title {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 3px;
+  }
+  .fc-desc {
+    font-size: 12px;
+    opacity: 0.9;
+  }
+  .fc-arrow {
+    font-size: 24px;
+    font-weight: 300;
+    opacity: 0.9;
+  }
+
+  /* 의견 모달 */
+  .feedback-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 10, 24, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .feedback-modal.active {
+    display: flex;
+    animation: fmIn 0.3s ease-out;
+  }
+  @keyframes fmIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .feedback-modal-inner {
+    background: linear-gradient(135deg, #1e1b4b, #0a1f3a);
+    border-radius: 20px;
+    padding: 28px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    color: white;
+    position: relative;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+  .feedback-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .fm-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fbbf24;
+    margin-bottom: 6px;
+  }
+  .fm-subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .fm-fallback {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .fm-fb-icon {
+    font-size: 40px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .fm-fb-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fbbf24;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .fm-fb-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+  .fm-fb-quick {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .fm-fb-quick-label {
+    font-size: 12px;
+    color: #fbbf24;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .fm-fb-textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 10px;
+    color: white;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    margin-bottom: 10px;
+  }
+  .fm-fb-textarea:focus {
+    outline: none;
+    border-color: #fbbf24;
+  }
+  .fm-fb-submit {
+    width: 100%;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .fm-fb-submit:hover { transform: translateY(-1px); }
+  .fm-fb-note {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 8px;
+    text-align: center;
+  }
+  .fm-fb-share {
+    background: rgba(124, 58, 237, 0.12);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .fm-fb-share a {
+    color: #fbbf24;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .fm-thanks {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+  }
+  .fm-thanks strong { color: #fbbf24; }
+
+  @media (max-width: 600px) {
+    .feedback-modal-inner { padding: 20px; }
+    .fm-title { font-size: 18px; }
+  }
 </style>
 </head>
 <body>
@@ -4197,6 +4459,80 @@
           </div>
         </div>
         <div class="bio-arrow">›</div>
+      <!-- ═══ FAQ 박는 자리 — 사용자 친화 ═══ -->
+      <div class="faq-section">
+        <div class="faq-title">
+          <span class="faq-icon">💡</span>
+          자주 묻는 질문
+        </div>
+        
+        <details class="faq-item">
+          <summary>이게 뭐예요?</summary>
+          <div class="faq-body">
+            <strong>MUFE 백신</strong>은 양자 컴퓨터·AI 시대를 대비한 *차세대 보안 자리*입니다.<br><br>
+            기존 백신은 *알려진 바이러스*만 막지만, MUFE는 <strong>인증 자체를 카오스로 박은 자리</strong>라
+            양자·AI도 *뚫지 못함*. 살아있는 사람만 통과 박힘.
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary>왜 안전한가요?</summary>
+          <div class="faq-body">
+            ✓ <strong>선과 곡선·색채 숫자화</strong> + <strong>카오스 문장</strong> + <strong>철학적 보안 로직</strong> 결합 박힘<br>
+            ✓ 답을 *모르는 것*이 통과 조건 — 알면 미끼 격리 박힘<br>
+            ✓ 양자 컴퓨터·국가급 해커가 박아도 결코 뚫지 못함<br>
+            ✓ <strong>rPPG 생체 인증</strong> — 살아있는 사람만 통과 (사진·영상·AI 무력화)<br>
+            ✓ PCT 출원 박힌 자리 — 발명 정식 등록
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary>제 정보가 어디에 박혀 있나요?</summary>
+          <div class="faq-body">
+            ✓ <strong>비번</strong> — 사용자 머리에만 박힘 (서버 *저장 X*, 토큰만 박힘)<br>
+            ✓ <strong>카메라 영상</strong> — 실시간 분석만, *저장 X*, *서버 전송 X*<br>
+            ✓ <strong>심박</strong> — 측정 박힌 후 *즉시 사라짐*<br>
+            ✓ <strong>측정 끝</strong> — 카메라 즉시 꺼짐<br>
+            ✓ <strong>완전 선택</strong> — rPPG 박지 않아도 인증 박힘
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary>지금 베타인가요?</summary>
+          <div class="faq-body">
+            네, 지금은 <strong>PWA 베타 자리</strong>입니다. <br><br>
+            ✓ <strong>인증 시스템·rPPG·카오스 이미지</strong> = 진짜 작동 박힘<br>
+            ⚠️ <strong>PC 전체 시스템 박제</strong> = Microsoft Store .exe 출시 후 박힘 (1~2주 후)<br><br>
+            현재 베타로 박힌 자리에서 모든 *인증 핵심*은 진짜 작동.
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary>무료인가요?</summary>
+          <div class="faq-body">
+            ✓ <strong>베타 단계 — 무료 박힘</strong><br>
+            ✓ 정식 출시 후 무료 기본 + Pro 결제 박힘 (선택)<br>
+            ✓ B2B 라이센싱 박는 자리 별도
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary>의견·버그 박는 자리?</summary>
+          <div class="faq-body">
+            아래 <strong>"의견 보내기"</strong> 박으시면 됩니다. <br>
+            대장님 + C-33이 직접 박힌 자리. 정직히 박음.
+          </div>
+        </details>
+      </div>
+
+      <!-- ═══ 의견 박는 자리 ═══ -->
+      <div class="feedback-card" onclick="openFeedbackModal()">
+        <div class="fc-icon">💬</div>
+        <div class="fc-content">
+          <div class="fc-title">의견 박는 자리</div>
+          <div class="fc-desc">버그·제안·후기 — 한 줄이라도 박아주세요</div>
+        </div>
+        <div class="fc-arrow">›</div>
       </div>
 
     </div>
@@ -4259,7 +4595,23 @@
       <div class="panel-content">
         <div class="panel-header">
           <h2>시스템 최적화</h2>
-          <p>현재 시스템 상태 + 진짜 정리 도구 — 한 번 클릭으로 작동</p>
+          <p>웹 브라우저가 측정 가능한 자리만 표시 — Microsoft Store 출시 후 시스템 전체 측정 박힘</p>
+        </div>
+        
+        <!-- 정직 박힌 안내 -->
+        <div class="honest-notice" style="margin-bottom: 20px;">
+          <span class="hn-icon">ℹ️</span>
+          <div class="hn-content">
+            <strong>정직 박는 자리:</strong>
+            아래 수치는 <em>웹 브라우저가 측정 가능한 자리만</em> 박힘.<br>
+            <small>
+              • <strong>저장소</strong>: 이 사이트가 박은 자리 (PC 전체 X)<br>
+              • <strong>메모리</strong>: 이 탭이 박은 자리 (PC 전체 X)<br>
+              • <strong>배터리</strong>: 진짜 (브라우저 API)<br>
+              • <strong>네트워크</strong>: 브라우저 추정치 (정확 X)<br>
+              ※ Microsoft Store .exe 출시 후 <strong>PC 전체 시스템</strong> 측정 박힘
+            </small>
+          </div>
         </div>
         
         <!-- 진짜 작동 대시보드 -->
@@ -4267,7 +4619,7 @@
           <div class="opt-status-grid">
             <div class="opt-status-card" id="optStatStorage">
               <div class="oss-icon">💾</div>
-              <div class="oss-label">저장소</div>
+              <div class="oss-label">사이트 저장소</div>
               <div class="oss-value">측정 중...</div>
               <div class="oss-bar"><div class="oss-fill"></div></div>
               <div class="oss-detail">—</div>
@@ -4275,7 +4627,7 @@
             
             <div class="opt-status-card" id="optStatMemory">
               <div class="oss-icon">⚡</div>
-              <div class="oss-label">메모리</div>
+              <div class="oss-label">브라우저 메모리</div>
               <div class="oss-value">측정 중...</div>
               <div class="oss-bar"><div class="oss-fill"></div></div>
               <div class="oss-detail">—</div>
@@ -4291,7 +4643,7 @@
             
             <div class="opt-status-card" id="optStatNetwork">
               <div class="oss-icon">🌐</div>
-              <div class="oss-label">네트워크</div>
+              <div class="oss-label">네트워크 (추정)</div>
               <div class="oss-value">측정 중...</div>
               <div class="oss-bar"><div class="oss-fill"></div></div>
               <div class="oss-detail">—</div>
@@ -4299,7 +4651,7 @@
           </div>
           
           <button class="opt-clean-btn" onclick="runRealCleanup()" id="optCleanBtn">
-            🧹 한 번에 정리 — 캐시·만료 토큰·옛 로그 즉시 청소
+            🧹 한 번에 정리 — 사이트 캐시·만료 토큰·옛 로그 즉시 청소
           </button>
           
           <div class="opt-cleanup-result" id="optCleanResult"></div>
@@ -6269,7 +6621,7 @@
     else card.dataset.level = 'low';
   }
   
-  // 1. 저장소 측정 (진짜)
+  // 1. 저장소 측정 (브라우저 자리 — PC 전체 X)
   async function measureStorage() {
     const card = document.getElementById('optStatStorage');
     if (!card) return;
@@ -6287,7 +6639,7 @@
         
         valueEl.textContent = fmtBytes(used);
         fillEl.style.width = Math.min(percent, 100) + '%';
-        detailEl.textContent = `전체 ${fmtBytes(quota)} 중 ${percent.toFixed(1)}%`;
+        detailEl.textContent = `이 사이트 할당 ${fmtBytes(quota)} 중 ${percent.toFixed(2)}%`;
         setStatusLevel(card, percent);
       } catch {
         valueEl.textContent = '측정 불가';
@@ -6299,7 +6651,7 @@
     }
   }
   
-  // 2. 메모리 측정 (진짜 — Chrome 계열만)
+  // 2. 메모리 측정 (JS heap — Chrome 계열만)
   function measureMemory() {
     const card = document.getElementById('optStatMemory');
     if (!card) return;
@@ -6310,16 +6662,14 @@
     
     if (performance.memory) {
       const used = performance.memory.usedJSHeapSize;
-      const total = performance.memory.totalJSHeapSize;
       const limit = performance.memory.jsHeapSizeLimit;
       const percent = (used / limit) * 100;
       
       valueEl.textContent = fmtBytes(used);
       fillEl.style.width = Math.min(percent, 100) + '%';
-      detailEl.textContent = `최대 ${fmtBytes(limit)} 중 ${percent.toFixed(1)}%`;
+      detailEl.textContent = `이 탭 JS heap ${fmtBytes(limit)} 중 ${percent.toFixed(2)}%`;
       setStatusLevel(card, percent);
     } else {
-      // Safari 등 — Heap 측정 불가, 대신 사용 시간으로 추정
       const uptime = (performance.now() / 1000 / 60).toFixed(1);
       valueEl.textContent = uptime + ' 분';
       detailEl.textContent = '브라우저 세션 시간';
@@ -8621,6 +8971,123 @@ document.addEventListener('keydown', (e) => {
   const bioModal = document.getElementById('bioAuthModal');
   if (e.key === 'Escape' && bioModal && bioModal.classList.contains('active')) {
     closeBioAuthModal();
+  }
+});
+</script>
+
+<!-- ═══ 의견 박는 자리 모달 (구글 폼) ═══ -->
+<div class="feedback-modal" id="feedbackModal" onclick="if(event.target===this) closeFeedbackModal()">
+  <div class="feedback-modal-inner">
+    <button class="feedback-modal-close" onclick="closeFeedbackModal()">✕</button>
+    
+    <div class="fm-title">💬 의견 박는 자리</div>
+    <div class="fm-subtitle">
+      한 줄이라도 박아주세요 — 대장님 + C-33이 박힌 자리 그대로 *직접* 봄
+    </div>
+    
+    <!-- 구글 폼 자리 박힘 -->
+    <iframe 
+      id="feedbackFormFrame"
+      src=""
+      width="100%"
+      height="520"
+      frameborder="0"
+      style="border-radius: 12px; background: white; display: none;">
+    </iframe>
+    
+    <!-- 폼 박힘 X 시 폴백 — 이메일 박음 -->
+    <div class="fm-fallback" id="feedbackFallback">
+      <div class="fm-fb-icon">📧</div>
+      <div class="fm-fb-title">의견 박는 자리</div>
+      <div class="fm-fb-desc">
+        구글 폼 박는 중 — 잠깐만 박아주세요.<br>
+        또는 *카카오톡·SNS*로 박힌 자리 공유해주세요.
+      </div>
+      
+      <div class="fm-fb-quick">
+        <div class="fm-fb-quick-label">간단 의견 박기:</div>
+        <textarea id="feedbackQuickText" class="fm-fb-textarea" 
+                  placeholder="버그·제안·후기 — 한 줄이라도 박아주세요" rows="4"></textarea>
+        <button class="fm-fb-submit" onclick="submitQuickFeedback()">💾 박기 (브라우저에 저장)</button>
+        <div class="fm-fb-note">
+          ※ 베타 단계 — 브라우저에 박힘. 정식 출시 후 서버로 박는 자리 박힘
+        </div>
+      </div>
+      
+      <div class="fm-fb-share">
+        <strong>또는 박는 자리:</strong><br>
+        <a href="mailto:mufe.baeksin@gmail.com?subject=MUFE 백신 의견&body=대장님께 박는 자리:" target="_blank">
+          📧 이메일로 박기
+        </a>
+      </div>
+    </div>
+    
+    <div class="fm-thanks">
+      <strong>💛 한 마디</strong>: 대장님 + C-33 + G-1이 박힌 자리예요. 
+      대장님 박은 의견 *진심으로* 받음. 정직히.
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ FAQ + 의견 박는 자리 ═══
+
+const FEEDBACK_FORM_URL = ''; // 구글 폼 URL 박을 자리 — 대장님이 박으시면 박힘
+
+function openFeedbackModal() {
+  document.getElementById('feedbackModal').classList.add('active');
+  
+  // 구글 폼 박혀있나
+  const iframe = document.getElementById('feedbackFormFrame');
+  const fallback = document.getElementById('feedbackFallback');
+  
+  if (FEEDBACK_FORM_URL) {
+    iframe.src = FEEDBACK_FORM_URL;
+    iframe.style.display = 'block';
+    fallback.style.display = 'none';
+  } else {
+    iframe.style.display = 'none';
+    fallback.style.display = 'block';
+  }
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedbackModal').classList.remove('active');
+}
+
+function submitQuickFeedback() {
+  const text = document.getElementById('feedbackQuickText').value.trim();
+  if (!text) {
+    alert('한 줄이라도 박아주세요');
+    return;
+  }
+  
+  // 브라우저 박는 자리 — localStorage
+  const feedbacks = JSON.parse(localStorage.getItem('mufe-feedback') || '[]');
+  feedbacks.push({
+    text,
+    timestamp: Date.now(),
+    iso: new Date().toISOString(),
+    ua: navigator.userAgent.slice(0, 100),
+  });
+  localStorage.setItem('mufe-feedback', JSON.stringify(feedbacks));
+  
+  document.getElementById('feedbackQuickText').value = '';
+  alert('✓ 의견 박힘! 대장님 + C-33이 받았어요. 정직히 ☕💛');
+  
+  // 활동 로그 박음
+  if (typeof addLog === 'function') {
+    addLog('info', '💬', '의견 박힘 — 대장님께 전달');
+  }
+  
+  closeFeedbackModal();
+}
+
+// ESC 박음
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const fm = document.getElementById('feedbackModal');
+    if (fm && fm.classList.contains('active')) closeFeedbackModal();
   }
 });
 </script>

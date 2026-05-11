@@ -13,6 +13,7 @@
  */
 
 const crypto = require('crypto');
+const { kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 
@@ -265,6 +266,13 @@ module.exports = async (req, res) => {
     
     if (userAnswer === realAnswer) {
       const realToken = generateAuthToken('real', userData);
+      
+      // 통계 — KV에 박음 (영구 저장)
+      if (isKVAvailable()) {
+        await kvIncr('stats:auth:success');
+        await kvIncr(`stats:auth:by-day:${new Date().toISOString().slice(0,10)}`);
+      }
+      
       return res.status(200).json({
           status: 'success',
           token: realToken,
@@ -282,6 +290,13 @@ module.exports = async (req, res) => {
       if (userAnswer === fakeAnswer) {
         const fakeToken = generateAuthToken('decoy', userData);
         const reversePayload = generateReversePayload();
+        
+        // 통계 — 격리 자리 박음
+        if (isKVAvailable()) {
+          await kvIncr('stats:auth:decoy');
+          await kvIncr('stats:reverse-payload:deployed');
+        }
+        
         return res.status(200).json({
             status: 'decoy',
             token: fakeToken,
@@ -306,6 +321,8 @@ module.exports = async (req, res) => {
     }
     
     // 비번 자체가 다름 → 단순 실패 (격리 대상도 아님)
+    if (isKVAvailable()) await kvIncr('stats:auth:failed');
+    
     return res.status(200).json({
         status: 'failed',
         message: '인증 실패',
