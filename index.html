@@ -4253,18 +4253,12 @@
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    padding: 20px;
   }
-  .stage-word {
-    font-family: 'Pretendard', sans-serif;
-    font-size: 72px;
-    font-weight: 900;
-    color: #fbbf24;
-    letter-spacing: -0.02em;
-    text-shadow:
-      0 0 40px rgba(251, 191, 36, 0.9),
-      0 0 80px rgba(251, 191, 36, 0.5),
-      0 6px 20px rgba(0, 0, 0, 0.95);
-    animation: stageWordPulse 0.6s ease-in-out infinite alternate;
+  .stage-svg {
+    width: 100%;
+    height: 100%;
+    max-width: 760px;
   }
   @keyframes stageWordPulse {
     from { transform: scale(1); }
@@ -4272,11 +4266,9 @@
   }
   @media (max-width: 768px) {
     .challenge-stage-custom { height: 240px; }
-    .stage-word { font-size: 52px; }
   }
   @media (max-width: 480px) {
     .challenge-stage-custom { height: 200px; }
-    .stage-word { font-size: 40px; }
   }
   
   /* 등록/로그인 모드 토글 박음 */
@@ -5905,7 +5897,27 @@
       
       <!-- 통합 회전 단어 (이미지 위에 크게 박힘) -->
       <div class="stage-rotator" id="stageRotator">
-        <span class="stage-word" id="stageWord">—</span>
+        <svg class="stage-svg" id="stageSvg" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <clipPath id="stageTextClip">
+              <text id="stageClipText" x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+                    font-family="Pretendard, sans-serif" font-size="160" font-weight="900"
+                    letter-spacing="0.02em">—</text>
+            </clipPath>
+          </defs>
+          
+          <!-- 글자 속 매립 수학 (회전마다 새로 박힘) -->
+          <g clip-path="url(#stageTextClip)" id="stageMathFill">
+            <rect x="0" y="0" width="800" height="280" fill="rgba(10,31,58,0.85)"/>
+          </g>
+          
+          <!-- 황금 윤곽선 -->
+          <text id="stageWord" x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+                font-family="Pretendard, sans-serif" font-size="160" font-weight="900"
+                fill="none" stroke="#fbbf24" stroke-width="3"
+                letter-spacing="0.02em"
+                style="filter: drop-shadow(0 0 24px rgba(251,191,36,0.7));">—</text>
+        </svg>
       </div>
     </div>
 
@@ -6278,6 +6290,33 @@
   }
   cleanLocalStorageOnce();
   
+  // Service Worker 캐시 강제 정리 — 옛 "인증 실패" 자리 박힘 X
+  (async () => {
+    const CACHE_BUST_KEY = 'mufe-cache-bust-v2';
+    if (localStorage.getItem(CACHE_BUST_KEY) === 'done') return;
+    
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+        console.log('[MUFE] 옛 캐시 정리 박힘:', keys);
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+        console.log('[MUFE] 옛 SW 등록 해제 박힘');
+      }
+      localStorage.setItem(CACHE_BUST_KEY, 'done');
+      // 새 SW 자리 등록 박음 (한 번만)
+      if (!sessionStorage.getItem('mufe-reloaded')) {
+        sessionStorage.setItem('mufe-reloaded', '1');
+        setTimeout(() => location.reload(true), 500);
+      }
+    } catch (e) {
+      console.warn('[MUFE] 캐시 정리 박힘 X:', e);
+    }
+  })();
+  
   let currentChallenge = null;
   let currentMasterToken = null;
   let userToken = localStorage.getItem('mufe-user-token') || null;
@@ -6552,7 +6591,7 @@
   // 챌린지 발급 + 회전 시작
   // ════════════════════════════════════════════════════════════
   async function loadChallengeAndStartRotation() {
-    const _wel = document.getElementById('rotatorWord'); if (_wel) _wel.textContent = '발급 중...'; const _swl = document.getElementById('stageWord'); if (_swl) _swl.textContent = '발급 중...';
+    const _wel = document.getElementById('rotatorWord'); if (_wel) _wel.textContent = '발급 중...'; const _swl = document.getElementById('stageWord'); if (_swl) _swl.textContent = '발급 중...'; const _sct = document.getElementById('stageClipText'); if (_sct) _sct.textContent = '발급 중...';
     
     try {
       const res = await fetch(`${API_BASE}/api/challenge`, {
@@ -6690,9 +6729,13 @@
       if (wordEl) wordEl.textContent = newWord;
       if (clipText) clipText.textContent = newWord;
       
-      // stage 위 통합 단어 박음 (이미지 위 크게)
+      // stage 위 통합 단어 박음 (이미지 위 크게, 글자 속 매립 수학 박음)
       const stageWordEl = document.getElementById('stageWord');
+      const stageClipText = document.getElementById('stageClipText');
+      const stageMathFill = document.getElementById('stageMathFill');
       if (stageWordEl) stageWordEl.textContent = newWord;
+      if (stageClipText) stageClipText.textContent = newWord;
+      if (stageMathFill) fillTextWithMath(stageMathFill, 80, 800, 280);
       
       // 글자 안 매립 수학도 *매번* 새로 흩뿌림 (아래 회전기 박힘 X — 매립 박힘 X)
       if (mathFillGroup) {
