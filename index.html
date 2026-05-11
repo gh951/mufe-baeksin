@@ -6054,34 +6054,6 @@
         잡힌 단어 + 등록한 비번 = 답
       </div>
       
-      <div class="rotator-container">
-        <div class="rotator-display" id="rotatorDisplay">
-          <svg class="rotator-svg" id="rotatorSvg" viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <!-- 회전 단어 모양 클립 -->
-              <clipPath id="rotatorTextClip">
-                <text id="rotatorClipText" x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
-                      font-family="Pretendard, sans-serif" font-size="56" font-weight="900"
-                      letter-spacing="0.05em">시작</text>
-              </clipPath>
-            </defs>
-            
-            <!-- 글자 안 채워질 매립 수학 (회전 단어마다 다름) -->
-            <g clip-path="url(#rotatorTextClip)" id="rotatorMathFill">
-              <!-- 어두운 배경 -->
-              <rect x="0" y="0" width="400" height="100" fill="#0a1f3a"/>
-              <!-- 작은 수학 기호 — JS에서 매번 새로 박음 -->
-            </g>
-            
-            <!-- 글자 윤곽선 (위에 박음) -->
-            <text id="rotatorWord" x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
-                  font-family="Pretendard, sans-serif" font-size="56" font-weight="900"
-                  fill="none" stroke="#fbbf24" stroke-width="2"
-                  letter-spacing="0.05em">시작</text>
-          </svg>
-        </div>
-      </div>
-      
       <button class="rotator-stop-btn" onclick="stopRotator()" id="rotatorStopBtn">
         ⏹ STOP — 단어 잡기
       </button>
@@ -6580,7 +6552,7 @@
   // 챌린지 발급 + 회전 시작
   // ════════════════════════════════════════════════════════════
   async function loadChallengeAndStartRotation() {
-    document.getElementById('rotatorWord').textContent = '발급 중...';
+    const _wel = document.getElementById('rotatorWord'); if (_wel) _wel.textContent = '발급 중...'; const _swl = document.getElementById('stageWord'); if (_swl) _swl.textContent = '발급 중...';
     
     try {
       const res = await fetch(`${API_BASE}/api/challenge`, {
@@ -6702,7 +6674,7 @@
     const clipText = document.getElementById('rotatorClipText');
     const mathFillGroup = document.getElementById('rotatorMathFill');
     
-    wordEl.classList.remove('caught');
+    if (wordEl) wordEl.classList.remove('caught');
     const rotatorSvg = document.getElementById('rotatorSvg');
     if (rotatorSvg) rotatorSvg.classList.remove('caught');
     document.getElementById('rotatorStopBtn').disabled = false;
@@ -6715,14 +6687,14 @@
       const newWord = rotatorWords[rotatorIdx];
       
       // 윤곽선 + 클립 글자 동시 변경
-      wordEl.textContent = newWord;
+      if (wordEl) wordEl.textContent = newWord;
       if (clipText) clipText.textContent = newWord;
       
       // stage 위 통합 단어 박음 (이미지 위 크게)
       const stageWordEl = document.getElementById('stageWord');
       if (stageWordEl) stageWordEl.textContent = newWord;
       
-      // 글자 안 매립 수학도 *매번* 새로 흩뿌림
+      // 글자 안 매립 수학도 *매번* 새로 흩뿌림 (아래 회전기 박힘 X — 매립 박힘 X)
       if (mathFillGroup) {
         fillTextWithMath(mathFillGroup, 120, 400, 100);
       }
@@ -6790,7 +6762,7 @@
     caughtWord = rotatorWords[rotatorIdx];
     
     const wordEl = document.getElementById('rotatorWord');
-    wordEl.classList.add('caught');
+    if (wordEl) wordEl.classList.add('caught');
     // SVG 부모에도 caught 클래스 (애니메이션 위해)
     const rotatorSvg = document.getElementById('rotatorSvg');
     if (rotatorSvg) rotatorSvg.classList.add('caught');
@@ -6831,33 +6803,21 @@
     const ans = document.getElementById('authInput').value.trim();
     
     if (!ans) {
-      showMsg('답을 입력해주세요', 'retry');
+      showMsg('답을 박아주세요', 'retry');
       return;
     }
     
     if (!caughtWord) {
-      showMsg('먼저 STOP 버튼으로 단어를 잡으세요', 'retry');
+      showMsg('STOP 박아서 단어 잡으세요', 'retry');
       return;
     }
     
-    // *userToken 박힘 X* = 등록 안 박힌 자리
-    if (!userToken) {
-      showMsg('비번 *등록 안 박힘* — 모달 닫고 *비번 등록* 다시 박아주세요', 'retry');
-      return;
-    }
-    
-    // *currentChallenge 박힘 X* = 챌린지 안 박힌 자리
-    if (!currentChallenge || !currentChallenge.challengeId) {
-      showMsg('챌린지 새로 박는 중...', 'retry');
-      const ok = await loadChallengeAndStartRotation();
-      if (ok) {
-        showMsg('새 챌린지 박힘 — *회전 단어 다시 STOP* 박아주세요 (잡은 단어 박힘 X)', 'retry');
-        // 잡은 단어 박힘 X — 새 챌린지의 *새 단어*로 박아야 함
-        caughtWord = null;
-        document.getElementById('caughtInfo').style.display = 'none';
-      } else {
-        showMsg('서버 박힘 X — 인터넷 연결 확인 + 모달 다시 박아주세요', 'retry');
-      }
+    // userToken 박힘 X / 챌린지 박힘 X = 새 챌린지 자동 박음
+    if (!userToken || !currentChallenge || !currentChallenge.challengeId) {
+      await loadChallengeAndStartRotation();
+      caughtWord = null;
+      document.getElementById('caughtInfo').style.display = 'none';
+      showMsg('새 챌린지 박힘 — 단어 다시 잡으세요', 'retry');
       return;
     }
     
