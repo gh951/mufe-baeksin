@@ -4225,6 +4225,45 @@
     .feedback-modal-inner { padding: 20px; }
     .fm-title { font-size: 18px; }
   }
+  /* 등록/로그인 모드 토글 박음 */
+  .reg-mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+  }
+  .rmt-btn {
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .rmt-btn:hover { color: rgba(255, 255, 255, 0.9); }
+  .rmt-btn.rmt-active {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    color: white;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  .reg-info {
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
 </style>
 </head>
 <body>
@@ -5344,53 +5383,98 @@
 
     <!-- ════ 폼 영역 — 3가지 화면 ════ -->
     
-    <!-- 화면 1: 등록 (첫 방문) -->
+    <!-- 화면 1: 등록 / 로그인 -->
     <div class="challenge-form" id="formRegister" style="display: none;">
-      <div class="challenge-instruction">
-        <strong>처음 방문하셨네요</strong><br>
-        본인만의 비번을 등록해주세요
+      <!-- 모드 전환 박는 자리 -->
+      <div class="reg-mode-toggle">
+        <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
+          🆕 비번 만들기 (처음)
+        </button>
+        <button type="button" class="rmt-btn" id="rmtLogin" onclick="switchRegMode('login')">
+          🔓 기존 비번 박힌 사람
+        </button>
       </div>
       
-      <input type="text" 
-             class="auth-input" 
-             id="regPasscode" 
-             placeholder="비번 입력 (예: 1대장님)" 
-             maxlength="20"
-             autocomplete="off"
-             autocapitalize="off"
-             spellcheck="false" />
+      <!-- 처음 등록 박는 자리 -->
+      <div id="regModeRegister">
+        <div class="challenge-instruction">
+          <strong>처음 방문하셨네요</strong><br>
+          본인만의 비번을 박아주세요
+        </div>
+        
+        <input type="text" 
+               class="auth-input" 
+               id="regPasscode" 
+               placeholder="비번 박음 (예: 1대장님)" 
+               maxlength="20"
+               autocomplete="off"
+               autocapitalize="off"
+               spellcheck="false" />
+        
+        <div class="reg-spacing">
+          <div class="reg-spacing-label">잡은 단어와 어떻게 합치시겠어요?</div>
+          <div class="reg-radio-group reg-radio-grid-4">
+            <label class="reg-radio">
+              <input type="radio" name="regFormat" value="joined-after" checked>
+              <span class="reg-radio-text">
+                <strong>비번+단어 붙여</strong><br>
+                <small>1대장님진실</small>
+              </span>
+            </label>
+            <label class="reg-radio">
+              <input type="radio" name="regFormat" value="spaced-after">
+              <span class="reg-radio-text">
+                <strong>비번 단어 띄어</strong><br>
+                <small>1대장님 진실</small>
+              </span>
+            </label>
+            <label class="reg-radio">
+              <input type="radio" name="regFormat" value="joined-before">
+              <span class="reg-radio-text">
+                <strong>단어+비번 붙여</strong><br>
+                <small>진실1대장님</small>
+              </span>
+            </label>
+            <label class="reg-radio">
+              <input type="radio" name="regFormat" value="spaced-before">
+              <span class="reg-radio-text">
+                <strong>단어 비번 띄어</strong><br>
+                <small>진실 1대장님</small>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="auth-buttons">
+          <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
+          <button class="btn btn-verify" onclick="registerPasscode()">비번 만들기</button>
+        </div>
+      </div>
       
-      <div class="reg-spacing">
-        <div class="reg-spacing-label">잡은 단어와 어떻게 합치시겠어요?</div>
-        <div class="reg-radio-group reg-radio-grid-4">
-          <label class="reg-radio">
-            <input type="radio" name="regFormat" value="joined-after" checked>
-            <span class="reg-radio-text">
-              <strong>비번+단어 붙여</strong><br>
-              <small>1대장님진실</small>
-            </span>
-          </label>
-          <label class="reg-radio">
-            <input type="radio" name="regFormat" value="spaced-after">
-            <span class="reg-radio-text">
-              <strong>비번 단어 띄어</strong><br>
-              <small>1대장님 진실</small>
-            </span>
-          </label>
-          <label class="reg-radio">
-            <input type="radio" name="regFormat" value="joined-before">
-            <span class="reg-radio-text">
-              <strong>단어+비번 붙여</strong><br>
-              <small>진실1대장님</small>
-            </span>
-          </label>
-          <label class="reg-radio">
-            <input type="radio" name="regFormat" value="spaced-before">
-            <span class="reg-radio-text">
-              <strong>단어 비번 띄어</strong><br>
-              <small>진실 1대장님</small>
-            </span>
-          </label>
+      <!-- 기존 비번 박힌 사람 로그인 자리 -->
+      <div id="regModeLogin" style="display: none;">
+        <div class="challenge-instruction">
+          <strong>🔓 기존 비번 박힌 사람</strong><br>
+          박았던 비번을 박아주세요 — 어떤 기기에서도 박힘
+        </div>
+        
+        <input type="text" 
+               class="auth-input" 
+               id="loginPasscode" 
+               placeholder="박았던 비번 박음" 
+               maxlength="20"
+               autocomplete="off"
+               autocapitalize="off"
+               spellcheck="false" />
+        
+        <div class="reg-info">
+          ℹ️ 다른 기기·PC에서 같은 비번 박으시면 그대로 통과 박힘.<br>
+          비번 박혀있지 않으면 "비번 만들기" 박아주세요.
+        </div>
+        
+        <div class="auth-buttons">
+          <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
+          <button class="btn btn-verify" onclick="loginPasscode()">로그인</button>
         </div>
       </div>
       
@@ -5401,10 +5485,6 @@
         </button>
       </div>
       
-      <div class="auth-buttons">
-        <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
-        <button class="btn btn-verify" onclick="registerPasscode()">비번 등록</button>
-      </div>
       <div class="response-msg" id="regMsg"></div>
     </div>
 
@@ -5846,6 +5926,78 @@
   // ════════════════════════════════════════════════════════════
   // 비번 등록
   // ════════════════════════════════════════════════════════════
+  // 모드 전환 — 처음 등록 / 기존 로그인
+  function switchRegMode(mode) {
+    const regBlock = document.getElementById('regModeRegister');
+    const loginBlock = document.getElementById('regModeLogin');
+    const rmtReg = document.getElementById('rmtRegister');
+    const rmtLog = document.getElementById('rmtLogin');
+    const msg = document.getElementById('regMsg');
+    
+    if (mode === 'login') {
+      regBlock.style.display = 'none';
+      loginBlock.style.display = 'block';
+      rmtReg.classList.remove('rmt-active');
+      rmtLog.classList.add('rmt-active');
+      setTimeout(() => document.getElementById('loginPasscode').focus(), 200);
+    } else {
+      regBlock.style.display = 'block';
+      loginBlock.style.display = 'none';
+      rmtReg.classList.add('rmt-active');
+      rmtLog.classList.remove('rmt-active');
+      setTimeout(() => document.getElementById('regPasscode').focus(), 200);
+    }
+    if (msg) msg.className = 'response-msg';
+  }
+  
+  // 기존 비번 박힌 사람 로그인
+  async function loginPasscode() {
+    const passcode = document.getElementById('loginPasscode').value.trim();
+    if (!passcode) {
+      showRegMsg('박았던 비번을 박아주세요', 'retry');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        userToken = result.token;
+        userPasscode = passcode;
+        userSpacing = result.format;
+        localStorage.setItem('mufe-user-token', userToken);
+        localStorage.setItem('mufe-user-passcode', userPasscode);
+        localStorage.setItem('mufe-user-spacing', userSpacing);
+        
+        showRegMsg(
+          `<strong>${result.message}</strong><br><small>${result.detail || ''}</small>`,
+          'success'
+        );
+        setTimeout(() => showChallengeForm(), 1200);
+      } else if (result.status === 'decoy') {
+        // 모토 그대로 — 박힘 X도 decoy
+        showRegMsg(
+          `<strong>${result.message}</strong><br>${result.detail}<br>` +
+          `<small style="opacity:0.7">${result.subdetail || ''}</small>`,
+          'decoy'
+        );
+      } else {
+        showRegMsg(
+          `<strong>${result.message || '※ 박힘'}</strong><br><small>${result.detail || ''}</small>`,
+          'retry'
+        );
+      }
+    } catch (err) {
+      console.error('[MUFE] 로그인 실패:', err);
+      showRegMsg('서버 박힘 X — 잠시 후 다시', 'retry');
+    }
+  }
+
   async function registerPasscode() {
     const passcode = document.getElementById('regPasscode').value.trim();
     const format = document.querySelector('input[name="regFormat"]:checked').value;
