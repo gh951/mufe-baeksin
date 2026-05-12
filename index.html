@@ -6581,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'v2026.05.12.05-FORCE-chaos628-202605120655';
+  const MUFE_CACHE_VERSION = 'chaos628-display-202605120712';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6750,6 +6750,16 @@
     {d:'!$코⊕⊕페! ㅍ',c:'코페'}, {d:'*%니⊗⊗혼^ ㅋ',c:'니혼'}, {d:'^&플⊙⊙레& ㅎ',c:'플레'}, {d:'&#모∈∈스# ㅎ',c:'모스'}, {d:'!*리∉∉버^ ㅍ',c:'리버'},
     {d:'@%테⊂⊂네% ㅋ',c:'테네'}, {d:'&#오⊃⊃가# ㅎ',c:'오가'}, {d:'*#박∀∀음! ㅎ',c:'박음'}
   ];
+
+  // clean 한글 → 카오스 통째 찾는 헬퍼 (서버가 "대장" 보내면 → "&%대#∫$장@? ㅋ" 화면 표시)
+  const _MUFE_CLEAN_MAP = (function() {
+    const m = new Map();
+    for (const item of MUFE_CHAOS_POOL) m.set(item.c, item.d);
+    return m;
+  })();
+  function getMUFEDisplay(cleanWord) {
+    return _MUFE_CLEAN_MAP.get(cleanWord) || cleanWord;
+  }
 
   let rotatorTimer = null;
   let rotatorWords = [];
@@ -7017,9 +7027,13 @@
       // 카오스 이미지 처리 — 있으면 회전기 배경에 음
       applyChaosImage(currentChallenge.chaosImage);
       
-      // 서버는 challengeId·이미지만 사용, 단어는 로컬 카오스 풀 628개 사용
-      // (사용자와 MUFE만 아는 매핑 — 비번 + 잡힌 단어)
-      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
+      // 서버 풀 우선 (서버가 검증 시 자기 풀로 확인하므로 일치 필수)
+      // 서버가 풀 안 주면 로컬 628 폴백
+      if (currentChallenge.rotationWords && currentChallenge.rotationWords.length > 0) {
+        rotatorWords = currentChallenge.rotationWords;
+      } else {
+        rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
+      }
       startRotatorAnimation();
       
       return true;
@@ -7130,8 +7144,10 @@
     rotatorTimer = setInterval(() => {
       rotatorIdx = (rotatorIdx + 1) % rotatorWords.length;
       const newWord = rotatorWords[rotatorIdx];
-      // 객체 {d:카오스통째,c:깨끗한한글} 또는 옛 string 폴백
-      const displayStr = (typeof newWord === 'object' && newWord) ? newWord.d : newWord;
+      // 객체 {d,c} → .d 사용 / 문자열 (서버 응답) → 풀에서 .d 찾기
+      const displayStr = (typeof newWord === 'object' && newWord) 
+        ? newWord.d 
+        : getMUFEDisplay(newWord);
       
       // 윤곽선 + 클립 글자 동시 변경 — 카오스 통째로 표시
       if (wordEl) wordEl.textContent = displayStr;
@@ -7210,10 +7226,18 @@
     if (!rotatorTimer) return;
     
     stopRotatorAnimation();
-    // 잡힌 단어 — display(.d)는 화면, clean(.c)은 서버 매칭용
+    // 잡힌 단어 — display는 화면, clean(.c)은 서버 매칭용
     const caughtItem = rotatorWords[rotatorIdx];
-    const caughtDisplay = (typeof caughtItem === 'object' && caughtItem) ? caughtItem.d : caughtItem;
-    caughtWord = (typeof caughtItem === 'object' && caughtItem) ? caughtItem.c : caughtItem;
+    let caughtDisplay, caughtClean;
+    if (typeof caughtItem === 'object' && caughtItem) {
+      caughtDisplay = caughtItem.d;
+      caughtClean = caughtItem.c;
+    } else {
+      // 서버가 문자열 ("대장") 줬으면 → 풀에서 카오스 통째 찾기
+      caughtClean = caughtItem;
+      caughtDisplay = getMUFEDisplay(caughtItem);
+    }
+    caughtWord = caughtClean;  // 서버 검증용 (깨끗한 한글)
     
     const wordEl = document.getElementById('rotatorWord');
     if (wordEl) wordEl.classList.add('caught');
