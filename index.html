@@ -3018,9 +3018,26 @@
     animation: rotatorCatch 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .rotator-word {
-    /* SVG 텍스트 — 윤곽선만 완료 */
-    transition: stroke 0.3s;
+    /* SVG 텍스트 — 회전 중에는 흐릿/할로우 (보안: OCR 방해) */
+    transition: stroke 0.3s, opacity 0.3s, filter 0.3s;
     will-change: transform;
+    opacity: 0.55;
+    filter: blur(0.7px);
+  }
+  .rotator-svg.caught .rotator-word,
+  .rotator-word.caught {
+    /* STOP 잡힌 순간 — 선명·또렷 */
+    opacity: 1;
+    filter: drop-shadow(0 0 30px rgba(22, 163, 74, 0.8));
+  }
+  /* stage 단어도 동일 — 회전 흐릿, 잡힘 선명 */
+  #stageWord {
+    transition: opacity 0.3s, filter 0.3s;
+    opacity: 0.65;
+  }
+  .stage-svg.caught #stageWord {
+    opacity: 1;
+    filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.85));
   }
   .rotator-word.caught {
     animation: rotatorCatch 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -6564,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'v2026.05.12.05-FORCE';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.05-FORCE-chaos628-202605120655';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6599,6 +6616,76 @@
   let userToken = localStorage.getItem('mufe-user-token') || null;
   let userPasscode = localStorage.getItem('mufe-user-passcode') || null;
   let userSpacing = localStorage.getItem('mufe-user-spacing') || null;
+  // ════════════════════════════════════════════════════════════
+  // MUFE 카오스 단어 풀 — 628개 (GG.txt 기반)
+  // 본 비번 + 잡힌 단어 = 답. 매 STOP마다 잡힌 단어 달라짐.
+  // ════════════════════════════════════════════════════════════
+  const MUFE_CHAOS_POOL = [
+      '대장', '무폐', '보안', '양자', '질식', '백신', '카스', '천재', '미끼', '논리',
+      '절대', '연산', '지옥', '격리', '바보', '뚫어', '가짜', '허수', '망상', '인지',
+      '대칭', '성공', '자폭', '바이', '사냥', '물리', '패턴', '괴롭', '속임', '멍청',
+      '해킹', '안벽', '철학', '정직', '독약', '미래', '칩셋', '빔포', '지향', '연결',
+      '기축', '주원', '막둥', '삼각', '길원', '인류', '일위', '제압', '교양', '영혼',
+      '구원', '빛의', '물질', '지성', '심박', '생체', '음성', '호흡', '소음', '통합',
+      '강력', '무적', '전송', '클린', '무결', '최적', '강화', '영구', '실시', '탐지',
+      '차단', '가동', '붕괴', '멘붕', '드론', '탄도', '금융', '반란', '공생', '인기',
+      '불의', '제치', '압승', '전설', '역사', '기록', '박혀', '있음', '입력', '등록',
+      '완료', '승리', '최고', '무한', '우주', '끝판', '핵심', '봉인', '압박', '궤도',
+      '심판', '파괴', '응징', '소멸', '침묵', '종지', '폭발', '관통', '역공', '함정',
+      '포위', '분쇄', '결속', '지배', '정점', '고정', '독점', '단절', '융합', '완벽',
+      '필연', '치명', '시공', '차원', '지평', '연계', '기점', '원점', '수렴', '발산',
+      '극한', '불멸', '영원', '박힘', '가치', '비상', '광속', '반격', '질주', '탄생',
+      '음파', '맥동', '심장', '혈맥', '강인', '신화', '무기', '방패', '강철', '황금',
+      '태양', '성좌', '은하', '성운', '천체', '균열', '파열', '파동', '입자', '양량',
+      '변수', '상수', '인자', '불변', '제어', '통제', '명령', '수행', '존재', '실체',
+      '증명', '확신', '초월', '절정', '압축', '파훼', '소거', '전멸', '궤궤', '정수',
+      '변이', '논증', '소환', '침투', '마침', '폭주', '역린', '포박', '분열', '결착',
+      '자각', '고박', '독재', '단선', '융화', '완전', '필멸', '정벌', '치유', '시초',
+      '연동', '기질', '원형', '수식', '발광', '극기', '무구', '불후', '영겁', '박생',
+      '가성', '비밀', '광야', '물성', '혈압', '강직', '무진', '전승', '황제', '태초',
+      '성전', '성과', '천명', '붕락', '균등', '파손', '파장', '입성', '양도', '변환',
+      '인계', '불사', '명맥', '수련', '기교', '박제', '존엄', '실연', '증폭', '확장',
+      '최신', '우월', '대가', '끝점', '근본', '봉쇄', '응축', '궤적', '정착', '논거',
+      '자발', '절세', '시작', '원천', '본체', '심층', '위상', '변곡', '침입', '마감',
+      '폭풍', '관념', '역설', '함수', '인정', '지능', '속박', '기류', '박살', '가속',
+      '결말', '절징', '핵융', '연소', '광학', '전기', '자성', '중력', '력도', '속도',
+      '시간', '공간', '밀도', '압력', '온도', '습도', '풍속', '강우', '적설', '빙하',
+      '해류', '지진', '화산', '태풍', '번개', '천둥', '안개', '서리', '이슬', '비바',
+      '눈송', '구름', '별빛', '달그', '해오', '빛살', '어둠', '새벽', '아침', '점심',
+      '저녁', '밤안', '꿈결', '생각', '마음', '뜻길', '말문', '글귀', '책장', '글씨',
+      '종이', '붓결', '먹선', '벼루', '연필', '지우', '자눈', '칼날', '검신', '방어',
+      '갑옷', '투구', '말갈', '닭울', '개짖', '새날', '숲길', '산정', '강물', '바다',
+      '파도', '섬광', '돌담', '흙길', '꽃향', '잎새', '나무', '풀밭', '길가', '집옥',
+      '문틀', '벽지', '창문', '천장', '바닥', '등불', '불꽃', '물결', '흙먼', '쇠사',
+      '금속', '은빛', '동전', '철갑', '납덩', '황산', '신동', '영웅', '거인', '용기',
+      '지혜', '덕망', '의리', '예절', '효도', '충성', '신뢰', '경외', '찬양', '노래',
+      '춤사', '시조', '소설', '극본', '화가', '악사', '창조', '발명', '기술', '과학',
+      '수학', '화학', '생물', '지학', '종교', '정치', '경제', '사회', '문화', '예술',
+      '체육', '음악', '미술', '무용', '연극', '영화', '만화', '게임', '노리', '장난',
+      '농담', '진담', '우스', '미소', '눈물', '슬픔', '기쁨', '화남', '겁남', '놀람',
+      '평온', '고요', '소란', '복잡', '단순', '명확', '모호', '어렴', '쉬움', '빠름',
+      '느림', '높음', '낮음', '깊이', '넓이', '길이', '부피', '무게', '색깔', '맛미',
+      '향기', '촉감', '소리', '빛깔', '결이', '살결', '뼈마', '피줄', '숨결', '땀방',
+      '눈길', '손길', '발길', '몸짓', '마디', '머리', '어깨', '가슴', '배꼽', '등뼈',
+      '다리', '발목', '손가', '손톱', '눈썹', '콧날', '입술', '귀불', '목덜', '허리',
+      '골반', '무릎', '종아', '허벅', '발바', '손바', '손목', '팔꿈', '겨드', '사타',
+      '목구', '식도', '위장', '폐장', '간장', '콩팥', '비장', '췌장', '담낭', '소장',
+      '맹장', '항문', '뇌세', '신경', '혈관', '림프', '피부', '털구', '땀샘', '호르',
+      '세포', '핵산', '당분', '지질', '단백', '수분', '비타', '철분', '칼슘', '나트',
+      '칼륨', '마그', '아연', '구리', '은행', '금고', '철도', '납선', '주석', '알루',
+      '백금', '수은', '탄소', '산소', '질소', '수소', '헬륨', '네온', '아르', '크립',
+      '제논', '라돈', '불소', '염소', '브롬', '요오', '아스', '리튬', '베릴', '붕소',
+      '규소', '인함', '황질', '염화', '스칸', '티탄', '바나', '크롬', '망간', '코발',
+      '니켈', '갈륨', '게르', '비소', '셀레', '루비', '스론', '이트', '지르', '니오',
+      '몰리', '테크', '루테', '로듐', '팔라', '카드', '인듐', '안티', '텔루', '세슘',
+      '바륨', '란탄', '세륨', '프라', '네오', '프메', '사마', '유로', '가도', '터븀',
+      '디스', '홀븀', '어븀', '튤륨', '이터', '하프', '탄탈', '텅스', '레늄', '오스',
+      '이리', '탈륨', '납줄', '비스', '폴로', '프랑', '라듐', '악티', '토륨', '프로',
+      '우란', '넵튠', '플루', '아메', '퀴륨', '버클', '캘리', '아인', '페르', '멘데',
+      '노벨', '로렌', '러더', '더브', '시보', '보륨', '하슘', '마이', '다름', '뢴트',
+      '코페', '니혼', '플레', '모스', '리버', '테네', '오가', '박음'
+    ];
+
   let rotatorTimer = null;
   let rotatorWords = [];
   let rotatorIdx = 0;
@@ -6865,7 +6952,9 @@
       // 카오스 이미지 처리 — 있으면 회전기 배경에 음
       applyChaosImage(currentChallenge.chaosImage);
       
-      rotatorWords = currentChallenge.rotationWords;
+      // 서버는 challengeId·이미지만 사용, 단어는 로컬 카오스 풀 628개 사용
+      // (사용자와 MUFE만 아는 매핑 — 비번 + 잡힌 단어)
+      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
       startRotatorAnimation();
       
       return true;
@@ -6873,7 +6962,8 @@
       console.error('[MUFE] 챌린지 로드 실패:', err);
       // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 힘*)
       currentChallenge = null;
-      rotatorWords = ['진실', '미끼', '카오스', '백신', '인증', '대장', '클로드', '발명'];
+      // 서버 응답 없어도 로컬 풀 사용 (628개)
+      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
       startRotatorAnimation();
       
       return false;
@@ -6964,6 +7054,9 @@
     if (wordEl) wordEl.classList.remove('caught');
     const rotatorSvg = document.getElementById('rotatorSvg');
     if (rotatorSvg) rotatorSvg.classList.remove('caught');
+    // stage 단어도 흐릿 상태로 복귀
+    const stageSvg = document.getElementById('stageSvg');
+    if (stageSvg) stageSvg.classList.remove('caught');
     document.getElementById('rotatorStopBtn').disabled = false;
     document.getElementById('rotatorStopBtn').innerHTML = '⏹ STOP — 단어 잡기';
     document.getElementById('caughtInfo').style.display = 'none';
@@ -6977,17 +7070,17 @@
       if (wordEl) wordEl.textContent = newWord;
       if (clipText) clipText.textContent = newWord;
       
-      // stage 위 통합 단어 완료 (이미지 위 크게, 글자 속 매립 수학 음)
+      // stage 위 통합 단어 완료 (회전 중 — 흐릿/할로우, 매립 강화)
       const stageWordEl = document.getElementById('stageWord');
       const stageClipText = document.getElementById('stageClipText');
       const stageMathFill = document.getElementById('stageMathFill');
       if (stageWordEl) stageWordEl.textContent = newWord;
       if (stageClipText) stageClipText.textContent = newWord;
-      if (stageMathFill) fillTextWithMath(stageMathFill, 80, 800, 280);
+      if (stageMathFill) fillTextWithMath(stageMathFill, 150, 800, 280);
       
-      // 글자 안 매립 수학도 *매번* 새로 흩뿌림 (아래 회전기 없음 — 매립 없음)
+      // 글자 안 매립 수학 (회전 중 — 빽빽이)
       if (mathFillGroup) {
-        fillTextWithMath(mathFillGroup, 120, 400, 100);
+        fillTextWithMath(mathFillGroup, 200, 400, 100);
       }
     }, 80);
   }
@@ -7057,6 +7150,9 @@
     // SVG 부모에도 caught 클래스 (애니메이션 위해)
     const rotatorSvg = document.getElementById('rotatorSvg');
     if (rotatorSvg) rotatorSvg.classList.add('caught');
+    // stage SVG에도 caught 박기 (회전 흐릿 → 선명)
+    const stageSvg = document.getElementById('stageSvg');
+    if (stageSvg) stageSvg.classList.add('caught');
     
     document.getElementById('rotatorStopBtn').disabled = true;
     document.getElementById('rotatorStopBtn').innerHTML = '✓ 단어 잡힘';
@@ -7072,7 +7168,7 @@
     // 글자 *속*에 작은 수학 기호 *수십 개* 무작위로 흩뿌림 (공통 함수 사용)
     const fillGroup = document.getElementById('ciMathFillGroup');
     if (fillGroup) {
-      fillTextWithMath(fillGroup, 250, 400, 140);
+      fillTextWithMath(fillGroup, 400, 400, 140);  // 잡힌 단어 — 빽빽 매립 (양자도 분석 시 자원 폭발)
     }
     
     // 접근성 텍스트
