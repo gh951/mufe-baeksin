@@ -9684,6 +9684,31 @@ document.addEventListener('keydown', (e) => {
   </div>
 </div>
 
+<!-- 푸터 — PCT 등록 박힌 자리 (조용히) -->
+<footer class="mufe-footer">
+  <div class="mf-line">PCT/KR · FIPCT26-001-1</div>
+  <div class="mf-line mf-dim">발명자: 이주원 · 이길원</div>
+</footer>
+
+<style>
+  .mufe-footer {
+    text-align: center;
+    padding: 24px 16px 32px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(120, 130, 150, 0.55);
+    letter-spacing: 0.1em;
+    line-height: 1.6;
+    user-select: text;
+  }
+  .mufe-footer .mf-line { padding: 1px 0; }
+  .mufe-footer .mf-dim { color: rgba(120, 130, 150, 0.4); font-size: 10px; }
+  @media (max-width: 600px) {
+    .mufe-footer { padding: 16px 12px 24px; font-size: 10px; }
+    .mufe-footer .mf-dim { font-size: 9px; }
+  }
+</style>
+
 <script>
 // ═══ FAQ + 의견 박는 자리 ═══
 
