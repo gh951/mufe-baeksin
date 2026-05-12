@@ -4302,7 +4302,7 @@
     padding: 10px 12px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: #475569;  /* 흰 배경에서도 보이게 — 진한 회색 */
     border-radius: 8px;
     font-family: inherit;
     font-size: 13px;
@@ -4310,7 +4310,28 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .rmt-btn:hover { color: rgba(255, 255, 255, 0.9); }
+  .rmt-btn:hover { color: #1e293b; background: rgba(124, 58, 237, 0.08); }
+  
+  /* 🚀 시작하기 — 고급 네이비+골드 카드 (돌아오는 사용자 메인 동선) */
+  #rmtLogin {
+    background: linear-gradient(135deg, #0a1f3a 0%, #1a3560 50%, #c9a455 100%);
+    color: #ffffff;
+    border: 1px solid rgba(212, 168, 67, 0.35);
+    box-shadow: 0 4px 14px rgba(10, 31, 58, 0.35), 0 0 0 1px rgba(212, 168, 67, 0.15) inset;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  #rmtLogin:hover {
+    background: linear-gradient(135deg, #0a1f3a 0%, #234578 40%, #d4a843 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(212, 168, 67, 0.4), 0 0 0 1px rgba(212, 168, 67, 0.5) inset;
+    transform: translateY(-1px);
+  }
+  #rmtLogin:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(10, 31, 58, 0.35);
+  }
   .rmt-btn.rmt-active {
     background: linear-gradient(135deg, #7c3aed, #5b21b6);
     color: white;
@@ -6152,8 +6173,8 @@
         <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
           🆕 비번 만들기 (처음)
         </button>
-        <button type="button" class="rmt-btn" id="rmtLogin" onclick="switchRegMode('login')">
-          🔓 기존 비번 저장된 사람
+        <button type="button" class="rmt-btn" id="rmtLogin" onclick="goToChallenge()">
+          🚀 시작하기
         </button>
       </div>
       
@@ -6581,7 +6602,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'chaos628-fix-20260512073338';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.102811-no-loop';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6600,12 +6621,8 @@
         if (v === 'undefined' || v === 'null') localStorage.removeItem(k);
       }
       localStorage.setItem('mufe-cache-version', MUFE_CACHE_VERSION);
-      
-      // 새 버전 완료 = 무조건 새로고침 (PC·모바일 모두)
-      if (!sessionStorage.getItem('mufe-reloaded-' + MUFE_CACHE_VERSION)) {
-        sessionStorage.setItem('mufe-reloaded-' + MUFE_CACHE_VERSION, '1');
-        location.reload();
-      }
+      // ⚠️ 자동 reload 제거 — 무한 루프 방지
+      // 새 버전 적용은 사용자가 Ctrl+F5 또는 새로고침 한 번 하면 됨
     } catch (e) {
       console.warn('[MUFE] 캐시 정리:', e);
     }
@@ -6796,14 +6813,9 @@
     const modal = document.getElementById('authModal');
     modal.classList.add('show');
     
-    // 등록 여부 체크
-    if (userToken && userPasscode) {
-      // 이미 등록됨 → 회전기 화면
-      showChallengeForm();
-    } else {
-      // 첫 방문 → 등록 화면
-      showRegisterForm();
-    }
+    // 항상 등록/시작 화면 먼저 — 사용자가 직접 🚀 시작하기 클릭으로 진입
+    // (자동 진입 제거 — 대장님 요청)
+    showRegisterForm();
   }
 
   function showRegisterForm() {
@@ -6937,7 +6949,25 @@
     if (msg) msg.className = 'response-msg';
   }
   
-  // 기존 비번 저장된 사람 로그인
+  // 🚀 시작하기 — 비번 저장된 사람은 챌린지 화면으로, 미등록자는 왼쪽 등록 탭으로 안내
+  function goToChallenge() {
+    if (userToken && userPasscode) {
+      // 이 기기에 비번 저장됨 → 바로 챌린지 (회전 화면)
+      showChallengeForm();
+    } else {
+      // 미등록 → 왼쪽 "비번 만들기" 탭 활성화 + 안내
+      switchRegMode('register');
+      const msg = document.getElementById('regMsg');
+      if (msg) {
+        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong>';
+        msg.className = 'response-msg retry';
+      }
+      const el = document.getElementById('regPasscode');
+      if (el) setTimeout(() => el.focus(), 200);
+    }
+  }
+
+  // 기존 비번 저장된 사람 로그인 (옛 코드 — 안 쓰임)
   async function loginPasscode() {
     const passcode = document.getElementById('loginPasscode').value.trim();
     if (!passcode) {
@@ -6960,6 +6990,16 @@
         localStorage.setItem('mufe-user-token', userToken);
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
+        
+        // 🫀 생체 옵션 저장 — 토글 켜져있으면 챌린지 화면에 카드 자동 표시
+        const bioToggle = document.getElementById('bioEnableToggle');
+        if (bioToggle && bioToggle.checked) {
+          const bioModeEl = document.querySelector('input[name="bioMode"]:checked');
+          const mode = bioModeEl ? bioModeEl.value : 'always';
+          localStorage.setItem('mufe-bio-pattern', JSON.stringify({ mode, enabled: true }));
+        } else {
+          localStorage.removeItem('mufe-bio-pattern');
+        }
         
         showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         setTimeout(() => showChallengeForm(), 1200);
@@ -9217,11 +9257,12 @@
         }
       });
       
-      // 컨트롤러 변경 시 (= 새 SW 활성화) 한 번만 새로고침
+      // 컨트롤러 변경 시 — 자동 reload 제거 (무한 루프 방지)
+      // 새 SW 활성화돼도 자동 새로고침 X, 사용자가 직접 새로고침
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
         refreshing = true;
-        window.location.reload();
+        console.log('[MUFE] 새 SW 활성화 — 새로고침 시 적용됨');
       });
     });
   }
