@@ -6991,16 +6991,6 @@
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
         
-        // 🫀 생체 옵션 저장 (등록 시 토글 켰으면) — 챌린지에서 카드 뜨게
-        const bioToggle = document.getElementById('bioEnableToggle');
-        if (bioToggle && bioToggle.checked) {
-          const bioModeEl = document.querySelector('input[name="bioMode"]:checked');
-          const mode = bioModeEl ? bioModeEl.value : 'always';
-          localStorage.setItem('mufe-bio-pattern', JSON.stringify({ mode, enabled: true }));
-        } else {
-          localStorage.removeItem('mufe-bio-pattern');
-        }
-        
         showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         setTimeout(() => showChallengeForm(), 1200);
       } else if (result.status === 'decoy') {
