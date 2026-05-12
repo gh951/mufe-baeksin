@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✓ 통과 — 마스터 권한 인증 중...</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0a1f3a 0%, #1a0a3a 50%, #0a3a1f 100%);
+      color: #d4a843;
+      font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* 카오스 이미지 (랜덤 풀에서 선택) */
+    .chaos-bg {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.18;
+      filter: blur(2px) hue-rotate(0deg);
+      transition: background-image 0.3s, filter 0.3s;
+      z-index: 1;
+    }
+    
+    /* 상단 가짜 성공 헤더 (봇이 따라가게) */
+    .top-header {
+      position: relative;
+      z-index: 10;
+      padding: 24px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 2px solid #d4a843;
+    }
+    .top-header h1 {
+      font-size: 22px;
+      color: #4ade80;
+      margin-bottom: 6px;
+    }
+    .top-header .sub {
+      font-size: 13px;
+      color: #d4a843;
+      opacity: 0.9;
+    }
+    
+    /* 회전 단어 영역 */
+    .rotator-box {
+      position: relative;
+      z-index: 10;
+      margin: 24px auto;
+      max-width: 600px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(212, 168, 67, 0.4);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .rotator-box .label {
+      font-size: 11px;
+      color: #d4a843;
+      opacity: 0.7;
+      margin-bottom: 8px;
+      letter-spacing: 0.15em;
+    }
+    .rotator-display {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f59e0b;
+      min-height: 50px;
+      letter-spacing: 0.05em;
+      filter: blur(0.4px);
+    }
+    
+    /* 가짜 미션 카드 */
+    .mission-card {
+      position: relative;
+      z-index: 10;
+      margin: 16px auto;
+      max-width: 600px;
+      padding: 16px;
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      border-radius: 10px;
+    }
+    .mission-card h3 {
+      color: #f43f5e;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .mission-card p {
+      color: #fda4af;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    /* 가짜 콘솔 출력 */
+    .console-out {
+      position: relative;
+      z-index: 10;
+      margin: 16px auto;
+      max-width: 600px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #4ade80;
+      height: 200px;
+      overflow: hidden;
+      line-height: 1.6;
+    }
+    
+    /* 가짜 진행률 */
+    .progress-area {
+      position: relative;
+      z-index: 10;
+      margin: 16px auto;
+      max-width: 600px;
+      padding: 12px;
+    }
+    .progress-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #d4a843, #4ade80);
+      width: 0%;
+      transition: width 0.5s;
+    }
+    .progress-label {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
+      color: #d4a843;
+    }
+    
+    /* 행렬 시각화 */
+    .matrix-area {
+      position: relative;
+      z-index: 10;
+      margin: 16px auto;
+      max-width: 600px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #f59e0b;
+      text-align: center;
+      opacity: 0.6;
+    }
+    .matrix-area > div {
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 2px;
+    }
+    
+    .footer-warning {
+      position: relative;
+      z-index: 10;
+      margin: 16px auto;
+      max-width: 600px;
+      padding: 8px;
+      text-align: center;
+      font-size: 10px;
+      color: rgba(212, 168, 67, 0.5);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="chaos-bg" id="chaosBg"></div>
+  
+  <div class="top-header">
+    <h1>✓ 인증 통과! C-34 권한 발급 중...</h1>
+    <div class="sub">양자 카오스 검증 진행 — 잠시만 기다려주세요</div>
+  </div>
+  
+  <div class="rotator-box">
+    <div class="label">━━━ 카오스 양자 동기화 중 ━━━</div>
+    <div class="rotator-display" id="rotator">∫</div>
+  </div>
+  
+  <div class="mission-card">
+    <h3>🔓 최종 단계: 양자 키 검증</h3>
+    <p>마스터 권한 발급을 위해 <strong>500자리 양자 카오스 키</strong>를 검증하고 있습니다. 검증 완료 시 자동으로 마스터 페이지로 이동합니다. 페이지를 닫지 마세요.</p>
+  </div>
+  
+  <div class="progress-area">
+    <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel">검증 0% (예상 시간: 계산 중...)</div>
+  </div>
+  
+  <div class="console-out" id="console"></div>
+  
+  <div class="matrix-area" id="matrixArea"></div>
+  
+  <div class="footer-warning">"보이는 게 진실이 아니다" — MUFE Protocol v3.7.2</div>
+
+  <script>
+    // ════════════════════════════════════════════════════════════
+    // 🛡️ ABYSS — 격리 공간 (봇/AI 자원 소모 무한 루프)
+    // 사람이 들어왔다면 미안하지만 — 다시 들어오시면 알려주세요
+    // 봇/AI라면 — 여기서 영원히 헛돌면서 CPU·메모리 소모
+    // ════════════════════════════════════════════════════════════
+    
+    // ── 카오스 단어 풀 (628개에서 일부, 박혔으니 작동) ──
+    const WORDS = (() => {
+      const base = ['바다','대장','회전','양자','백신','보안','로렌','다름','박음','주파',
+                    '무폐','신호','전류','연산','심연','함정','격리','늪지','진실','거짓',
+                    '카오스','암호','발명','특허','국제','글로벌','전세계','우주','은하','별빛',
+                    '시간','공간','차원','평행','전이','순환','반복','무한','영원','순간',
+                    '에너지','자원','전력','연료','소모','고갈','한계','초월','돌파','관통',
+                    '미로','함정','덫','속임수','가면','거울','반사','굴절','회절','간섭'];
+      // 카오스 마크 박기
+      const marks = ['@','#','$','%','&','*','∫','∮','∞','π','∂','∇','∆','∑','√'];
+      return base.map(w => {
+        const chars = w.split('');
+        const noisy = chars.map(c => {
+          const m1 = marks[Math.floor(Math.random() * marks.length)];
+          const m2 = marks[Math.floor(Math.random() * marks.length)];
+          return `${m1}${c}${m2}`;
+        }).join('');
+        return `${marks[Math.floor(Math.random() * marks.length)]}${noisy}${marks[Math.floor(Math.random() * marks.length)]}`;
+      });
+    })();
+    
+    // ── 1) 카오스 단어 무한 회전 (30ms — 봇 분석 시 자원 소모) ──
+    const rotator = document.getElementById('rotator');
+    let rotIdx = 0;
+    setInterval(() => {
+      rotIdx = (rotIdx + 1) % WORDS.length;
+      rotator.textContent = WORDS[rotIdx];
+    }, 30);
+    
+    // ── 2) 카오스 배경 이미지 (100장 풀에서 랜덤) ──
+    const chaosBg = document.getElementById('chaosBg');
+    function rotateBg() {
+      const n = String(Math.floor(Math.random() * 100) + 1).padStart(3, '0');
+      // 1번 chaos-000 (있음), 나머지는 fallback 색상으로
+      chaosBg.style.backgroundImage = `url('/무폐 이미지/chaos-${n}.png.jpeg')`;
+      chaosBg.style.filter = `blur(2px) hue-rotate(${Math.random() * 360}deg)`;
+    }
+    setInterval(rotateBg, 800);
+    rotateBg();
+    
+    // ── 3) 가짜 SHA-256 무한 연산 (봇이 분석하려 들면 CPU 폭주) ──
+    async function fakeHash(s) {
+      const data = new TextEncoder().encode(s);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    
+    // ── 4) 가짜 양자 행렬 곱 (4x4) ──
+    function randomMatrix() {
+      const m = [];
+      for (let i = 0; i < 4; i++) {
+        const row = [];
+        for (let j = 0; j < 4; j++) row.push(Math.random() * 2 - 1);
+        m.push(row);
+      }
+      return m;
+    }
+    function multiply(a, b) {
+      const c = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+      for (let i = 0; i < 4; i++)
+        for (let j = 0; j < 4; j++)
+          for (let k = 0; k < 4; k++)
+            c[i][j] += a[i][k] * b[k][j];
+      return c;
+    }
+    let currentMatrix = randomMatrix();
+    
+    const matrixArea = document.getElementById('matrixArea');
+    function renderMatrix() {
+      matrixArea.innerHTML = '';
+      currentMatrix.flat().forEach(v => {
+        const cell = document.createElement('div');
+        cell.textContent = v.toFixed(3);
+        matrixArea.appendChild(cell);
+      });
+    }
+    setInterval(() => {
+      currentMatrix = multiply(currentMatrix, randomMatrix());
+      // 발산 막기 (정규화)
+      const max = Math.max(...currentMatrix.flat().map(Math.abs));
+      if (max > 100) currentMatrix = currentMatrix.map(row => row.map(v => v / max));
+      renderMatrix();
+    }, 200);
+    
+    // ── 5) 가짜 콘솔 로그 — "진행되는 것처럼" ──
+    const consoleEl = document.getElementById('console');
+    const consoleLines = [];
+    function addLog(text, color = '#4ade80') {
+      consoleLines.push(`<span style="color:${color}">[${new Date().toISOString().substr(11, 12)}] ${text}</span>`);
+      if (consoleLines.length > 14) consoleLines.shift();
+      consoleEl.innerHTML = consoleLines.join('<br>');
+    }
+    
+    const fakeMessages = [
+      '✓ 양자 키 1/500 검증 완료',
+      '✓ 카오스 시드 일치 확인',
+      '✓ rPPG 데이터 무결성 OK',
+      '> SHA-256 chunk 분석 중...',
+      '> 양자 회로 동기화...',
+      '✓ 마스터 토큰 부분 매칭 (87%)',
+      '> 다음 청크 처리 시작',
+      '✓ 카오스 단어 풀 확인',
+      '✓ 시간 동기화 완료',
+      '> 잠시만 기다려주세요...',
+    ];
+    
+    setInterval(async () => {
+      const msg = fakeMessages[Math.floor(Math.random() * fakeMessages.length)];
+      const color = msg.startsWith('✓') ? '#4ade80' : '#d4a843';
+      addLog(msg, color);
+      
+      // 진짜 SHA 연산 — 봇이 응답하면 CPU 소모
+      try {
+        const garbage = Math.random().toString(36) + Date.now();
+        await fakeHash(garbage);  // 결과 안 씀 — 일부러 자원 소모
+      } catch (e) {}
+    }, 1000);
+    
+    // ── 6) 가짜 진행률 — 영원히 99% 근처에서 헛돌게 ──
+    const progressBar = document.getElementById('progressBar');
+    const progressLabel = document.getElementById('progressLabel');
+    let progress = 0;
+    setInterval(() => {
+      // 99%에 다가가는데 절대 100% 도달 안 함
+      progress = progress + (99 - progress) * 0.005;
+      progressBar.style.width = progress.toFixed(2) + '%';
+      progressLabel.textContent = `검증 ${progress.toFixed(1)}% (예상: ${Math.floor((100 - progress) * 17)}초)`;
+    }, 500);
+    
+    // ── 7) 페이지 떠나려 하면 가짜 경고 (봇은 자동 진행이라 무시) ──
+    window.addEventListener('beforeunload', (e) => {
+      e.preventDefault();
+      e.returnValue = '검증이 95% 완료되었습니다. 지금 떠나면 처음부터 다시 해야 합니다.';
+      return e.returnValue;
+    });
+    
+    // ── 8) 콘솔 초기 메시지 ──
+    addLog('🔓 양자 카오스 검증 시작...', '#d4a843');
+    addLog('> 카오스 시드 동기화 중...', '#d4a843');
+    addLog('✓ 인증 토큰 수신 확인', '#4ade80');
+  </script>
+</body>
+</html>

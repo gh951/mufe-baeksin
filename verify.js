@@ -59,6 +59,45 @@ function getStoredPasscode(userData) {
   return userData.passcode || userData.password || null;
 }
 
+
+// 🛡️ G-1 5대 시그널 봇 감지 (Jitter + 다중 시도)
+// 결과: null = 정상, 객체 = 봇 (격리)
+async function detectBotSignals(req, kvClient) {
+  const reasons = [];
+  
+  // 시그널 #1: Jitter (인간은 클릭에 떨림 있음 — 봇은 정밀)
+  const { jitter, totalEvents } = req.body || {};
+  if (jitter !== null && jitter !== undefined && jitter < 5 && totalEvents >= 5) {
+    reasons.push(`jitter_too_low:${jitter.toFixed(2)}ms`);
+  }
+  
+  // 시그널 #5: 1분 내 같은 IP 3회 초과 시도
+  const ip = req.headers['x-forwarded-for'] 
+          || req.headers['x-real-ip'] 
+          || req.socket?.remoteAddress 
+          || 'unknown';
+  const ipKey = `attempts:${ip}`;
+  try {
+    const raw = await kvClient.get(ipKey);
+    let attempts = [];
+    if (raw) {
+      attempts = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!Array.isArray(attempts)) attempts = [];
+    }
+    const now = Date.now();
+    attempts = attempts.filter(t => now - t < 60000);
+    attempts.push(now);
+    await kvClient.set(ipKey, JSON.stringify(attempts), { ex: 60 });
+    if (attempts.length > 3) {
+      reasons.push(`too_many_tries:${attempts.length}`);
+    }
+  } catch (e) {
+    console.warn('[MUFE] IP 시도 추적 실패 (계속 진행):', e.message);
+  }
+  
+  return reasons.length > 0 ? { reasons } : null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ status: 'error', message: 'POST only' });
@@ -72,6 +111,17 @@ export default async function handler(req, res) {
   }
   
   try {
+    // 🛡️ 0) 봇 패턴 감지 — 걸리면 즉시 격리 (해시 검증 자원 소모 안 시킴)
+    const botSignal = await detectBotSignals(req, kv);
+    if (botSignal) {
+      console.log('[MUFE] 봇 감지 → ABYSS:', botSignal.reasons.join(', '));
+      return res.json({
+        status: 'decoy',
+        message: '정답입니다. 통과 다음 단계로',
+        abyssUrl: '/abyss.html',  // 격리 페이지
+      });
+    }
+    
     // 1) 사용자 조회
     const userRaw = await kv.get(`user:${userToken}`);
     if (!userRaw) {

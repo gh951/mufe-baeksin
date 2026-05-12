@@ -6951,16 +6951,28 @@
   
   // 🚀 시작하기 — 비번 저장된 사람은 챌린지 화면으로, 미등록자는 왼쪽 등록 탭으로 안내
   function goToChallenge() {
-    if (userToken && userPasscode) {
+    // 진단 로그 (콘솔 F12 + 화면 메시지)
+    console.log('[MUFE 시작하기] 클릭됨. userToken:', !!userToken, 'userPasscode:', !!userPasscode);
+    
+    const hasToken = !!(userToken || localStorage.getItem('mufe-user-token'));
+    const hasPass = !!(userPasscode || localStorage.getItem('mufe-user-passcode'));
+    
+    if (hasToken && hasPass) {
       // 이 기기에 비번 저장됨 → 바로 챌린지 (회전 화면)
+      console.log('[MUFE] → 챌린지 화면 진입');
+      // 변수 못 박혀있으면 localStorage에서 다시 박기
+      if (!userToken) userToken = localStorage.getItem('mufe-user-token');
+      if (!userPasscode) userPasscode = localStorage.getItem('mufe-user-passcode');
+      if (!userSpacing) userSpacing = localStorage.getItem('mufe-user-spacing');
       showChallengeForm();
     } else {
       // 미등록 → 왼쪽 "비번 만들기" 탭 활성화 + 안내
+      console.log('[MUFE] → 비번 없음 → 등록 안내');
       switchRegMode('register');
       const msg = document.getElementById('regMsg');
       if (msg) {
-        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong>';
-        msg.className = 'response-msg retry';
+        msg.innerHTML = '<strong>⚠ 비번을 먼저 만들어주세요</strong><br><small>왼쪽 "비번 만들기" 탭에서 박은 후 다시 시작하기 클릭</small>';
+        msg.className = 'response-msg retry show';
       }
       const el = document.getElementById('regPasscode');
       if (el) setTimeout(() => el.focus(), 200);
@@ -7343,6 +7355,30 @@
     msg.className = 'response-msg show ' + type;
   }
 
+// ════════════════════════════════════════════════════════════
+  // 🛡️ Jitter 추적 — 봇 vs 사람 구분 (G-1 5대 시그널 #1)
+  // 인간 클릭은 *떨림* 있음, 봇은 *정밀*함 → 표준편차로 잡음
+  // ════════════════════════════════════════════════════════════
+  window._jitterEvents = [];
+  ['click', 'keydown', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      window._jitterEvents.push(performance.now());
+      if (window._jitterEvents.length > 50) window._jitterEvents.shift();
+    });
+  });
+  
+  function calculateJitterScore() {
+    const events = window._jitterEvents;
+    if (events.length < 3) return null;
+    const intervals = [];
+    for (let i = 1; i < events.length; i++) {
+      intervals.push(events[i] - events[i - 1]);
+    }
+    const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+    const variance = intervals.reduce((sum, x) => sum + (x - mean) ** 2, 0) / intervals.length;
+    return Math.sqrt(variance);  // 낮을수록 봇 의심
+  }
+  
   async function verifyAuth() {
     const ans = document.getElementById('authInput').value.trim();
     
@@ -7381,6 +7417,8 @@
           challengeId: currentChallenge.challengeId,
           caughtWord,
           answer: ans,
+          jitter: calculateJitterScore(),         // 🛡️ G-1 #1: 떨림 점수
+          totalEvents: window._jitterEvents.length,  // 클릭 횟수
         }),
       });
       
@@ -7398,6 +7436,10 @@
         // 사용자 측엔 *통과처럼* 완료 — 격리는 서버에서만 완료 (모토)
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
+        // 🛡️ 격리 URL 있으면 2초 후 abyss로 (봇은 가짜 성공이라 좋아하며 따라감)
+        if (result.abyssUrl) {
+          setTimeout(() => { window.location.href = result.abyssUrl; }, 2000);
+        }
       } else {
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
