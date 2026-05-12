@@ -3103,9 +3103,9 @@
     background: linear-gradient(to top, var(--white) 60%, rgba(255,255,255,0.85) 100%);
     z-index: 2;
   }
-  /* 우측 시작하기 버튼 — 액션 강조 (보라 그라디언트) */
-  .rmt-btn.rmt-start {
-    background: linear-gradient(135deg, #0a1f3a, #7c3aed);
+  /* 왼쪽 버튼 — 비번 만들기 (보라 그라디언트, 액션) */
+  .rmt-btn.rmt-register {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
     color: white;
     border: none;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
@@ -3113,17 +3113,24 @@
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
   }
-  .rmt-btn.rmt-start:hover {
+  .rmt-btn.rmt-register:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(124, 58, 237, 0.45);
   }
-  .rmt-btn.rmt-start:active {
-    transform: translateY(0);
+  
+  /* 오른쪽 버튼 — 시작하기 (네이비-청록 그라디언트, 액션) */
+  .rmt-btn.rmt-start {
+    background: linear-gradient(135deg, #0a1f3a, #1e40af);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.35);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
   }
-  /* 왼쪽 라벨 (비활성, 보라 그라디언트 유지) */
-  .rmt-btn[disabled] {
-    cursor: default;
-    opacity: 1;
+  .rmt-btn.rmt-start:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.45);
   }
   /* 위임 링크 깔끔하게 */
   .reg-delegate-link {
@@ -6197,13 +6204,13 @@
     
     <!-- 화면 1: 등록 / 로그인 -->
     <div class="challenge-form" id="formRegister" style="display: none;">
-      <!-- 상단 두 버튼 — 왼쪽 라벨, 오른쪽 시작하기 (시작하기는 액션) -->
+      <!-- 상단 두 버튼 — 왼쪽: 신규 등록 / 오른쪽: 기존 비번 → 바로 챌린지 -->
       <div class="reg-mode-toggle">
-        <button type="button" class="rmt-btn rmt-active" id="rmtRegister" disabled>
+        <button type="button" class="rmt-btn rmt-register" id="rmtRegister" onclick="registerPasscode()">
           🆕 비번 만들기 (처음)
         </button>
-        <button type="button" class="rmt-btn rmt-start" id="rmtStart" onclick="registerPasscode()">
-          🔒 시작하기
+        <button type="button" class="rmt-btn rmt-start" id="rmtStart" onclick="startExisting()">
+          🚀 시작하기
         </button>
       </div>
       
@@ -6586,7 +6593,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'single-fix-20260512081911';
+  const MUFE_CACHE_VERSION = 'two-buttons-20260512085719';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6976,6 +6983,51 @@
     } catch (err) {
       console.error('[MUFE] 로그인 실패:', err);
       showRegMsg('서버 없음 — 잠시 후 다시', 'retry');
+    }
+  }
+
+  // 🚀 시작하기 — 비번 있는 사람용 (로그인 + 바로 챌린지)
+  async function startExisting() {
+    const passcode = document.getElementById('regPasscode').value.trim();
+    
+    // 비번 입력 안 했음 → localStorage 토큰 확인
+    if (!passcode) {
+      if (userToken && userPasscode) {
+        // 이 기기에 저장됨 → 바로 챌린지로
+        showChallengeForm();
+        return;
+      }
+      showRegMsg('비번을 입력해주세요 (이 기기에 저장된 비번이 없습니다)', 'retry');
+      document.getElementById('regPasscode').focus();
+      return;
+    }
+    
+    // 비번 입력함 → 서버에 login 시도 (형식은 서버가 알려줌)
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        userToken = result.token;
+        userPasscode = passcode;
+        userSpacing = result.format;
+        localStorage.setItem('mufe-user-token', userToken);
+        localStorage.setItem('mufe-user-passcode', userPasscode);
+        localStorage.setItem('mufe-user-spacing', userSpacing);
+        
+        // 바로 챌린지 화면으로
+        showChallengeForm();
+      } else {
+        // 비번 없음 → 등록부터 안내
+        showRegMsg('등록된 비번이 아닙니다. 왼쪽 "🆕 비번 만들기"로 등록해주세요', 'retry');
+      }
+    } catch (err) {
+      console.error('[MUFE startExisting] 에러:', err);
+      showRegMsg('서버 통신 오류 — 잠시 후 다시 시도', 'retry');
     }
   }
 
