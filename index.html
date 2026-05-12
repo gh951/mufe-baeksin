@@ -3004,25 +3004,6 @@
     align-items: center;
     justify-content: center;
   }
-
-  /* 등록 폼: 4가지 형식 + 등록 버튼 하단 sticky (대장님 요청 — 이미지 1 하단 고정) */
-  #regModeRegister .reg-spacing {
-    position: sticky;
-    bottom: 60px;
-    background: linear-gradient(to top, var(--white) 70%, rgba(255,255,255,0.85));
-    padding-top: 8px;
-    z-index: 2;
-  }
-  #regModeRegister .auth-buttons {
-    position: sticky;
-    bottom: 0;
-    background: var(--white);
-    padding: 8px 0;
-    z-index: 3;
-    margin-top: 8px;
-    box-shadow: 0 -8px 14px -8px rgba(10, 31, 58, 0.12);
-  }
-
   .rotator-svg {
     width: 100%;
     max-width: 360px;
@@ -6171,8 +6152,8 @@
         <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
           🆕 비번 만들기 (처음)
         </button>
-        <button type="button" class="rmt-btn" id="rmtLogin" onclick="goToChallenge()">
-          🚀 시작하기
+        <button type="button" class="rmt-btn" id="rmtLogin" onclick="switchRegMode('login')">
+          🔓 기존 비번 저장된 사람
         </button>
       </div>
       
@@ -6600,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'v2026.05.12.092837-start-button';
+  const MUFE_CACHE_VERSION = 'chaos628-fix-20260512073338';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6956,25 +6937,6 @@
     if (msg) msg.className = 'response-msg';
   }
   
-
-  // 🚀 시작하기 — 등록 사용자는 바로 챌린지로, 아니면 왼쪽 탭으로 안내
-  function goToChallenge() {
-    if (userToken && userPasscode) {
-      // 이 기기에 저장됨 → 바로 챌린지
-      showChallengeForm();
-    } else {
-      // 미등록 → 왼쪽 탭 활성화
-      switchRegMode('register');
-      const msg = document.getElementById('regMsg');
-      if (msg) {
-        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong>';
-        msg.className = 'response-msg retry';
-      }
-      const el = document.getElementById('regPasscode');
-      if (el) el.focus();
-    }
-  }
-
   // 기존 비번 저장된 사람 로그인
   async function loginPasscode() {
     const passcode = document.getElementById('loginPasscode').value.trim();
