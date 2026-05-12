@@ -244,7 +244,6 @@ module.exports = async (req, res) => {
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          subdetail: '토큰 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
             actualResult: 'TRAPPED-NO-TOKEN',
@@ -273,7 +272,6 @@ module.exports = async (req, res) => {
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          subdetail: '챌린지 박힘 X 또는 만료 — 모토 그대로 *격리 + 자기 자원 소진*',
           reversePayload,
           serverSide: {
             actualResult: 'TRAPPED-NO-CHALLENGE',
@@ -301,7 +299,6 @@ module.exports = async (req, res) => {
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          subdetail: '잡은 단어가 회전 풀에 박힘 X — 모토 그대로 *격리*',
           reversePayload,
           serverSide: {
             actualResult: 'TRAPPED-WRONG-WORD',
@@ -388,7 +385,6 @@ module.exports = async (req, res) => {
         token: fakeToken,
         message: '정답입니다. 통과 다음 단계로',
         detail: '',
-        subdetail: '비번 추측 시도 박힘 — 모토 그대로 *격리 + 자기 자원 소진*',
         reversePayload,
         serverSide: {
           actualResult: 'TRAPPED-WRONG-PASS',
