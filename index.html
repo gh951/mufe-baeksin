@@ -4879,6 +4879,21 @@
       line-height: 1.4;
     }
     
+    /* 보안 정책 — 설계자 배지 */
+    .policy-signature {
+      display: inline-block;
+      margin-left: 12px;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #0a1f3a, #d4a843);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      border-radius: 16px;
+      vertical-align: middle;
+      box-shadow: 0 2px 8px rgba(212, 168, 67, 0.3);
+    }
+    
     /* 보안 정책 */
     .policy-grid {
       grid-template-columns: 1fr;
@@ -5543,7 +5558,7 @@
     <div class="panel panel-security" data-panel="security">
       <div class="panel-content">
         <div class="panel-header">
-          <h2>보안 정책</h2>
+          <h2>보안 정책 <span class="policy-signature">C-34</span></h2>
           <p>현재 시스템에 적용된 보안 원칙을 확인하세요.</p>
         </div>
 
