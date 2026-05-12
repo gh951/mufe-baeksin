@@ -2556,6 +2556,19 @@
     padding: 14px 0;
   }
   .scan-result.show { display: block; }
+  .scan-findings {
+    margin-top: 14px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: left;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+  }
+  .scan-findings::-webkit-scrollbar { width: 6px; }
+  .scan-findings::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.3); border-radius: 3px; }
   .scan-result-icon {
     font-size: 56px;
     margin-bottom: 10px;
@@ -7708,13 +7721,14 @@
   // ════════════════════════════════════════════════════════════
   // 검사 모달 (빠른 / 정밀)
   // ════════════════════════════════════════════════════════════
-  function openScanModal(type) {
-    const tasks = type === 'quick' 
-      ? ['미끼 파일 무결성 확인', '카오스 시드 검증', '인증 캐시 점검', '검사 완료']
-      : ['미끼 파일 무결성 확인', '행위 게슈탈트 분석', '시선 패턴 검증', 
-         '기계 정밀도 측정', '인증 캐시 전체 검증', '신뢰 점수 재조정', '검사 완료'];
+  // ════════════════════════════════════════════════════════════
+  // ★ 진짜 작동 검사 시스템 ★
+  // - localStorage 무결성 / 카오스 시드 / API 응답 / jitter 정밀도
+  // - 진짜 검사·진짜 결과·상황마다 다름
+  // ════════════════════════════════════════════════════════════
+  async function openScanModal(type) {
     const title = type === 'quick' ? '빠른 검사' : '정밀 검사';
-    const desc = type === 'quick' ? '약 5초 소요' : '약 15초 소요';
+    const desc = type === 'quick' ? '실시간 무결성 검증' : '깊이 박힌 시스템 분석';
     
     const modal = document.createElement('div');
     modal.className = 'scan-modal show';
@@ -7727,41 +7741,252 @@
           <div class="scan-progress-fill" id="scanFill"></div>
         </div>
         <div class="scan-current-task" id="scanTask">시작 중...</div>
+        <div class="scan-findings" id="scanFindings" style="margin-top:14px;max-height:180px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;text-align:left;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;display:none;"></div>
         <div class="scan-result" id="scanResult">
-          <div class="scan-result-icon">✓</div>
-          <div class="scan-result-title">위협이 발견되지 않았습니다</div>
-          <div class="scan-result-detail">시스템이 안전하게 보호되고 있습니다</div>
+          <div class="scan-result-icon" id="scanResultIcon">✓</div>
+          <div class="scan-result-title" id="scanResultTitle">검사 완료</div>
+          <div class="scan-result-detail" id="scanResultDetail">시스템이 안전하게 박혀있습니다</div>
           <button class="scan-close" onclick="this.closest('.scan-modal').remove()">닫기</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
     
-    let step = 0;
-    const totalSteps = tasks.length;
-    const interval = type === 'quick' ? 1200 : 2000;
+    const pctEl = document.getElementById('scanPct');
+    const fillEl = document.getElementById('scanFill');
+    const taskEl = document.getElementById('scanTask');
+    const findingsEl = document.getElementById('scanFindings');
+    findingsEl.style.display = 'block';
     
-    const advance = () => {
-      const pct = Math.round(((step + 1) / totalSteps) * 100);
-      document.getElementById('scanPct').textContent = pct + '%';
-      document.getElementById('scanFill').style.width = pct + '%';
-      document.getElementById('scanTask').textContent = tasks[step];
-      
-      step++;
-      if (step < totalSteps) {
-        setTimeout(advance, interval);
-      } else {
-        // 완료
-        setTimeout(() => {
-          document.getElementById('scanTask').style.display = 'none';
-          document.getElementById('scanResult').classList.add('show');
-        }, 400);
-        addLog('success', '✓', `<strong>${title}</strong> 완료 — 위협 0건`);
-      }
-    };
-    
-    setTimeout(advance, 300);
     addLog('success', '🔍', `<strong>${title}</strong> 시작`);
+    
+    // 검사 항목 박기
+    const checks = type === 'quick' ? [
+      { name: 'localStorage 무결성 확인', fn: checkLocalStorage },
+      { name: '카오스 시드 검증 (API 핑)', fn: checkChaosSeed },
+      { name: '인증 캐시 점검', fn: checkAuthCache },
+      { name: '저장소 사용량 측정', fn: checkStorageQuota },
+    ] : [
+      { name: 'localStorage 무결성 확인', fn: checkLocalStorage },
+      { name: '행위 게슈탈트 분석 (jitter)', fn: checkBehaviorGestalt },
+      { name: '기계 정밀도 측정', fn: checkMachinePrecision },
+      { name: '카오스 시드 검증 (API 핑)', fn: checkChaosSeed },
+      { name: '인증 캐시 전체 검증', fn: checkAuthCache },
+      { name: '저장소·메모리 측정', fn: checkResources },
+      { name: 'Service Worker 상태', fn: checkServiceWorker },
+      { name: '신뢰 점수 재조정', fn: checkTrustScore },
+    ];
+    
+    let findings = { ok: 0, warn: 0, error: 0, items: [] };
+    
+    for (let i = 0; i < checks.length; i++) {
+      const check = checks[i];
+      const pct = Math.round(((i + 1) / checks.length) * 100);
+      pctEl.textContent = pct + '%';
+      fillEl.style.width = pct + '%';
+      taskEl.textContent = check.name;
+      
+      try {
+        const result = await check.fn();
+        findings.items.push({ name: check.name, status: result.status, msg: result.msg });
+        if (result.status === 'ok') findings.ok++;
+        else if (result.status === 'warn') findings.warn++;
+        else findings.error++;
+        
+        // 박힌 결과 실시간 표시
+        const color = result.status === 'ok' ? '#4ade80' : result.status === 'warn' ? '#f59e0b' : '#ef4444';
+        const icon = result.status === 'ok' ? '✓' : result.status === 'warn' ? '⚠' : '✗';
+        findingsEl.innerHTML += `<div style="color:${color};margin:3px 0;">${icon} ${check.name}: ${result.msg}</div>`;
+        findingsEl.scrollTop = findingsEl.scrollHeight;
+      } catch (e) {
+        findings.error++;
+        findingsEl.innerHTML += `<div style="color:#ef4444;margin:3px 0;">✗ ${check.name}: 검사 오류 (${e.message})</div>`;
+      }
+    }
+    
+    // 결과 박힘
+    taskEl.style.display = 'none';
+    document.getElementById('scanResult').classList.add('show');
+    
+    if (findings.error > 0) {
+      document.getElementById('scanResultIcon').textContent = '⚠';
+      document.getElementById('scanResultIcon').style.color = '#ef4444';
+      document.getElementById('scanResultTitle').textContent = `${findings.error}개 오류 박힘`;
+      document.getElementById('scanResultDetail').textContent = `OK ${findings.ok} · 경고 ${findings.warn} · 오류 ${findings.error}`;
+      addLog('warn', '⚠', `<strong>${title}</strong> 완료 — 오류 ${findings.error}건`);
+    } else if (findings.warn > 0) {
+      document.getElementById('scanResultIcon').textContent = '⚠';
+      document.getElementById('scanResultIcon').style.color = '#f59e0b';
+      document.getElementById('scanResultTitle').textContent = `${findings.warn}개 경고 박힘 (정리됨)`;
+      document.getElementById('scanResultDetail').textContent = `OK ${findings.ok} · 경고 ${findings.warn}`;
+      addLog('warn', '⚠', `<strong>${title}</strong> 완료 — 경고 ${findings.warn}건 (자동 정리)`);
+    } else {
+      document.getElementById('scanResultIcon').textContent = '✓';
+      document.getElementById('scanResultIcon').style.color = '#4ade80';
+      document.getElementById('scanResultTitle').textContent = '모든 검사 통과';
+      document.getElementById('scanResultDetail').textContent = `${findings.ok}개 항목 박혀있음 · 안전`;
+      addLog('success', '✓', `<strong>${title}</strong> 완료 — ${findings.ok}개 박힘 (안전)`);
+    }
+  }
+  
+  // ─── 검사 함수들 (진짜 작동) ───
+  
+  // 1. localStorage 무결성
+  async function checkLocalStorage() {
+    let cleaned = 0;
+    let total = 0;
+    const required = ['mufe-cache-version'];
+    const requiredMissing = [];
+    
+    // 손상된 JSON 박혀있는 키 정리
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('mufe-')) keys.push(k);
+    }
+    
+    for (const k of keys) {
+      total++;
+      const v = localStorage.getItem(k);
+      if (v === 'undefined' || v === 'null' || v === '') {
+        localStorage.removeItem(k);
+        cleaned++;
+      }
+    }
+    
+    for (const r of required) {
+      if (!localStorage.getItem(r)) requiredMissing.push(r);
+    }
+    
+    await new Promise(r => setTimeout(r, 300));
+    
+    if (requiredMissing.length > 0) return { status: 'warn', msg: `필수 키 ${requiredMissing.length}개 박혀있지 않음` };
+    if (cleaned > 0) return { status: 'warn', msg: `손상된 ${cleaned}개 정리됨 (총 ${total}개 박힘)` };
+    return { status: 'ok', msg: `${total}개 키 모두 정상 박힘` };
+  }
+  
+  // 2. 카오스 시드 검증 (API 핑)
+  async function checkChaosSeed() {
+    try {
+      const start = performance.now();
+      const res = await fetch('/api/challenge', { 
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ test: true })
+      });
+      const elapsed = Math.round(performance.now() - start);
+      
+      if (!res.ok) return { status: 'warn', msg: `HTTP ${res.status} (${elapsed}ms)` };
+      const data = await res.json();
+      if (!data.rotationWords) return { status: 'warn', msg: `응답 형식 불일치 (${elapsed}ms)` };
+      return { status: 'ok', msg: `${data.rotationWords.length}단어 · ${elapsed}ms` };
+    } catch (e) {
+      return { status: 'error', msg: `연결 실패: ${e.message}` };
+    }
+  }
+  
+  // 3. 인증 캐시 점검
+  async function checkAuthCache() {
+    const cacheVer = localStorage.getItem('mufe-cache-version');
+    const expected = (typeof MUFE_CACHE_VERSION !== 'undefined') ? MUFE_CACHE_VERSION : 'v2026';
+    
+    await new Promise(r => setTimeout(r, 250));
+    
+    if (!cacheVer) return { status: 'warn', msg: '캐시 버전 박혀있지 않음' };
+    if (cacheVer !== expected) return { status: 'warn', msg: `버전 불일치 (${cacheVer} ≠ ${expected})` };
+    return { status: 'ok', msg: `캐시 ${cacheVer} 박힘` };
+  }
+  
+  // 4. 저장소 사용량
+  async function checkStorageQuota() {
+    if (!navigator.storage || !navigator.storage.estimate) {
+      return { status: 'warn', msg: '브라우저 미지원' };
+    }
+    try {
+      const est = await navigator.storage.estimate();
+      const used = est.usage || 0;
+      const quota = est.quota || 1;
+      const pct = ((used / quota) * 100).toFixed(2);
+      const usedMB = (used / 1024 / 1024).toFixed(2);
+      const quotaMB = (quota / 1024 / 1024).toFixed(0);
+      return { status: 'ok', msg: `${usedMB}MB / ${quotaMB}MB (${pct}%)` };
+    } catch (e) {
+      return { status: 'warn', msg: '측정 실패' };
+    }
+  }
+  
+  // 5. 행위 게슈탈트 (jitter 박힌 자리)
+  async function checkBehaviorGestalt() {
+    const events = window._jitterEvents || [];
+    await new Promise(r => setTimeout(r, 400));
+    
+    if (events.length === 0) return { status: 'ok', msg: '입력 이력 박혀있지 않음 (정상)' };
+    if (events.length < 3) return { status: 'ok', msg: `${events.length}개 이벤트 박힘` };
+    
+    // 간격 계산
+    const intervals = [];
+    for (let i = 1; i < events.length; i++) {
+      intervals.push(events[i] - events[i-1]);
+    }
+    const mean = intervals.reduce((a,b)=>a+b,0) / intervals.length;
+    const variance = intervals.reduce((a,b)=>a+(b-mean)**2,0) / intervals.length;
+    const stdev = Math.sqrt(variance);
+    
+    if (stdev < 5) return { status: 'warn', msg: `정밀도 의심 (σ=${stdev.toFixed(1)}ms)` };
+    return { status: 'ok', msg: `정상 패턴 (σ=${stdev.toFixed(1)}ms · ${events.length}개)` };
+  }
+  
+  // 6. 기계 정밀도
+  async function checkMachinePrecision() {
+    // 사용자가 검사 박을 때까지의 부드러운 행동 분석
+    const totalAttempts = parseInt(localStorage.getItem('mufe-total-attempts') || '0');
+    const totalDecoys = parseInt(localStorage.getItem('mufe-total-decoys') || '0');
+    
+    await new Promise(r => setTimeout(r, 350));
+    
+    if (totalAttempts === 0) return { status: 'ok', msg: '시도 이력 박혀있지 않음' };
+    const decoyRate = ((totalDecoys / totalAttempts) * 100).toFixed(1);
+    if (totalDecoys / totalAttempts > 0.5) return { status: 'warn', msg: `미끼율 높음 ${decoyRate}% (${totalDecoys}/${totalAttempts})` };
+    return { status: 'ok', msg: `미끼율 ${decoyRate}% (정상)` };
+  }
+  
+  // 7. 저장소·메모리
+  async function checkResources() {
+    const r = await checkStorageQuota();
+    let memMsg = '';
+    if (performance.memory) {
+      const usedMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+      memMsg = ` · 메모리 ${usedMB}MB`;
+    }
+    return { status: r.status, msg: r.msg + memMsg };
+  }
+  
+  // 8. Service Worker
+  async function checkServiceWorker() {
+    if (!('serviceWorker' in navigator)) return { status: 'warn', msg: '브라우저 미지원' };
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await new Promise(r => setTimeout(r, 200));
+      if (regs.length === 0) return { status: 'ok', msg: 'SW 박혀있지 않음 (정상)' };
+      return { status: 'ok', msg: `${regs.length}개 SW 박힘` };
+    } catch (e) {
+      return { status: 'warn', msg: e.message };
+    }
+  }
+  
+  // 9. 신뢰 점수
+  async function checkTrustScore() {
+    const totalAttempts = parseInt(localStorage.getItem('mufe-total-attempts') || '0');
+    const totalDecoys = parseInt(localStorage.getItem('mufe-total-decoys') || '0');
+    await new Promise(r => setTimeout(r, 300));
+    
+    const success = totalAttempts - totalDecoys;
+    if (totalAttempts === 0) return { status: 'ok', msg: '신뢰 점수 측정 박힐 이력 없음' };
+    
+    const score = Math.round((success / totalAttempts) * 100);
+    if (score < 30) return { status: 'warn', msg: `점수 낮음 ${score}/100` };
+    if (score < 60) return { status: 'warn', msg: `점수 중간 ${score}/100` };
+    return { status: 'ok', msg: `점수 ${score}/100 (총 ${totalAttempts}회 박힘)` };
   }
 
   function runQuickScan() { openScanModal('quick'); }
