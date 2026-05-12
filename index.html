@@ -3004,6 +3004,25 @@
     align-items: center;
     justify-content: center;
   }
+
+  /* 등록 폼: 4가지 형식 + 등록 버튼 하단 sticky (대장님 요청 — 이미지 1 하단 고정) */
+  #regModeRegister .reg-spacing {
+    position: sticky;
+    bottom: 60px;
+    background: linear-gradient(to top, var(--white) 70%, rgba(255,255,255,0.85));
+    padding-top: 8px;
+    z-index: 2;
+  }
+  #regModeRegister .auth-buttons {
+    position: sticky;
+    bottom: 0;
+    background: var(--white);
+    padding: 8px 0;
+    z-index: 3;
+    margin-top: 8px;
+    box-shadow: 0 -8px 14px -8px rgba(10, 31, 58, 0.12);
+  }
+
   .rotator-svg {
     width: 100%;
     max-width: 360px;
@@ -3082,106 +3101,6 @@
     transform: none;
   }
 
-  /* ═══ 단일 화면 등록 — 비번 위, 형식 아래 고정 ═══ */
-  .reg-single-screen {
-    display: flex;
-    flex-direction: column;
-    min-height: 360px;
-  }
-  .reg-single-screen .challenge-instruction {
-    margin-bottom: 14px;
-  }
-  .reg-single-screen .auth-input {
-    margin-bottom: 0;
-  }
-  .reg-single-screen .reg-spacing {
-    /* 형식 버튼 영역 — 하단 고정 (sticky) */
-    position: sticky;
-    bottom: 0;
-    margin-top: auto;
-    padding-top: 14px;
-    background: linear-gradient(to top, var(--white) 60%, rgba(255,255,255,0.85) 100%);
-    z-index: 2;
-  }
-  /* 왼쪽 버튼 — 비번 만들기 (보라 그라디언트, 액션) */
-  .rmt-btn.rmt-register {
-    background: linear-gradient(135deg, #7c3aed, #5b21b6);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
-    font-weight: 800;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .rmt-btn.rmt-register:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.45);
-  }
-  
-  /* 오른쪽 버튼 — 시작하기 (네이비-청록 그라디언트, 액션) */
-  .rmt-btn.rmt-start {
-    background: linear-gradient(135deg, #0a1f3a, #1e40af);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.35);
-    font-weight: 800;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .rmt-btn.rmt-start:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.45);
-  }
-  /* ═══ 모드별 SUBMIT 버튼 (하단 sticky) ═══ */
-  .reg-submit-row {
-    position: sticky;
-    bottom: 0;
-    padding: 12px 0 4px;
-    background: var(--white);
-    z-index: 4;
-    margin-top: 12px;
-    box-shadow: 0 -10px 16px -10px rgba(10, 31, 58, 0.15);
-  }
-  .btn-save-start {
-    width: 100%;
-    padding: 16px;
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    background: linear-gradient(135deg, #0a1f3a, #7c3aed);
-    border-radius: 12px;
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4);
-  }
-  .btn-save-start:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(124, 58, 237, 0.5);
-  }
-  .btn-save-start:active {
-    transform: translateY(0);
-  }
-  /* 시작하기 모드 안내 박스 */
-  .reg-info-box {
-    background: linear-gradient(135deg, #dbeafe, #e0e7ff);
-    border: 1px solid #93c5fd;
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 13px;
-    color: #1e3a8a;
-    margin: 12px 0;
-    line-height: 1.5;
-  }
-
-  /* 위임 링크 깔끔하게 */
-  .reg-delegate-link {
-    text-align: center;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--gray-200);
-  }
   /* 잡힌 단어 정보 */
   .caught-info {
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
@@ -6247,23 +6166,21 @@
     
     <!-- 화면 1: 등록 / 로그인 -->
     <div class="challenge-form" id="formRegister" style="display: none;">
-      <!-- 상단 두 탭 — 모드 전환 (등록 ↔ 시작) -->
+      <!-- 모드 전환 영역 -->
       <div class="reg-mode-toggle">
         <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
           🆕 비번 만들기 (처음)
         </button>
-        <button type="button" class="rmt-btn" id="rmtStart" onclick="switchRegMode('start')">
+        <button type="button" class="rmt-btn" id="rmtLogin" onclick="goToChallenge()">
           🚀 시작하기
         </button>
       </div>
       
-      <!-- ═══ 등록 모드 ═══ -->
-      <div id="regModeRegister" class="reg-single-screen">
+      <!-- 처음 등록 영역 -->
+      <div id="regModeRegister">
         <div class="challenge-instruction">
           <strong>처음 방문하셨네요</strong><br>
-          <small style="color: var(--gray-500); font-weight: 500;">
-            같은 비번 다시 입력하면 어떤 기기에서도 통과됩니다
-          </small>
+          본인만의 비번을 입력해주세요
         </div>
         
         <input type="text" 
@@ -6347,40 +6264,51 @@
           </div>
         </div>
         
-        <!-- 💾 등록 모드 SUBMIT — 비번 저장하고 시작 -->
-        <div class="auth-buttons reg-submit-row">
-          <button class="btn btn-verify btn-save-start" onclick="registerPasscode()">
-            💾 비번 저장하고 시작하기
-          </button>
+        <div class="auth-buttons">
+          <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
+          <button class="btn btn-verify" onclick="registerPasscode()">비번 만들기</button>
         </div>
       </div>
       
-      <!-- ═══ 시작하기 모드 — 기존 비번 사용자 ═══ -->
-      <div id="regModeStart" class="reg-single-screen" style="display: none;">
+      <!-- 기존 비번 등록 사용자 로그인 -->
+      <div id="regModeLogin" style="display: none;">
         <div class="challenge-instruction">
-          <strong>🚀 기존 비번으로 시작</strong><br>
-          <small style="color: var(--gray-500); font-weight: 500;">
-            이 기기에 저장됐으면 비번 없이도 통과 — 새 기기면 비번 입력
-          </small>
+          <strong>🔓 기존 비번 등록 사용자</strong><br>
+          등록된 비번을 입력해주세요 — 어떤 기기에서도 사용 가능
         </div>
         
         <input type="text" 
                class="auth-input" 
-               id="startPasscode" 
-               placeholder="기존 비번 (이 기기에 저장됐으면 비워둬도 됨)" 
+               id="loginPasscode" 
+               placeholder="기존 비번 입력" 
                maxlength="20"
                autocomplete="off"
                autocapitalize="off"
                spellcheck="false" />
         
-        <div class="reg-info-box">
-          ℹ️ 처음이시면 왼쪽 <strong>"🆕 비번 만들기 (처음)"</strong> 탭을 선택해주세요
+        <div class="reg-info">
+          ℹ️ 다른 기기·PC에서 같은 비번 입력하시면 그대로 통과됩니다.<br>
+          비번이 없하시면 "비번 만들기"를 선택해주세요.
         </div>
         
-        <div class="auth-buttons reg-submit-row">
-          <button class="btn btn-verify btn-save-start" onclick="startExisting()">
-            🚀 시작하기 → 챌린지로
+        <!-- 생체 인증 (로그인 시) -->
+        <div class="bio-option-section bio-option-login" id="bioLoginSection" style="display:none;">
+          <div class="bio-option-header">
+            <span class="bio-option-icon">🫀</span>
+            <div class="bio-option-text">
+              <strong>생체 인증 필요</strong>
+              <small>등록 시 생체 인증을 설정하셨습니다 — 측정해주세요</small>
+            </div>
+          </div>
+          <button class="bio-measure-btn" onclick="startBioForLogin()">
+            📷 생체 측정 시작 (10초)
           </button>
+          <div id="bioLoginStatus" class="bio-reg-status"></div>
+        </div>
+        
+        <div class="auth-buttons">
+          <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
+          <button class="btn btn-verify" onclick="loginPasscode()">로그인</button>
         </div>
       </div>
       
@@ -6672,7 +6600,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'tabs-submit-20260512091053';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.092837-start-button';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -7006,34 +6934,47 @@
   // ════════════════════════════════════════════════════════════
   // 모드 전환 — 처음 등록 / 기존 로그인
   function switchRegMode(mode) {
+    const regBlock = document.getElementById('regModeRegister');
+    const loginBlock = document.getElementById('regModeLogin');
     const rmtReg = document.getElementById('rmtRegister');
-    const rmtStart = document.getElementById('rmtStart');
-    const regDiv = document.getElementById('regModeRegister');
-    const startDiv = document.getElementById('regModeStart');
+    const rmtLog = document.getElementById('rmtLogin');
     const msg = document.getElementById('regMsg');
     
-    if (mode === 'register') {
-      rmtReg.classList.add('rmt-active');
-      rmtStart.classList.remove('rmt-active');
-      if (regDiv) regDiv.style.display = '';
-      if (startDiv) startDiv.style.display = 'none';
-      setTimeout(() => {
-        const el = document.getElementById('regPasscode');
-        if (el) el.focus();
-      }, 200);
-    } else {
+    if (mode === 'login') {
+      regBlock.style.display = 'none';
+      loginBlock.style.display = 'block';
       rmtReg.classList.remove('rmt-active');
-      rmtStart.classList.add('rmt-active');
-      if (regDiv) regDiv.style.display = 'none';
-      if (startDiv) startDiv.style.display = '';
-      setTimeout(() => {
-        const el = document.getElementById('startPasscode');
-        if (el) el.focus();
-      }, 200);
+      rmtLog.classList.add('rmt-active');
+      setTimeout(() => document.getElementById('loginPasscode').focus(), 200);
+    } else {
+      regBlock.style.display = 'block';
+      loginBlock.style.display = 'none';
+      rmtReg.classList.add('rmt-active');
+      rmtLog.classList.remove('rmt-active');
+      setTimeout(() => document.getElementById('regPasscode').focus(), 200);
     }
     if (msg) msg.className = 'response-msg';
   }
   
+
+  // 🚀 시작하기 — 등록 사용자는 바로 챌린지로, 아니면 왼쪽 탭으로 안내
+  function goToChallenge() {
+    if (userToken && userPasscode) {
+      // 이 기기에 저장됨 → 바로 챌린지
+      showChallengeForm();
+    } else {
+      // 미등록 → 왼쪽 탭 활성화
+      switchRegMode('register');
+      const msg = document.getElementById('regMsg');
+      if (msg) {
+        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong>';
+        msg.className = 'response-msg retry';
+      }
+      const el = document.getElementById('regPasscode');
+      if (el) el.focus();
+    }
+  }
+
   // 기존 비번 저장된 사람 로그인
   async function loginPasscode() {
     const passcode = document.getElementById('loginPasscode').value.trim();
@@ -7068,54 +7009,6 @@
     } catch (err) {
       console.error('[MUFE] 로그인 실패:', err);
       showRegMsg('서버 없음 — 잠시 후 다시', 'retry');
-    }
-  }
-
-  // 🚀 시작하기 — 비번 있는 사람용 (로그인 + 바로 챌린지)
-  async function startExisting() {
-    // startPasscode 우선, 없으면 regPasscode (양쪽 다 지원)
-    const startEl = document.getElementById('startPasscode');
-    const regEl = document.getElementById('regPasscode');
-    const passcode = ((startEl && startEl.value) || (regEl && regEl.value) || '').trim();
-    
-    // 비번 입력 안 했음 → localStorage 토큰 확인
-    if (!passcode) {
-      if (userToken && userPasscode) {
-        // 이 기기에 저장됨 → 바로 챌린지로
-        showChallengeForm();
-        return;
-      }
-      showRegMsg('비번을 입력해주세요 (이 기기에 저장된 비번이 없습니다)', 'retry');
-      document.getElementById('regPasscode').focus();
-      return;
-    }
-    
-    // 비번 입력함 → 서버에 login 시도 (형식은 서버가 알려줌)
-    try {
-      const res = await fetch(`${API_BASE}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode }),
-      });
-      const result = await res.json();
-      
-      if (result.status === 'success') {
-        userToken = result.token;
-        userPasscode = passcode;
-        userSpacing = result.format;
-        localStorage.setItem('mufe-user-token', userToken);
-        localStorage.setItem('mufe-user-passcode', userPasscode);
-        localStorage.setItem('mufe-user-spacing', userSpacing);
-        
-        // 바로 챌린지 화면으로
-        showChallengeForm();
-      } else {
-        // 비번 없음 → 등록부터 안내
-        showRegMsg('등록된 비번이 아닙니다. 왼쪽 "🆕 비번 만들기"로 등록해주세요', 'retry');
-      }
-    } catch (err) {
-      console.error('[MUFE startExisting] 에러:', err);
-      showRegMsg('서버 통신 오류 — 잠시 후 다시 시도', 'retry');
     }
   }
 
