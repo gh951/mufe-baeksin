@@ -5087,9 +5087,9 @@
             <polyline points="9 12 11 14 15 10" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <div class="mobile-title">모바일도 함께 보호</div>
-        <div class="mobile-desc">스마트폰에 MUFE 모바일 앱<br>설치하여 통합 보안</div>
-        <button class="mobile-btn" onclick="alert('모바일 앱 곧 출시')">지금 다운로드</button>
+        <div class="mobile-title">모바일·PC 둘 다 박힘</div>
+        <div class="mobile-desc">홈 화면에 추가 박음<br>앱처럼 작동 박힘</div>
+        <button class="mobile-btn" onclick="installPWA()">📲 앱 설치 박음</button>
       </div>
 
       <!-- 통계 -->
@@ -8849,6 +8849,34 @@
   });
 
   // ════ 큰 설치 모달 — 환영 + 자세한 안내 ════
+  // installPWA — 사용자가 *모바일 카드*에서 박은 자리
+  function installPWA() {
+    if (isRunningStandalone()) {
+      alert('이미 앱으로 박혀있어요 ☕');
+      return;
+    }
+    
+    const device = detectDevice();
+    
+    if (deferredInstallPrompt) {
+      // Chrome / Edge / Android → 네이티브 박음
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(choice => {
+        if (choice.outcome === 'accepted') {
+          localStorage.setItem('mufe-installed', 'true');
+          if (typeof addLog === 'function') addLog('success', '📲', '앱 박힘 — 홈 화면 추가 박힘');
+        }
+        deferredInstallPrompt = null;
+      });
+    } else if (device === 'ios') {
+      // iOS Safari → 수동 안내 박음
+      showInstallModal('ios');
+    } else {
+      // 박지 못한 자리 안내 박음
+      showInstallModal(device);
+    }
+  }
+  
   function showInstallModal(type) {
     if (document.getElementById('installModal')) return;
     if (localStorage.getItem('mufe-install-dismissed') === 'true') return;
