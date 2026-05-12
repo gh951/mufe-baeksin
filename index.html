@@ -6152,8 +6152,8 @@
         <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
           🆕 비번 만들기 (처음)
         </button>
-        <button type="button" class="rmt-btn" id="rmtLogin" onclick="switchRegMode('login')">
-          🔓 기존 비번 저장된 사람
+        <button type="button" class="rmt-btn" id="rmtLogin" onclick="goToChallenge()">
+          🚀 시작하기
         </button>
       </div>
       
@@ -6581,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'chaos628-fix-20260512073338';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.094319-start-btn';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6937,7 +6937,25 @@
     if (msg) msg.className = 'response-msg';
   }
   
-  // 기존 비번 저장된 사람 로그인
+  // 🚀 시작하기 — 비번 저장된 사람은 챌린지 화면으로, 미등록자는 왼쪽 등록 탭으로 안내
+  function goToChallenge() {
+    if (userToken && userPasscode) {
+      // 이 기기에 비번 저장됨 → 바로 챌린지 (회전 화면)
+      showChallengeForm();
+    } else {
+      // 미등록 → 왼쪽 "비번 만들기" 탭 활성화 + 안내
+      switchRegMode('register');
+      const msg = document.getElementById('regMsg');
+      if (msg) {
+        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong>';
+        msg.className = 'response-msg retry';
+      }
+      const el = document.getElementById('regPasscode');
+      if (el) setTimeout(() => el.focus(), 200);
+    }
+  }
+
+  // 기존 비번 저장된 사람 로그인 (옛 코드 — 안 쓰임)
   async function loginPasscode() {
     const passcode = document.getElementById('loginPasscode').value.trim();
     if (!passcode) {
