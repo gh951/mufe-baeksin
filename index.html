@@ -6581,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'v2026.05.12.094319-start-btn';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.095203-show-start';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6796,14 +6796,9 @@
     const modal = document.getElementById('authModal');
     modal.classList.add('show');
     
-    // 등록 여부 체크
-    if (userToken && userPasscode) {
-      // 이미 등록됨 → 회전기 화면
-      showChallengeForm();
-    } else {
-      // 첫 방문 → 등록 화면
-      showRegisterForm();
-    }
+    // 항상 등록/시작 화면 먼저 — 사용자가 직접 🚀 시작하기 클릭으로 진입
+    // (자동 진입 제거 — 대장님 요청)
+    showRegisterForm();
   }
 
   function showRegisterForm() {
