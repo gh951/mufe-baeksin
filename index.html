@@ -4302,7 +4302,7 @@
     padding: 10px 12px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: #475569;  /* 흰 배경에서도 보이게 — 진한 회색 */
     border-radius: 8px;
     font-family: inherit;
     font-size: 13px;
@@ -6581,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'v2026.05.12.095203-show-start';
+  const MUFE_CACHE_VERSION = 'v2026.05.12.102811-no-loop';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6600,12 +6600,8 @@
         if (v === 'undefined' || v === 'null') localStorage.removeItem(k);
       }
       localStorage.setItem('mufe-cache-version', MUFE_CACHE_VERSION);
-      
-      // 새 버전 완료 = 무조건 새로고침 (PC·모바일 모두)
-      if (!sessionStorage.getItem('mufe-reloaded-' + MUFE_CACHE_VERSION)) {
-        sessionStorage.setItem('mufe-reloaded-' + MUFE_CACHE_VERSION, '1');
-        location.reload();
-      }
+      // ⚠️ 자동 reload 제거 — 무한 루프 방지
+      // 새 버전 적용은 사용자가 Ctrl+F5 또는 새로고침 한 번 하면 됨
     } catch (e) {
       console.warn('[MUFE] 캐시 정리:', e);
     }
@@ -9230,11 +9226,12 @@
         }
       });
       
-      // 컨트롤러 변경 시 (= 새 SW 활성화) 한 번만 새로고침
+      // 컨트롤러 변경 시 — 자동 reload 제거 (무한 루프 방지)
+      // 새 SW 활성화돼도 자동 새로고침 X, 사용자가 직접 새로고침
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
         refreshing = true;
-        window.location.reload();
+        console.log('[MUFE] 새 SW 활성화 — 새로고침 시 적용됨');
       });
     });
   }
