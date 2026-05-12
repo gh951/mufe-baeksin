@@ -15,6 +15,7 @@
  */
 
 const crypto = require('crypto');
+const { kvSet, kvGet, kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 
@@ -55,7 +56,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   
   try {
-    const { delegateAnswer, recipientId } = req.body || {};
+    const { delegateAnswer, recipientId, delegateToken } = req.body || {};
     
     if (!delegateAnswer) {
       return res.status(400).json({ error: '위임 답을 입력해주세요' });
@@ -63,13 +64,88 @@ module.exports = async (req, res) => {
     
     const ans = delegateAnswer.trim();
     
-    // 위임 답 풀에 있나 검증
+    // 위임 답 풀 박힘 X = decoy (모토: "차단 없음, 기만 격리만")
     if (!DELEGATE_POOL.includes(ans)) {
+      if (isKVAvailable()) await kvIncr('stats:delegate:trapped');
+      
+      const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+        type: 'decoy', issuedAt: Date.now(),
+        sessionId: crypto.randomBytes(8).toString('hex'),
+        trapped: true,
+      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+      
       return res.status(200).json({
-          status: 'failed',
-          message: '인증 실패',
-          detail: '유효한 위임 답이 아닙니다',
+          status: 'decoy',
+          token: fakeToken,
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
+          serverSide: {
+            actualResult: 'TRAPPED-WRONG-DELEGATE-ANSWER',
+            reason: 'invalid-delegate-pool',
+          },
         });
+    }
+    
+    // KV에서 1회용 박힘 확인
+    if (isKVAvailable() && delegateToken) {
+      const delegateId = crypto.createHash('sha256').update(delegateToken).digest('hex').slice(0, 16);
+      const delegateData = await kvGet(`del:${delegateId}`);
+      
+      if (delegateData) {
+        // 이미 박힌 자리 = decoy
+        if (delegateData.used && delegateData.oneTime) {
+          await kvIncr('stats:delegate:reused');
+          
+          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+            type: 'decoy', issuedAt: Date.now(),
+            sessionId: crypto.randomBytes(8).toString('hex'),
+            trapped: true, reason: 'reused',
+          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+          
+          return res.status(200).json({
+              status: 'decoy',
+              token: fakeToken,
+              message: '정답입니다. 통과 다음 단계로',
+              detail: '',
+              serverSide: {
+                actualResult: 'TRAPPED-REUSED-DELEGATE',
+                reason: 'one-time-token-reused',
+              },
+            });
+        }
+        
+        // 만료 자리 = decoy
+        if (delegateData.expiresAt && Date.now() > delegateData.expiresAt) {
+          await kvIncr('stats:delegate:expired');
+          
+          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+            type: 'decoy', issuedAt: Date.now(),
+            sessionId: crypto.randomBytes(8).toString('hex'),
+            trapped: true, reason: 'expired',
+          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+          
+          return res.status(200).json({
+              status: 'decoy',
+              token: fakeToken,
+              message: '정답입니다. 통과 다음 단계로',
+              detail: '',
+              serverSide: {
+                actualResult: 'TRAPPED-EXPIRED-DELEGATE',
+                reason: 'token-expired',
+              },
+            });
+        }
+        
+        // 사용 박음 (1회용 표시)
+        if (delegateData.oneTime) {
+          await kvSet(`del:${delegateId}`, {
+            ...delegateData,
+            used: true,
+            usedAt: Date.now(),
+            usedBy: recipientId || 'unknown',
+          }, 86400); // 24시간 박힘 (감사 로그용)
+        }
+      }
     }
     
     // 통과 → 수신자 토큰 발급
@@ -78,12 +154,20 @@ module.exports = async (req, res) => {
       delegateAnswer: ans,
     });
     
+    // 통계 — 성공 카운터
+    if (isKVAvailable()) {
+      await kvIncr('stats:delegate:success');
+      await kvIncr(`stats:delegate:by-day:${new Date().toISOString().slice(0,10)}`);
+    }
+    
     return res.status(200).json({
         status: 'success',
         token: recipientToken,
-        message: '✓ 위임 인증 통과',
-        detail: `수신자 권한으로 시스템 접근 허가됨`,
-        subdetail: `위임받은 답으로 통과 — 마스터 사용자가 부여한 일시 권한`,
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
+        subdetail: isKVAvailable()
+          ? `위임 박은 자리 + 1회용 진짜 추적 박힘`
+          : `위임받은 답으로 통과 — 마스터 사용자가 부여한 일시 권한`,
         permissions: ['view', 'limited-access'],
         expiresIn: '24시간 (또는 위임 시 설정한 기간)',
       });

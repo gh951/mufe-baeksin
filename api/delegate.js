@@ -13,6 +13,7 @@
  */
 
 const crypto = require('crypto');
+const { kvSet, kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 
@@ -110,15 +111,36 @@ module.exports = async (req, res) => {
     const sig = sign(payloadB64);
     const delegateToken = `mufe-d.${payloadB64}.${sig}`;
     
+    // KV에 위임 박음 (1회용 추적 + 통계용)
+    const delegateId = crypto.createHash('sha256').update(delegateToken).digest('hex').slice(0, 16);
+    const ttlSec = Math.ceil(expiresIn / 1000);
+    
+    if (isKVAvailable()) {
+      // 위임 자리 박힘
+      await kvSet(`del:${delegateId}`, {
+        used: false,
+        issuedAt: Date.now(),
+        recipientId,
+        oneTime: duration === 'once',
+        expiresAt: Date.now() + expiresIn,
+      }, ttlSec);
+      
+      // 통계 — 위임 발급 카운터 박음
+      await kvIncr('stats:delegates:issued');
+      await kvIncr(`stats:delegates:by-day:${new Date().toISOString().slice(0,10)}`);
+    }
+    
     return res.status(200).json({
         status: 'success',
         delegateToken,
-        delegateAnswer,        // 수신자에게 알려줄 답
+        delegateAnswer,
         recipientId,
         validFor: validForLabels[duration] || '24시간',
         message: '위임 인증 발급 완료',
         detail: `수신자(${recipientId})는 다음 답으로 인증 가능: "${delegateAnswer}"`,
-        subdetail: '수신자별 동적 — 다른 수신자는 다른 답 받음',
+        subdetail: isKVAvailable() 
+          ? '수신자별 동적 + 1회용 진짜 추적 박힘 (Vercel KV)'
+          : '수신자별 동적 — 다른 수신자는 다른 답 받음',
       });
     
   } catch (err) {

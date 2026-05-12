@@ -13,6 +13,7 @@
  */
 
 const crypto = require('crypto');
+const { kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 
@@ -41,7 +42,7 @@ function verifyChallengeId(challengeId) {
   
   try {
     const data = JSON.parse(Buffer.from(dataB64, 'base64').toString());
-    if (Date.now() - data.t > 120 * 1000) return null;
+    if (Date.now() - data.t > 600 * 1000) return null;
     return data;
   } catch {
     return null;
@@ -223,31 +224,86 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: '모든 필드가 필요합니다' });
     }
     
-    // 사용자 토큰 검증
+    // 사용자 토큰 박힘 X = 격리 자리로 박음 (모토: "차단 없음, 기만 격리만")
     const userData = verifyToken(userToken, 'mufe-u');
     if (!userData) {
-      return res.status(401).json({ 
-          status: 'invalid',
-          message: '사용자 토큰이 유효하지 않습니다',
-          detail: '비번을 다시 등록해주세요',
+      // 토큰 박힘 X 이지만 거부 X — 미끼 통과로 보이게 박음 + 자기 자원 소진
+      if (isKVAvailable()) await kvIncr('stats:auth:trapped-no-token');
+      
+      const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+        type: 'decoy',
+        issuedAt: Date.now(),
+        sessionId: crypto.randomBytes(8).toString('hex'),
+        trapped: true,
+      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+      
+      const reversePayload = generateReversePayload();
+      
+      return res.status(200).json({
+          status: 'decoy',
+          token: fakeToken,
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
+          reversePayload,
+          serverSide: {
+            actualResult: 'TRAPPED-NO-TOKEN',
+            reason: 'no-valid-token',
+            note: '공격자: 토큰 없이 시도 → 가짜 통과 + 페이로드 자기 처리',
+          },
         });
     }
     
-    // 챌린지 ID 검증
+    // 챌린지 박힘 X = 격리 자리 (거부 X)
     const challenge = verifyChallengeId(challengeId);
     if (!challenge) {
-      return res.status(401).json({ 
-          status: 'invalid',
-          message: '챌린지가 만료되었거나 위조되었습니다',
+      if (isKVAvailable()) await kvIncr('stats:auth:trapped-no-challenge');
+      
+      const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+        type: 'decoy',
+        issuedAt: Date.now(),
+        sessionId: crypto.randomBytes(8).toString('hex'),
+        trapped: true,
+      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+      
+      const reversePayload = generateReversePayload();
+      
+      return res.status(200).json({
+          status: 'decoy',
+          token: fakeToken,
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
+          reversePayload,
+          serverSide: {
+            actualResult: 'TRAPPED-NO-CHALLENGE',
+            reason: 'expired-or-invalid-challenge',
+            note: '공격자: 챌린지 박지 않고 시도 → 가짜 통과 + 페이로드',
+          },
         });
     }
     
-    // 잡은 단어가 회전 풀 안에 있나
+    // 잡은 단어 박힘 X = 격리 자리 (거부 X)
     if (!challenge.words.includes(caughtWord)) {
-      return res.status(400).json({
-          status: 'failed',
-          message: '잡힌 단어가 회전 풀에 없습니다',
-          detail: '챌린지를 다시 시작해주세요',
+      if (isKVAvailable()) await kvIncr('stats:auth:trapped-wrong-word');
+      
+      const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+        type: 'decoy',
+        issuedAt: Date.now(),
+        sessionId: crypto.randomBytes(8).toString('hex'),
+        trapped: true,
+      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+      
+      const reversePayload = generateReversePayload();
+      
+      return res.status(200).json({
+          status: 'decoy',
+          token: fakeToken,
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
+          reversePayload,
+          serverSide: {
+            actualResult: 'TRAPPED-WRONG-WORD',
+            reason: 'word-not-in-pool',
+          },
         });
     }
     
@@ -265,12 +321,18 @@ module.exports = async (req, res) => {
     
     if (userAnswer === realAnswer) {
       const realToken = generateAuthToken('real', userData);
+      
+      // 통계 — KV에 박음 (영구 저장)
+      if (isKVAvailable()) {
+        await kvIncr('stats:auth:success');
+        await kvIncr(`stats:auth:by-day:${new Date().toISOString().slice(0,10)}`);
+      }
+      
       return res.status(200).json({
           status: 'success',
           token: realToken,
-          message: '✓ 진짜 통과',
-          detail: `정답: "${realAnswer}" (${FORMAT_LABELS[userFormat]})`,
-          subdetail: '비번 + 잡은 단어 + 형식까지 일치',
+          message: '정답입니다. 통과 다음 단계로',
+          detail: '',
         });
     }
     
@@ -282,12 +344,18 @@ module.exports = async (req, res) => {
       if (userAnswer === fakeAnswer) {
         const fakeToken = generateAuthToken('decoy', userData);
         const reversePayload = generateReversePayload();
+        
+        // 통계 — 격리 자리 박음
+        if (isKVAvailable()) {
+          await kvIncr('stats:auth:decoy');
+          await kvIncr('stats:reverse-payload:deployed');
+        }
+        
         return res.status(200).json({
             status: 'decoy',
             token: fakeToken,
-            message: '※ 데모: "통과" 표시',
-            detail: '실전: 가짜 토큰 발급 → 샌드박스 격리 + 역피해 페이로드 송출',
-            subdetail: `비번 맞춤 / 형식 *틀림* — "${FORMAT_LABELS[fmt]}" 시도. 등록된 형식은 "${FORMAT_LABELS[userFormat]}"`,
+            message: '정답입니다. 통과 다음 단계로',
+            detail: '',
             
             // ⚔ 역피해 페이로드 — 공격자 시스템 자원 소모 유도
             reversePayload,
@@ -305,11 +373,26 @@ module.exports = async (req, res) => {
       }
     }
     
-    // 비번 자체가 다름 → 단순 실패 (격리 대상도 아님)
+    // 비번 박힘 X = 격리 자리 (모토: "차단 없음, 기만 격리만")
+    // 공격자가 비번 추측 시도한 자리 → 가짜 통과 + 자기 자원 소진
+    if (isKVAvailable()) await kvIncr('stats:auth:trapped-wrong-pass');
+    
+    const fakeToken = generateAuthToken('decoy', userData);
+    const reversePayload = generateReversePayload();
+    
     return res.status(200).json({
-        status: 'failed',
-        message: '인증 실패',
-        detail: '비번이나 잡은 단어를 확인해주세요',
+        status: 'decoy',
+        token: fakeToken,
+        message: '정답입니다. 통과 다음 단계로',
+        detail: '',
+        reversePayload,
+        serverSide: {
+          actualResult: 'TRAPPED-WRONG-PASS',
+          sandboxId: fakeToken.split('.')[1].slice(0, 12),
+          reason: 'wrong-password',
+          note: '공격자: 비번 추측 → 가짜 통과 + 페이로드 자기 처리',
+          reverseEffect: '연산 폭탄 + 무한 재귀 + 가짜 키 12개 + 가짜 시그니처 8개',
+        },
       });
     
   } catch (err) {

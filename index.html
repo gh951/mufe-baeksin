@@ -6388,23 +6388,14 @@
       const result = await res.json();
       
       if (result.status === 'success') {
-        showDelegateEntryMsg(
-          `<strong>${result.message}</strong><br>` +
-          `<small style="opacity:0.85">${result.detail}</small><br>` +
-          `<small style="opacity:0.7">${result.subdetail}</small><br>` +
-          `<small style="opacity:0.6; font-family:monospace">권한: ${result.permissions.join(', ')} · 만료: ${result.expiresIn}</small>`,
-          'success'
-        );
+        showDelegateEntryMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         if (window.trackAuthAttempt) window.trackAuthAttempt('delegate-recipient');
         // 활동 로그
         if (typeof addLog === 'function') {
           addLog('success', '🔗', '위임 답으로 통과 — 수신자 권한 부여');
         }
       } else {
-        showDelegateEntryMsg(
-          `<strong>${result.message}</strong><br><small>${result.detail || ''}</small>`,
-          'retry'
-        );
+        showDelegateEntryMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
       }
     } catch (err) {
       console.error('[MUFE] 위임 답 검증 실패:', err);
@@ -6517,23 +6508,12 @@
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
         
-        showRegMsg(
-          `<strong>${result.message}</strong><br><small>${result.detail || ''}</small>`,
-          'success'
-        );
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         setTimeout(() => showChallengeForm(), 1200);
       } else if (result.status === 'decoy') {
-        // 모토 그대로 — 박힘 X도 decoy
-        showRegMsg(
-          `<strong>${result.message}</strong><br>${result.detail}<br>` +
-          `<small style="opacity:0.7">${result.subdetail || ''}</small>`,
-          'decoy'
-        );
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
       } else {
-        showRegMsg(
-          `<strong>${result.message || '※ 박힘'}</strong><br><small>${result.detail || ''}</small>`,
-          'retry'
-        );
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
       }
     } catch (err) {
       console.error('[MUFE] 로그인 실패:', err);
@@ -6567,11 +6547,7 @@
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
         
-        showRegMsg(
-          `<strong>${result.message}</strong><br>` +
-          `<small>${result.detail || ''}</small>`,
-          'success'
-        );
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         
         setTimeout(() => {
           showChallengeForm();
@@ -6886,25 +6862,16 @@
         currentMasterToken = result.token;
         showMsg(
           `<strong>${result.message}</strong><br>` +
-          `<small style="opacity:0.85">${result.detail}</small><br>` +
-          `<small style="opacity:0.6">${result.subdetail}</small><br>` +
           `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
           'success'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       } else if (result.status === 'decoy') {
         // 사용자 측엔 *통과처럼* 박음 — 격리는 서버에서만 박힘 (모토)
-        // 색: 파랑 (거짓 통과)
-        showMsg(
-          `<strong>${result.message}</strong><br>${result.detail || ''}`,
-          'decoy'
-        );
+        showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       } else {
-        showMsg(
-          `<strong>${result.message || '✓ 통과'}</strong><br>${result.detail || ''}`,
-          'decoy'
-        );
+        showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       }
     } catch (err) {

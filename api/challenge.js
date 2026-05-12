@@ -112,7 +112,7 @@ module.exports = async (req, res) => {
       chaosImage,
       instruction: '회전하는 단어 중 원하는 시점에 STOP 누르세요',
       warning: '잡힌 단어 + 등록한 비번 = 답',
-      expiresIn: 120,
+      expiresIn: 600,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Challenge generation failed', detail: err.message });
