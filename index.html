@@ -3103,22 +3103,27 @@
     background: linear-gradient(to top, var(--white) 60%, rgba(255,255,255,0.85) 100%);
     z-index: 2;
   }
-  .reg-single-screen .auth-buttons {
-    position: sticky;
-    bottom: 0;
-    padding-top: 10px;
-    padding-bottom: 4px;
-    background: var(--white);
-    z-index: 3;
-    margin-top: 12px;
-    box-shadow: 0 -8px 16px -10px rgba(10, 31, 58, 0.12);
-  }
-  /* 시작하기 버튼 더 두드러지게 */
-  .btn-start {
-    flex: 2;
-    font-size: 16px;
+  /* 우측 시작하기 버튼 — 액션 강조 (보라 그라디언트) */
+  .rmt-btn.rmt-start {
+    background: linear-gradient(135deg, #0a1f3a, #7c3aed);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
     font-weight: 800;
-    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .rmt-btn.rmt-start:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.45);
+  }
+  .rmt-btn.rmt-start:active {
+    transform: translateY(0);
+  }
+  /* 왼쪽 라벨 (비활성, 보라 그라디언트 유지) */
+  .rmt-btn[disabled] {
+    cursor: default;
+    opacity: 1;
   }
   /* 위임 링크 깔끔하게 */
   .reg-delegate-link {
@@ -6192,10 +6197,20 @@
     
     <!-- 화면 1: 등록 / 로그인 -->
     <div class="challenge-form" id="formRegister" style="display: none;">
-      <!-- 단일 화면 — 비번 입력 + 하단 고정 형식 + 시작하기 -->
+      <!-- 상단 두 버튼 — 왼쪽 라벨, 오른쪽 시작하기 (시작하기는 액션) -->
+      <div class="reg-mode-toggle">
+        <button type="button" class="rmt-btn rmt-active" id="rmtRegister" disabled>
+          🆕 비번 만들기 (처음)
+        </button>
+        <button type="button" class="rmt-btn rmt-start" id="rmtStart" onclick="registerPasscode()">
+          🔒 시작하기
+        </button>
+      </div>
+      
+      <!-- 단일 화면 — 비번 입력 + 하단 고정 형식 -->
       <div id="regModeRegister" class="reg-single-screen">
         <div class="challenge-instruction">
-          <strong>본인만의 비번을 입력하세요</strong><br>
+          <strong>처음 방문하셨네요</strong><br>
           <small style="color: var(--gray-500); font-weight: 500;">
             같은 비번 다시 입력하면 어떤 기기에서도 통과됩니다
           </small>
@@ -6282,10 +6297,6 @@
           </div>
         </div>
         
-        <div class="auth-buttons">
-          <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
-          <button class="btn btn-verify btn-start" onclick="registerPasscode()">🚀 시작하기</button>
-        </div>
       </div>
       <!-- 위임 답으로 들어가기 링크 -->
       <div class="reg-delegate-link">
@@ -6575,7 +6586,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'single-screen-20260512080911';
+  const MUFE_CACHE_VERSION = 'single-fix-20260512081911';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
