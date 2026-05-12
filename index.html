@@ -6167,7 +6167,7 @@
         <input type="text" 
                class="auth-input" 
                id="regPasscode" 
-               placeholder="비번 완료 (예: 1대장님)" 
+               placeholder="비번 (2~10자, 예: 34AK71)" 
                maxlength="20"
                autocomplete="off"
                autocapitalize="off"
@@ -6386,7 +6386,7 @@
       <input type="text" 
              class="auth-input" 
              id="authInput" 
-             placeholder="비번 + 잡은 단어 (예: 1대장님진실)" 
+             placeholder="등록한 비번 + 위 잡힌 단어 (예: 1로렌)" 
              autocomplete="off"
              autocapitalize="off"
              spellcheck="false" />
@@ -6581,7 +6581,7 @@
   cleanLocalStorageOnce();
   
   // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
-  const MUFE_CACHE_VERSION = 'chaos628-display-202605120712';
+  const MUFE_CACHE_VERSION = 'chaos628-fix-20260512073338';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
     if (lastVersion === MUFE_CACHE_VERSION) return;
@@ -6757,8 +6757,31 @@
     for (const item of MUFE_CHAOS_POOL) m.set(item.c, item.d);
     return m;
   })();
+  
+  // 풀에 없는 단어도 무조건 카오스 — 깨끗한 한글 절대 노출 X
+  const _MUFE_NOISE_FRONT = ['&%', '*@', '$[', '!#', '^&', '@%', '(%', '*!', '&#', '!%', '*#', '^!', '!$', '@$', '^$'];
+  const _MUFE_NOISE_MID = ['#∫$', '^∑&!', '√!?*', '∂$!', 'π#%?', '∞*&!', '∆#$!', '∇*&!', '⊕@%?', '⊗#%!', '⊙*&?', '∈#$!', '∉!#*', '⊂^&*', '⊃@$!', '∪#%?', '∩*&!', '∧#$!', '∨!#*', '¬^&*'];
+  const _MUFE_NOISE_END = ['@?', '! ', '* ', '? ', '# ', '^ ', '% ', '& ', '@ '];
+  const _MUFE_FORMAT_TAGS = ['ㅋ', 'ㅎ', 'ㅍ', 'ㄷ'];
+  
+  function synthChaos(cleanWord) {
+    // 풀에 없을 때 즉석 카오스 생성 (대장님 모토: 깨끗한 한글 절대 X)
+    if (!cleanWord || typeof cleanWord !== 'string') return '';
+    const chars = [...cleanWord];
+    const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const nf = rnd(_MUFE_NOISE_FRONT);
+    const nm = rnd(_MUFE_NOISE_MID);
+    const ne = rnd(_MUFE_NOISE_END);
+    const ft = rnd(_MUFE_FORMAT_TAGS);
+    if (chars.length >= 2) {
+      return nf + chars[0] + nm + chars[1] + ne + ft;
+    }
+    return nf + cleanWord + ne + ft;
+  }
+  
   function getMUFEDisplay(cleanWord) {
-    return _MUFE_CLEAN_MAP.get(cleanWord) || cleanWord;
+    // 풀 우선 → 없으면 즉석 카오스 (절대 clean 노출 X)
+    return _MUFE_CLEAN_MAP.get(cleanWord) || synthChaos(cleanWord);
   }
 
   let rotatorTimer = null;
