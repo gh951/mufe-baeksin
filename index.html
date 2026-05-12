@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MUFE 백신 — 양자·AI 시대 보안</title>
-<meta name="description" content="MUFE 백신 — 양자·AI 시대 보안. 카메라·심박 + 카오스 인증.">
+<meta name="description" content="MUFE 백신 — 양자·AI 시대 보안. 카메라·심 + 카오스 인증.">
 <meta name="theme-color" content="#0a1f3a">
 
 <!-- PWA Manifest -->
@@ -633,7 +633,7 @@
     justify-content: center;
   }
   .bio-target-area {
-    /* FULI 관상 카메라 자리 — 얼굴 박스 네모 자리 */
+    /* FULI 관상 카메라 자리 — 얼굴 스 네모 자리 */
     width: 75%;
     height: 85%;
     border: 3px dashed rgba(251, 191, 36, 0.9);
@@ -657,7 +657,7 @@
         inset 0 0 40px rgba(244, 63, 94, 0.15);
     }
   }
-  /* 얼굴 박스 모서리 가이드 4개 */
+  /* 얼굴 스 모서리 가이드 4개 */
   .bio-video-overlay::before,
   .bio-video-overlay::after {
     content: '';
@@ -1372,7 +1372,7 @@
     color: #065f46;
     border: 1px solid #10b981;
   }
-  /* 거짓 통과 = 하늘색 (공격자 측엔 *통과처럼* 박힘) */
+  /* 거짓 통과 = 하늘색 (공격자 측엔 *통과처럼* 힘) */
   .response-msg.decoy {
     background: #e0f2fe;
     color: #075985;
@@ -1464,7 +1464,7 @@
     font-size: 14px;
   }
 
-  /* 정보 박스 (panel-info) */
+  /* 정보 스 (panel-info) */
   .panel-info {
     margin-top: 24px;
     padding: 16px 20px;
@@ -1761,7 +1761,7 @@
     .opt-status-grid { grid-template-columns: 1fr; }
   }
   
-  /* 정직 안내 박스 — 베타 시뮬 vs 진짜 명확 */
+  /* 정직 안내 스 — 베타 시뮬 vs 진짜 명확 */
   .honest-notice {
     display: flex;
     gap: 14px;
@@ -1803,7 +1803,7 @@
     border-radius: 6px;
   }
 
-  /* 대문 배너 — 이미지 안에 글자 박혀있음 */
+  /* 대문 배너 — 이미지 안에 글자 있음 */
   .daemoon-banner {
     position: relative;
     width: 100%;
@@ -2586,7 +2586,7 @@
   .scan-close:hover { background: var(--navy-800); }
 
   /* ═══════════════════════════════════════
-     박제 & 순찰 패널
+     제 & 순찰 패널
      ═══════════════════════════════════════ */
   .patrol-stats {
     display: grid;
@@ -3018,7 +3018,7 @@
     animation: rotatorCatch 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .rotator-word {
-    /* SVG 텍스트 — 윤곽선만 박힘 */
+    /* SVG 텍스트 — 윤곽선만 완료 */
     transition: stroke 0.3s;
     will-change: transform;
   }
@@ -3358,7 +3358,7 @@
     color: var(--gray-900);
   }
 
-  /* 결과 박스 — 답 표시 */
+  /* 결과 스 — 답 표시 */
   .dlg-result-box {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border: 2px solid var(--gold);
@@ -3910,7 +3910,7 @@
   }
 
   /* ═══════════════════════════════════════
-     대규모 침입 버튼 — 박력
+     대규모 침입 버튼 — 력
      ═══════════════════════════════════════ */
   .mass-attack-btn {
     width: 100%;
@@ -3967,7 +3967,7 @@
   }
 
   /* ═══════════════════════════════════════
-     FAQ 박는 자리
+     FAQ 영역
      ═══════════════════════════════════════ */
   .faq-section {
     margin-top: 24px;
@@ -4034,7 +4034,7 @@
   .faq-body strong { color: var(--purple); }
 
   /* ═══════════════════════════════════════
-     의견 박는 자리 카드
+     의견 영역 카드
      ═══════════════════════════════════════ */
   .feedback-card {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
@@ -4271,7 +4271,7 @@
     .challenge-stage-custom { height: 200px; }
   }
   
-  /* 등록/로그인 모드 토글 박음 */
+  /* 등록/로그인 모드 토글 완료 */
   .reg-mode-toggle {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -4309,9 +4309,214 @@
     line-height: 1.6;
     margin-bottom: 14px;
   }
+  
+  /* ═══ 통합 생체 인증 영역 ═══ */
+  .bio-option-section {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.06), rgba(244, 63, 94, 0.06));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 16px 0;
+  }
+  .bio-option-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .bio-option-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .bio-option-text {
+    flex: 1;
+  }
+  .bio-option-text strong {
+    display: block;
+    font-size: 13px;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+  }
+  .bio-option-text small {
+    font-size: 11px;
+    color: var(--gray-600);
+    line-height: 1.4;
+  }
+  .bio-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .bio-toggle input { opacity: 0; width: 0; height: 0; }
+  .bio-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 24px;
+    transition: 0.25s;
+  }
+  .bio-toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.25s;
+  }
+  .bio-toggle input:checked + .bio-toggle-slider {
+    background: linear-gradient(135deg, #7c3aed, #f43f5e);
+  }
+  .bio-toggle input:checked + .bio-toggle-slider::before {
+    transform: translateX(20px);
+  }
+  .bio-mode-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .bio-mode-radio {
+    cursor: pointer;
+    position: relative;
+  }
+  .bio-mode-radio input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .bio-mode-text {
+    display: block;
+    text-align: center;
+    padding: 10px 8px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+  .bio-mode-text strong {
+    display: block;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 2px;
+  }
+  .bio-mode-text small {
+    font-size: 10px;
+    color: #6b7280;
+  }
+  .bio-mode-radio input:checked + .bio-mode-text {
+    background: linear-gradient(135deg, #7c3aed, #f43f5e);
+    border-color: #7c3aed;
+  }
+  .bio-mode-radio input:checked + .bio-mode-text strong,
+  .bio-mode-radio input:checked + .bio-mode-text small {
+    color: white;
+  }
+  .bio-measure-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #7c3aed, #f43f5e);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+  }
+  .bio-measure-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+  }
+  .bio-measure-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .bio-reg-status {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    display: none;
+  }
+  .bio-reg-status.show { display: block; }
+  .bio-reg-status.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+  }
+  .bio-reg-status.failed {
+    background: #e0f2fe;
+    color: #075985;
+    border: 1px solid #38bdf8;
+  }
+  .bio-reg-status.measuring {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+  }
+  
+  /* 챌린지 화면 생체 영역 */
+  .bio-challenge-section {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(244, 63, 94, 0.08));
+    border: 2px solid rgba(124, 58, 237, 0.3);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 14px 0;
+  }
+  .bio-challenge-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .bio-challenge-icon {
+    font-size: 26px;
+  }
+  .bio-challenge-text strong {
+    display: block;
+    font-size: 13px;
+    color: var(--gray-900);
+  }
+  .bio-challenge-text small {
+    font-size: 11px;
+    color: var(--gray-600);
+  }
+  
+  /* 10초 타이머 + 진행바 (카메라 모달 하단) */
+  .bio-timer-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 12px;
+  }
+  .bio-timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+    width: 100%;
+    transition: width 0.1s linear;
+  }
+  .bio-timer-text {
+    text-align: center;
+    color: #fbbf24;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
 
   /* ═══════════════════════════════════════════════════════════════
-     📱 전체 모바일 박는 자리 — FULI 자리 그대로
+     📱 전체 모바일 영역 — FULI 자리 그대로
      대장님 + C-33 둘이 만든 자리
      ═══════════════════════════════════════════════════════════════ */
   
@@ -4509,7 +4714,7 @@
       padding: 10px 12px;
     }
     .auth-input {
-      font-size: 16px; /* iOS 자동 줌 박힘 X */
+      font-size: 16px; /* iOS 자동 줌 없음 */
       padding: 14px 16px;
     }
     
@@ -4647,7 +4852,7 @@
     .policy-title { font-size: 13px; }
     .policy-desc { font-size: 11px; }
     
-    /* 박제 & 순찰 */
+    /* 제 & 순찰 */
     .patrol-stats {
       grid-template-columns: 1fr 1fr;
       gap: 8px;
@@ -4817,7 +5022,7 @@
       min-height: 44px; /* Apple HIG 터치 최소 자리 */
     }
     input[type="text"], input[type="password"] {
-      font-size: 16px; /* iOS 자동 줌 박힘 X */
+      font-size: 16px; /* iOS 자동 줌 없음 */
     }
   }
   
@@ -4936,7 +5141,7 @@
           <circle cx="17" cy="7" r="1.5" fill="currentColor"/>
         </svg>
       </span>
-      박제 & 순찰
+      제 & 순찰
     </div>
     <div class="tab" data-tab="settings">
       <span class="tab-icon">
@@ -5066,7 +5271,7 @@
         </div>
         <div class="bio-content">
           <div class="bio-label">생체 인증</div>
-          <div class="bio-title">카메라 + 심박</div>
+          <div class="bio-title">카메라 + 심</div>
           <div class="bio-desc">
             살아있는 사람만 통과 — 사진·영상·AI 무력화
           </div>
@@ -5087,7 +5292,7 @@
             <polyline points="9 12 11 14 15 10" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <div class="mobile-title">모바일·PC 둘 다 박힘</div>
+        <div class="mobile-title">모바일·PC 둘 다 힘</div>
         <div class="mobile-desc">홈 화면에 추가하여<br>앱처럼 작동합니다</div>
         <button class="mobile-btn" onclick="installPWA()">📲 앱 설치</button>
       </div>
@@ -5134,21 +5339,21 @@
       <div class="panel-content">
         <div class="panel-header">
           <h2>시스템 최적화</h2>
-          <p>웹 브라우저가 측정 가능한 자리만 표시 — Microsoft Store 출시 후 시스템 전체 측정 박힘</p>
+          <p>웹 브라우저가 측정 가능한 자리만 표시 — Microsoft Store 출시 후 시스템 전체 측정 힘</p>
         </div>
         
-        <!-- 정직 박힌 안내 -->
+        <!-- 정직 저장된 안내 -->
         <div class="honest-notice" style="margin-bottom: 20px;">
           <span class="hn-icon">ℹ️</span>
           <div class="hn-content">
-            <strong>정직 박는 자리:</strong>
-            아래 수치는 <em>웹 브라우저가 측정 가능한 자리만</em> 박힘.<br>
+            <strong>정직 영역:</strong>
+            아래 수치는 <em>웹 브라우저가 측정 가능한 자리만</em> 완료.<br>
             <small>
-              • <strong>저장소</strong>: 이 사이트가 박은 자리 (PC 전체 X)<br>
-              • <strong>메모리</strong>: 이 탭이 박은 자리 (PC 전체 X)<br>
+              • <strong>저장소</strong>: 이 사이트가 영역 (PC 전체 X)<br>
+              • <strong>메모리</strong>: 이 탭이 영역 (PC 전체 X)<br>
               • <strong>배터리</strong>: 진짜 (브라우저 API)<br>
               • <strong>네트워크</strong>: 브라우저 추정치 (정확 X)<br>
-              ※ Microsoft Store .exe 출시 후 <strong>PC 전체 시스템</strong> 측정 박힘
+              ※ Microsoft Store .exe 출시 후 <strong>PC 전체 시스템</strong> 측정 힘
             </small>
           </div>
         </div>
@@ -5254,7 +5459,7 @@
           </div>
         </div>
         
-        <!-- 보안 단계 (기존 4단계 — 작게 박음) -->
+        <!-- 보안 단계 (기존 4단계 — 작게 음) -->
         <details class="opt-stages-collapsible">
           <summary>🛡️ MUFE 4단계 보안 구조 보기</summary>
           <div class="stage-list">
@@ -5308,7 +5513,7 @@
           <div class="policy-card" data-policy="decoy">
             <div class="policy-icon">🛡️</div>
             <div class="policy-title">미끼 트랩 (Decoy)</div>
-            <div class="policy-desc">표면에 보이는 답은 가짜입니다. 시도하면 샌드박스로 격리됩니다.</div>
+            <div class="policy-desc">표면에 보이는 답은 가짜입니다. 시도하면 샌드스로 격리됩니다.</div>
             <label class="policy-toggle">
               <input type="checkbox" data-policy-key="decoy" checked onchange="togglePolicy(this)">
               <span class="policy-slider"></span>
@@ -5378,20 +5583,20 @@
     <!-- ═══ /패널 3 ═══ -->
 
 
-    <!-- ═══ 패널 6: 박제 & 순찰 ═══ -->
+    <!-- ═══ 패널 6: 제 & 순찰 ═══ -->
     <div class="panel panel-patrol" data-panel="patrol">
       <div class="panel-content">
         <div class="panel-header">
-          <h2>🛡️ 박제 & 순찰 시스템</h2>
+          <h2>🛡️ 제 & 순찰 시스템</h2>
           <p>막는 게 아니라 — 공격 에너지를 자폭용 땔감으로 씁니다.</p>
         </div>
         
-        <!-- 정직 박힘 — 베타 단계 안내 -->
+        <!-- 정직 완료 — 베타 단계 안내 -->
         <div class="honest-notice">
           <span class="hn-icon">ℹ️</span>
           <div class="hn-content">
             <strong>현재 베타 PWA 단계 안내</strong>
-            아래 시각화는 <em>발명 작동 방식 시연</em>입니다. 진짜 PC 박제·바이러스 사냥은
+            아래 시각화는 <em>발명 작동 방식 시연</em>입니다. 진짜 PC 제·바이러스 사냥은
             <strong>Microsoft Store .exe 출시 후</strong> 작동합니다 (1~2주 후 예정).<br>
             <small>현재 진짜 작동: 75% 임계점 역바이러스 발사 · 누적 통계 영구 저장 · 인증 시도 추적</small>
           </div>
@@ -5401,7 +5606,7 @@
         <div class="patrol-stats patrol-stats-4">
           <div class="patrol-stat">
             <div class="ps-num" id="psCardCount">0</div>
-            <div class="ps-label">박제된 카드</div>
+            <div class="ps-label">제된 카드</div>
             <div class="ps-desc">시뮬 시연 (출시 후 진짜)</div>
           </div>
           <div class="patrol-stat patrol-stat-honey">
@@ -5425,19 +5630,19 @@
         <div class="patrol-section">
           <div class="ps-title">
             <span class="ps-icon">📊</span>
-            시스템 박제 진행률
+            시스템 제 진행률
           </div>
           <div class="patrol-progress">
             <div class="pp-track">
               <div class="pp-fill" id="ppFill" style="width: 0%"></div>
             </div>
             <div class="pp-label">
-              <span id="ppPct">0%</span> 박제 완료
+              <span id="ppPct">0%</span> 제 완료
               <span class="pp-detail" id="ppDetail">(시작 대기 중)</span>
             </div>
           </div>
           <button class="patrol-action-btn" onclick="startCarding()" id="cardingBtn">
-            <span>🛡️</span> 시스템 전체 박제 시작
+            <span>🛡️</span> 시스템 전체 제 시작
           </button>
         </div>
 
@@ -5631,17 +5836,17 @@
         </div>
 
 
-        <!-- 시스템 맵 — 우주 격자 위 박제된 카드 노드 -->
+        <!-- 시스템 맵 — 우주 격자 위 제된 카드 노드 -->
         <div class="patrol-section">
           <div class="ps-title">
             <span class="ps-icon">🗺️</span>
             실시간 시스템 맵
-            <span class="ps-subtitle">박제된 카드 · 미끼 위치 · 침입 시도 시각화</span>
+            <span class="ps-subtitle">제된 카드 · 미끼 위치 · 침입 시도 시각화</span>
           </div>
           <div class="map-container">
             <canvas id="systemMap" width="800" height="320"></canvas>
             <div class="map-legend">
-              <span class="leg leg-card">● 박제 카드</span>
+              <span class="leg leg-card">● 제 카드</span>
               <span class="leg leg-honey">● 미끼</span>
               <span class="leg leg-virus">● 침입자</span>
               <span class="leg leg-trapped">● 격리됨</span>
@@ -5700,7 +5905,7 @@
             능동 순찰 활동
           </div>
           <div class="patrol-log" id="patrolLog">
-            <div class="pl-empty">박제 시작 후 활동이 표시됩니다</div>
+            <div class="pl-empty">제 시작 후 활동이 표시됩니다</div>
           </div>
         </div>
 
@@ -5895,7 +6100,7 @@
            class="stage-chaos-img"
            onerror="this.style.display='none'">
       
-      <!-- 통합 회전 단어 (이미지 위에 크게 박힘) -->
+      <!-- 통합 회전 단어 (이미지 위에 크게 힘) -->
       <div class="stage-rotator" id="stageRotator">
         <svg class="stage-svg" id="stageSvg" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
@@ -5906,7 +6111,7 @@
             </clipPath>
           </defs>
           
-          <!-- 글자 속 매립 수학 (회전마다 새로 박힘) -->
+          <!-- 글자 속 매립 수학 (회전마다 새로 힘) -->
           <g clip-path="url(#stageTextClip)" id="stageMathFill">
             <rect x="0" y="0" width="800" height="280" fill="rgba(10,31,58,0.85)"/>
           </g>
@@ -5925,27 +6130,27 @@
     
     <!-- 화면 1: 등록 / 로그인 -->
     <div class="challenge-form" id="formRegister" style="display: none;">
-      <!-- 모드 전환 박는 자리 -->
+      <!-- 모드 전환 영역 -->
       <div class="reg-mode-toggle">
         <button type="button" class="rmt-btn rmt-active" id="rmtRegister" onclick="switchRegMode('register')">
           🆕 비번 만들기 (처음)
         </button>
         <button type="button" class="rmt-btn" id="rmtLogin" onclick="switchRegMode('login')">
-          🔓 기존 비번 박힌 사람
+          🔓 기존 비번 저장된 사람
         </button>
       </div>
       
-      <!-- 처음 등록 박는 자리 -->
+      <!-- 처음 등록 영역 -->
       <div id="regModeRegister">
         <div class="challenge-instruction">
           <strong>처음 방문하셨네요</strong><br>
-          본인만의 비번을 박아주세요
+          본인만의 비번을 입력해주세요
         </div>
         
         <input type="text" 
                class="auth-input" 
                id="regPasscode" 
-               placeholder="비번 박음 (예: 1대장님)" 
+               placeholder="비번 완료 (예: 1대장님)" 
                maxlength="20"
                autocomplete="off"
                autocapitalize="off"
@@ -5985,31 +6190,84 @@
           </div>
         </div>
         
+        <!-- 🫀 생체 인증 옵션 (선택) -->
+        <div class="bio-option-section">
+          <div class="bio-option-header">
+            <span class="bio-option-icon">🫀</span>
+            <div class="bio-option-text">
+              <strong>생체 인증 추가 (선택)</strong>
+              <small>심박 측정으로 살아있는 사람만 통과 — AI·사진·영상 무력화</small>
+            </div>
+            <label class="bio-toggle">
+              <input type="checkbox" id="bioEnableToggle" onchange="toggleBioEnable()">
+              <span class="bio-toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div id="bioModeSelect" style="display: none;">
+            <div class="bio-mode-options">
+              <label class="bio-mode-radio">
+                <input type="radio" name="bioMode" value="always" checked>
+                <span class="bio-mode-text">
+                  <strong>매번 인증</strong>
+                  <small>가장 안전 — 매 로그인마다 측정</small>
+                </span>
+              </label>
+              <label class="bio-mode-radio">
+                <input type="radio" name="bioMode" value="once">
+                <span class="bio-mode-text">
+                  <strong>한 번만</strong>
+                  <small>최초 등록만 — 패턴 저장</small>
+                </span>
+              </label>
+            </div>
+            <button class="bio-measure-btn" onclick="startBioForRegister()">
+              📷 생체 측정 시작 (10초)
+            </button>
+            <div id="bioRegStatus" class="bio-reg-status"></div>
+          </div>
+        </div>
+        
         <div class="auth-buttons">
           <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
           <button class="btn btn-verify" onclick="registerPasscode()">비번 만들기</button>
         </div>
       </div>
       
-      <!-- 기존 비번 박힌 사람 로그인 자리 -->
+      <!-- 기존 비번 등록 사용자 로그인 -->
       <div id="regModeLogin" style="display: none;">
         <div class="challenge-instruction">
-          <strong>🔓 기존 비번 박힌 사람</strong><br>
-          박았던 비번을 박아주세요 — 어떤 기기에서도 박힘
+          <strong>🔓 기존 비번 등록 사용자</strong><br>
+          등록된 비번을 입력해주세요 — 어떤 기기에서도 사용 가능
         </div>
         
         <input type="text" 
                class="auth-input" 
                id="loginPasscode" 
-               placeholder="박았던 비번 박음" 
+               placeholder="기존 비번 입력" 
                maxlength="20"
                autocomplete="off"
                autocapitalize="off"
                spellcheck="false" />
         
         <div class="reg-info">
-          ℹ️ 다른 기기·PC에서 같은 비번 박으시면 그대로 통과 박힘.<br>
-          비번 박혀있지 않으면 "비번 만들기" 박아주세요.
+          ℹ️ 다른 기기·PC에서 같은 비번 입력하시면 그대로 통과됩니다.<br>
+          비번이 없하시면 "비번 만들기"를 선택해주세요.
+        </div>
+        
+        <!-- 생체 인증 (로그인 시) -->
+        <div class="bio-option-section bio-option-login" id="bioLoginSection" style="display:none;">
+          <div class="bio-option-header">
+            <span class="bio-option-icon">🫀</span>
+            <div class="bio-option-text">
+              <strong>생체 인증 필요</strong>
+              <small>등록 시 생체 인증을 설정하셨습니다 — 측정해주세요</small>
+            </div>
+          </div>
+          <button class="bio-measure-btn" onclick="startBioForLogin()">
+            📷 생체 측정 시작 (10초)
+          </button>
+          <div id="bioLoginStatus" class="bio-reg-status"></div>
         </div>
         
         <div class="auth-buttons">
@@ -6091,7 +6349,7 @@
               <!-- (JS에서 동적으로 채움) -->
             </g>
             
-            <!-- 글자 윤곽선 (위에 박음, 또렷이) -->
+            <!-- 글자 윤곽선 (위에 음, 또렷이) -->
             <text id="ciWordOutline" x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
                   font-family="Pretendard, sans-serif" font-size="100" font-weight="900"
                   fill="none" stroke="#15803d" stroke-width="2.5"
@@ -6116,6 +6374,21 @@
              autocapitalize="off"
              spellcheck="false" />
       
+      <!-- 🫀 생체 인증 (잡힌 단어 아래) — 생체 사용자만 표시 -->
+      <div class="bio-challenge-section" id="bioChallengeSection" style="display:none;">
+        <div class="bio-challenge-header">
+          <span class="bio-challenge-icon">🫀</span>
+          <div class="bio-challenge-text">
+            <strong>3중 인증 — 생체 측정 필요</strong>
+            <small>비번 + 잡은 단어 + 살아있는 사람 확인</small>
+          </div>
+        </div>
+        <button class="bio-measure-btn" onclick="startBioForVerify()" id="bioVerifyBtn">
+          📷 생체 측정 시작 (10초)
+        </button>
+        <div id="bioVerifyStatus" class="bio-reg-status"></div>
+      </div>
+      
       <div class="auth-buttons">
         <button class="btn btn-cancel" onclick="resetAuthModal()">처음부터</button>
         <button class="btn btn-verify" onclick="verifyAuth()">인증 검증</button>
@@ -6124,10 +6397,10 @@
     </div>
 
 
-    <!-- 화면 3: 등록 완료 — 비번은 *대장님 머리에만* 박음 (절대 표시 X) -->
+    <!-- 화면 3: 등록 완료 — 비번은 사용자 머리에만 (절대 표시 X) -->
     <div class="user-info-bar" id="userInfoBar" style="display: none;">
       <div class="ui-label">등록 완료</div>
-      <div class="ui-pass" id="uiPass">✓ 비번 박힘 (사용자 머리에만)</div>
+      <div class="ui-pass" id="uiPass">✓ 비번 등록 완료 (사용자만 알고 있음)</div>
       <button class="ui-reset-btn" onclick="resetRegistration()">비번 다시 등록</button>
     </div>
 
@@ -6263,7 +6536,7 @@
   //  1. AI 이미지 실시간 생성 (DALL-E/Stable Diffusion)
   //  2. 그 위에 카오스 매립 (Canvas)
   //  3. 시도자별 동적 답 (서버 측 결정)
-  //  4. 미끼 답 → 가짜 토큰 발급 → 샌드박스 격리
+  //  4. 미끼 답 → 가짜 토큰 발급 → 샌드스 격리
   //  5. 검증 후 이미지 즉시 폐기
   //  6. 위임 인증 (사용자가 별도 암호 발급 가능)
   //
@@ -6278,7 +6551,7 @@
   // 백엔드 베이스 URL
   const API_BASE = window.location.origin;
 
-  // 상태 변수 — 옛 *undefined* 박힌 자리 자동 정리
+  // 상태 변수 — 옛 *undefined* 영역 자동 정리
   function cleanLocalStorageOnce() {
     const keys = ['mufe-user-token', 'mufe-user-passcode', 'mufe-user-spacing'];
     for (const k of keys) {
@@ -6290,7 +6563,7 @@
   }
   cleanLocalStorageOnce();
   
-  // 옛 캐시 자동 정리 — 사용자 박지 않아도, 매 박힘마다
+  // 옛 캐시 자동 정리 — 사용자 하지 않아도, 매 힘마다
   const MUFE_CACHE_VERSION = 'v2026.05.12.05-FORCE';
   (async () => {
     const lastVersion = localStorage.getItem('mufe-cache-version');
@@ -6311,7 +6584,7 @@
       }
       localStorage.setItem('mufe-cache-version', MUFE_CACHE_VERSION);
       
-      // 새 버전 박힘 = 무조건 새로고침 (PC·모바일 모두)
+      // 새 버전 완료 = 무조건 새로고침 (PC·모바일 모두)
       if (!sessionStorage.getItem('mufe-reloaded-' + MUFE_CACHE_VERSION)) {
         sessionStorage.setItem('mufe-reloaded-' + MUFE_CACHE_VERSION, '1');
         location.reload();
@@ -6415,22 +6688,17 @@
     document.getElementById('formChallenge').style.display = 'block';
     document.getElementById('userInfoBar').style.display = 'flex';
     
-    // 형식 라벨 — 4가지
-    const formatLabels = {
-      'joined-after': '비번+단어 붙여',
-      'spaced-after': '비번 단어 띄어',
-      'joined-before': '단어+비번 붙여',
-      'spaced-before': '단어 비번 띄어',
-      // 옛 호환
-      'joined': '붙여 쓰기',
-      'spaced': '띄어 쓰기',
-    };
-    // 비번은 *대장님 머리에만* 박힌 자리 — UI에 절대 표시 X
-    document.getElementById('uiPass').textContent = '✓ 비번 박힘 (사용자 머리에만)';
+    // 비번은 사용자만 알고 있음 — UI에 절대 표시 X
+    document.getElementById('uiPass').textContent = '✓ 비번 등록 완료 (사용자만 알고 있음)';
     
     document.getElementById('caughtInfo').style.display = 'none';
     document.getElementById('authInput').value = '';
     document.getElementById('responseMsg').className = 'response-msg';
+    
+    // 생체 인증 영역 표시 여부 결정
+    if (typeof window.showBioChallengeIfNeeded === 'function') {
+      window.showBioChallengeIfNeeded();
+    }
     
     await loadChallengeAndStartRotation();
   }
@@ -6484,11 +6752,11 @@
     if (msg) msg.className = 'response-msg';
   }
   
-  // 기존 비번 박힌 사람 로그인
+  // 기존 비번 저장된 사람 로그인
   async function loginPasscode() {
     const passcode = document.getElementById('loginPasscode').value.trim();
     if (!passcode) {
-      showRegMsg('박았던 비번을 박아주세요', 'retry');
+      showRegMsg('기존 비번을 입력해주세요', 'retry');
       return;
     }
     
@@ -6517,7 +6785,7 @@
       }
     } catch (err) {
       console.error('[MUFE] 로그인 실패:', err);
-      showRegMsg('서버 박힘 X — 잠시 후 다시', 'retry');
+      showRegMsg('서버 없음 — 잠시 후 다시', 'retry');
     }
   }
 
@@ -6540,9 +6808,9 @@
       const result = await res.json();
       
       if (result.status === 'success') {
-        userToken = result.token;           // 서버 응답: 'token' 박혀있음
-        userPasscode = passcode;            // 사용자가 박은 비번 그대로 저장 (UI 표시 X)
-        userSpacing = format;               // 사용자가 박은 형식
+        userToken = result.token;           // 서버 응답: 'token' 있음
+        userPasscode = passcode;            // 사용자가 저장된 비번 그대로 저장 (UI 표시 X)
+        userSpacing = format;               // 사용자가 저장된 형식
         localStorage.setItem('mufe-user-token', userToken);
         localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
@@ -6581,20 +6849,20 @@
       });
       
       if (!res.ok) {
-        throw new Error(`서버 응답 박힘: ${res.status}`);
+        throw new Error(`서버 응답 완료: ${res.status}`);
       }
       
       const data = await res.json();
       
-      // 응답 *검증* 박음 — challengeId + rotationWords 필수
+      // 응답 *검증* 완료 — challengeId + rotationWords 필수
       if (!data.challengeId || !data.rotationWords || data.rotationWords.length === 0) {
-        throw new Error('챌린지 응답 박힘 X');
+        throw new Error('챌린지 응답 없음');
       }
       
       currentChallenge = data;
-      console.log('[MUFE] 챌린지 박힘:', currentChallenge.challengeId.slice(0, 20) + '...');
+      console.log('[MUFE] 챌린지 완료:', currentChallenge.challengeId.slice(0, 20) + '...');
       
-      // 카오스 이미지 처리 — 있으면 회전기 배경에 박음
+      // 카오스 이미지 처리 — 있으면 회전기 배경에 음
       applyChaosImage(currentChallenge.chaosImage);
       
       rotatorWords = currentChallenge.rotationWords;
@@ -6603,7 +6871,7 @@
       return true;
     } catch (err) {
       console.error('[MUFE] 챌린지 로드 실패:', err);
-      // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 박힘*)
+      // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 힘*)
       currentChallenge = null;
       rotatorWords = ['진실', '미끼', '카오스', '백신', '인증', '대장', '클로드', '발명'];
       startRotatorAnimation();
@@ -6612,13 +6880,13 @@
     }
   }
   
-  // 카오스 이미지 적용 — 이미지 풀에서 받은 이미지를 회전기 배경에 박음
+  // 카오스 이미지 적용 — 이미지 풀에서 받은 이미지를 회전기 배경에 음
   function applyChaosImage(imageUrl) {
     const container = document.querySelector('.rotator-container');
     const stageImg = document.getElementById('stageChaosImage');
     
     if (imageUrl) {
-      // 회전기 배경 박음
+      // 회전기 배경 음
       if (container) {
         container.style.backgroundImage = `
           radial-gradient(ellipse at center, rgba(168, 85, 247, 0.25) 0%, rgba(2, 10, 24, 0.7) 70%),
@@ -6628,7 +6896,7 @@
         container.style.backgroundPosition = 'center';
         container.classList.add('has-chaos-image');
       }
-      // 챌린지 stage 이미지 박음 (대장님 카오스 이미지)
+      // 챌린지 stage 이미지 완료 (대장님 카오스 이미지)
       if (stageImg) {
         stageImg.src = imageUrl;
         stageImg.style.display = 'block';
@@ -6644,7 +6912,7 @@
     }
   }
 
-  // 글자 안 매립 수학 박는 함수 (재사용)
+  // 글자 안 매립 수학 하는 함수 (재사용)
   function fillTextWithMath(group, count, viewWidth, viewHeight) {
     const SVG_NS = 'http://www.w3.org/2000/svg';
     
@@ -6709,7 +6977,7 @@
       if (wordEl) wordEl.textContent = newWord;
       if (clipText) clipText.textContent = newWord;
       
-      // stage 위 통합 단어 박음 (이미지 위 크게, 글자 속 매립 수학 박음)
+      // stage 위 통합 단어 완료 (이미지 위 크게, 글자 속 매립 수학 음)
       const stageWordEl = document.getElementById('stageWord');
       const stageClipText = document.getElementById('stageClipText');
       const stageMathFill = document.getElementById('stageMathFill');
@@ -6717,7 +6985,7 @@
       if (stageClipText) stageClipText.textContent = newWord;
       if (stageMathFill) fillTextWithMath(stageMathFill, 80, 800, 280);
       
-      // 글자 안 매립 수학도 *매번* 새로 흩뿌림 (아래 회전기 박힘 X — 매립 박힘 X)
+      // 글자 안 매립 수학도 *매번* 새로 흩뿌림 (아래 회전기 없음 — 매립 없음)
       if (mathFillGroup) {
         fillTextWithMath(mathFillGroup, 120, 400, 100);
       }
@@ -6795,7 +7063,7 @@
     
     document.getElementById('caughtInfo').style.display = 'block';
     
-    // SVG: clipPath 글자 + 윤곽선 글자 — 둘 다 *같은 단어* 박힘
+    // SVG: clipPath 글자 + 윤곽선 글자 — 둘 다 *같은 단어* 힘
     const clipText = document.getElementById('ciClipText');
     const outlineEl = document.getElementById('ciWordOutline');
     if (clipText) clipText.textContent = caughtWord;
@@ -6826,21 +7094,28 @@
     const ans = document.getElementById('authInput').value.trim();
     
     if (!ans) {
-      showMsg('답을 박아주세요', 'retry');
+      showMsg('답을 입력해주세요', 'retry');
       return;
     }
     
     if (!caughtWord) {
-      showMsg('STOP 박아서 단어 잡으세요', 'retry');
+      showMsg('STOP 버튼으로 단어를 잡아주세요', 'retry');
       return;
     }
     
-    // userToken 박힘 X / 챌린지 박힘 X = 새 챌린지 자동 박음
+    // 3중 인증 — 생체 사용자 + always 모드 = 생체 통과 필수
+    const bioSaved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
+    if (bioSaved && bioSaved.mode === 'always' && !window._bioVerifyPassed) {
+      showMsg('생체 인증을 먼저 완료해주세요', 'retry');
+      return;
+    }
+    
+    // userToken 없음 / 챌린지 없음 = 새 챌린지 자동 발급
     if (!userToken || !currentChallenge || !currentChallenge.challengeId) {
       await loadChallengeAndStartRotation();
       caughtWord = null;
       document.getElementById('caughtInfo').style.display = 'none';
-      showMsg('새 챌린지 박힘 — 단어 다시 잡으세요', 'retry');
+      showMsg('새 챌린지 발급 — 단어를 다시 잡아주세요', 'retry');
       return;
     }
     
@@ -6867,7 +7142,7 @@
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       } else if (result.status === 'decoy') {
-        // 사용자 측엔 *통과처럼* 박음 — 격리는 서버에서만 박힘 (모토)
+        // 사용자 측엔 *통과처럼* 완료 — 격리는 서버에서만 완료 (모토)
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       } else {
@@ -7739,7 +8014,7 @@
 
   // 인증 시도 추적 (verifyAuth 안에서 호출)
   // ════════════════════════════════════════════════════════════
-  // 박제 & 순찰 시스템 — 핵심 시뮬레이션
+  // 제 & 순찰 시스템 — 핵심 시뮬레이션
   // ════════════════════════════════════════════════════════════
   
   // 미끼 카드 데이터 — 바이러스가 좋아할 위장 파일들
@@ -7849,7 +8124,7 @@
     const grid = document.getElementById('honeyGrid');
     if (!grid) return;
     if (patrolState.honeyCount === 0) {
-      grid.innerHTML = '<div style="grid-column: 1/-1; padding: 28px; text-align: center; color: #9ca3af; font-size: 13px;">박제 시작 시 미끼 카드가 자동 배포됩니다</div>';
+      grid.innerHTML = '<div style="grid-column: 1/-1; padding: 28px; text-align: center; color: #9ca3af; font-size: 13px;">제 시작 시 미끼 카드가 자동 배포됩니다</div>';
       return;
     }
     grid.innerHTML = HONEY_TYPES.slice(0, patrolState.honeyCount).map((h, i) => `
@@ -7860,7 +8135,7 @@
     `).join('');
   }
   
-  // 박제 시작
+  // 제 시작
   let cardingTimer = null;
   function startCarding() {
     if (patrolState.isCarding) return;
@@ -7869,9 +8144,9 @@
     
     const btn = document.getElementById('cardingBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> 박제 진행 중...';
+    btn.innerHTML = '<span>⏳</span> 제 진행 중...';
     
-    addPatrolLog('info', 'INIT', '시스템 전체 박제 시작 — 무페 카드 발급 중');
+    addPatrolLog('info', 'INIT', '시스템 전체 제 시작 — 무페 카드 발급 중');
     
     cardingTimer = setInterval(() => {
       patrolState.cardingProgress += Math.random() * 8 + 2;
@@ -7894,7 +8169,7 @@
           deployHoneyCards();
         }
       } else if (pct < 75) {
-        document.getElementById('ppDetail').textContent = '(가상 샌드박스 연결)';
+        document.getElementById('ppDetail').textContent = '(가상 샌드스 연결)';
       } else if (pct < 100) {
         document.getElementById('ppDetail').textContent = '(능동 순찰 모듈 활성화)';
       }
@@ -7909,13 +8184,13 @@
   
   function finishCarding() {
     patrolState.isCarding = false;
-    document.getElementById('ppDetail').textContent = '(박제 완료 — 능동 순찰 작동 중)';
+    document.getElementById('ppDetail').textContent = '(제 완료 — 능동 순찰 작동 중)';
     
     const btn = document.getElementById('cardingBtn');
-    btn.innerHTML = '<span>✓</span> 박제 완료 — 시스템 보호 중';
+    btn.innerHTML = '<span>✓</span> 제 완료 — 시스템 보호 중';
     btn.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
     
-    addPatrolLog('ok', 'DONE', `박제 완료 — 총 <strong>${patrolState.cardsCount.toLocaleString()}개</strong> 무페 카드 시스템 박힘`);
+    addPatrolLog('ok', 'DONE', `제 완료 — 총 <strong>${patrolState.cardsCount.toLocaleString()}개</strong> 무페 카드 시스템 힘`);
     
     // 순찰 시작 (자동)
     setTimeout(startAutoPatrol, 1500);
@@ -7978,7 +8253,7 @@
   // 바이러스 시뮬레이션
   function simulateVirus(type) {
     if (!patrolState.isCarding && patrolState.cardsCount === 0) {
-      alert('먼저 시스템 박제를 시작해주세요');
+      alert('먼저 시스템 제를 시작해주세요');
       return;
     }
     
@@ -8015,7 +8290,7 @@
         steps: [
           '웜이 네트워크 통해 침입',
           '자기복제 위해 시스템 파일 스캔',
-          '무페 카드 박힌 모든 파일이 *복제 가능* 표시',
+          '무페 카드 저장된 모든 파일이 *복제 가능* 표시',
           '웜이 미끼 12개 동시 복제 시도',
           '복제 시 카오스 시드가 매번 변형',
           '복제본이 서로 다른 패턴 → 무한 분기',
@@ -8054,7 +8329,7 @@
     const list = document.getElementById('patrolLog');
     if (!list) return;
     if (patrolState.log.length === 0) {
-      list.innerHTML = '<div class="pl-empty">박제 시작 후 활동이 표시됩니다</div>';
+      list.innerHTML = '<div class="pl-empty">제 시작 후 활동이 표시됩니다</div>';
       return;
     }
     list.innerHTML = patrolState.log.map(e => `
@@ -8262,7 +8537,7 @@
   }
 
   // ════════════════════════════════════════════════════════════
-  // 박제 완료 후 글로벌 + 그래프 자동 시작 통합
+  // 제 완료 후 글로벌 + 그래프 자동 시작 통합
   // ════════════════════════════════════════════════════════════
   const _origStartAutoPatrol2 = startAutoPatrol;
   startAutoPatrol = function() {
@@ -8271,18 +8546,18 @@
     startGlobalThreats();
   };
 
-  // 페이지 로드 시 그래프 미리 보여주기 (박제 안 시작했어도 데이터 표시)
+  // 페이지 로드 시 그래프 미리 보여주기 (제 안 시작했어도 데이터 표시)
   document.addEventListener('DOMContentLoaded', () => {
     seedAttackGraph();
   });
 
   // ════════════════════════════════════════════════════════════
-  // 시스템 맵 (Canvas) — 박제 카드, 미끼, 침입자 시각화
+  // 시스템 맵 (Canvas) — 제 카드, 미끼, 침입자 시각화
   // ════════════════════════════════════════════════════════════
   const mapState = {
     canvas: null,
     ctx: null,
-    nodes: [],     // 박제 카드들
+    nodes: [],     // 제 카드들
     honey: [],     // 미끼 카드들
     viruses: [],   // 침입 중인 바이러스
     trapped: [],   // 격리된 바이러스
@@ -8297,7 +8572,7 @@
     mapState.canvas = canvas;
     mapState.ctx = canvas.getContext('2d');
     
-    // 박제 카드 노드 80개 무작위 배치
+    // 제 카드 노드 80개 무작위 배치
     mapState.nodes = [];
     for (let i = 0; i < 80; i++) {
       mapState.nodes.push({
@@ -8332,7 +8607,7 @@
     ctx.fillStyle = 'rgba(2, 10, 24, 0.3)';
     ctx.fillRect(0, 0, mapState.width, mapState.height);
     
-    // 박제 카드 노드 그리기 (시안 점)
+    // 제 카드 노드 그리기 (시안 점)
     mapState.nodes.forEach(n => {
       const flicker = Math.sin(t * 2 + n.pulse) * 0.3 + 0.7;
       ctx.beginPath();
@@ -8595,7 +8870,7 @@
     if (btn.disabled) return;
     
     if (patrolState.cardsCount === 0) {
-      alert('먼저 시스템 박제를 시작해주세요');
+      alert('먼저 시스템 제를 시작해주세요');
       return;
     }
     
@@ -8667,21 +8942,21 @@
   });
 
   // ════════════════════════════════════════════════════════════
-  // /박제 & 순찰 시스템
+  // /제 & 순찰 시스템
   // ════════════════════════════════════════════════════════════
 
   window.trackAuthAttempt = function(result) {
     sessionStats.attempts++;
     if (result === 'decoy') {
       sessionStats.trapped++;
-      addLog('warn', '🎭', '미끼 답변 감지 — 샌드박스 격리됨');
+      addLog('warn', '🎭', '미끼 답변 감지 — 샌드스 격리됨');
     } else if (result === 'success') {
       addLog('success', '✓', '통과 — 진짜 인증');
     } else if (result === 'delegate') {
       addLog('success', '🔗', '위임 인증 통과');
     } else {
       sessionStats.blocked++;
-      addLog('warn', '⚔', '격리 박힘 — 자기 자원 소진');
+      addLog('warn', '⚔', '격리 완료 — 자기 자원 소진');
     }
     renderLog();
   };
@@ -8820,30 +9095,30 @@
   });
 
   // ════ 큰 설치 모달 — 환영 + 자세한 안내 ════
-  // installPWA — 사용자가 *모바일 카드*에서 박은 자리
+  // installPWA — 사용자가 *모바일 카드*에서 영역
   function installPWA() {
     if (isRunningStandalone()) {
-      alert('이미 앱으로 박혀있어요 ☕');
+      alert('이미 앱으로 있습니다 ☕');
       return;
     }
     
     const device = detectDevice();
     
     if (deferredInstallPrompt) {
-      // Chrome / Edge / Android → 네이티브 박음
+      // Chrome / Edge / Android → 네이티브 음
       deferredInstallPrompt.prompt();
       deferredInstallPrompt.userChoice.then(choice => {
         if (choice.outcome === 'accepted') {
           localStorage.setItem('mufe-installed', 'true');
-          if (typeof addLog === 'function') addLog('success', '📲', '앱 박힘 — 홈 화면 추가 박힘');
+          if (typeof addLog === 'function') addLog('success', '📲', '앱 완료 — 홈 화면 추가 힘');
         }
         deferredInstallPrompt = null;
       });
     } else if (device === 'ios') {
-      // iOS Safari → 수동 안내 박음
+      // iOS Safari → 수동 안내 음
       showInstallModal('ios');
     } else {
-      // 박지 못한 자리 안내 박음
+      // 지 못한 자리 안내 음
       showInstallModal(device);
     }
   }
@@ -8894,7 +9169,7 @@
         `}
         
         <div class="im-footer">
-          카오스 인증 + 카메라·심박으로 양자·AI 시대 보안<br>
+          카오스 인증 + 카메라·심으로 양자·AI 시대 보안<br>
           <em>"보이는 게 진실이 아니다"</em>
         </div>
       </div>
@@ -9245,7 +9520,7 @@
       <div class="bio-consent-info">
         <div class="bci-row">
           <span class="bci-check">✓</span>
-          <span><strong>심박 측정</strong>만 박힘 — 얼굴 인식·저장 *안 함*</span>
+          <span><strong>심 측정</strong>만 완료 — 얼굴 인식·저장 *안 함*</span>
         </div>
         <div class="bci-row">
           <span class="bci-check">✓</span>
@@ -9264,7 +9539,7 @@
       <div class="bio-consent-detail">
         <strong>왜 카메라가 필요한가요?</strong><br>
         rPPG (광혈류 측정)은 카메라로 *얼굴 피부색 미세 변화*를 감지하여
-        심박을 측정합니다. 살아있는 사람만 통과 — 사진·영상·AI 무력화.
+        심할 측정합니다. 살아있는 사람만 통과 — 사진·영상·AI 무력화.
       </div>
 
       <div class="bio-consent-checkbox">
@@ -9283,7 +9558,7 @@
     <!-- ═══ 2단계: 측정 화면 ═══ -->
     <div class="bio-measure-step" id="bioMeasureStep" style="display:none;">
       <div class="bio-modal-subtitle">
-        💡 얼굴을 <strong style="color:#fbbf24;">박스 안에 가까이</strong> 박으세요 — 화면에서 30~40cm 거리
+        💡 얼굴을 <strong style="color:#fbbf24;">스 안에 가까이</strong> 으세요 — 화면에서 30~40cm 거리
       </div>
 
       <div class="bio-video-container" id="bioVideoContainer">
@@ -9310,7 +9585,13 @@
 
       <div class="bio-lock-display">
         <span id="mufe-lock-icon">🔒</span>
-        <span class="bio-lock-status" id="bioLockStatus">LOCKED — 측정 시작 박음</span>
+        <span class="bio-lock-status" id="bioLockStatus">LOCKED — 측정 시작 대기</span>
+      </div>
+      
+      <!-- 10초 타이머 + 진행바 -->
+      <div class="bio-timer-text" id="bioTimerText">⏱ 10.0초 남음</div>
+      <div class="bio-timer-bar">
+        <div class="bio-timer-fill" id="bioTimerFill"></div>
       </div>
 
       <div class="bio-buttons">
@@ -9342,10 +9623,16 @@ const _MUFE_AuthEngine = {
   sampleCount: 0,
   startTime: 0,
   _logged: false,
+  timeLimit: 10000,        // 10초 정확 제한
+  timerInterval: null,     // 타이머
+  bioContext: null,        // 'register' / 'login' / 'verify'
+  onCompleteCallback: null, // 측정 완료 콜백
+  bioMode: 'always',       // 'always' / 'once'
+  savedPattern: null,      // 등록 시 저장된 BPM 범위
 };
 
-function openBioAuthModal() {
-  // 동의 단계 박힘, 측정 단계 박힘 X
+function openBioAuthModal(context, onComplete) {
+  // 동의 단계
   const consent = document.getElementById('bioConsentStep');
   const measure = document.getElementById('bioMeasureStep');
   const check = document.getElementById('bioConsentCheck');
@@ -9355,19 +9642,21 @@ function openBioAuthModal() {
   if (check) check.checked = false;
   if (btn) btn.disabled = true;
   
+  // 콘텍스트 저장
+  _MUFE_AuthEngine.bioContext = context || 'standalone';
+  _MUFE_AuthEngine.onCompleteCallback = onComplete || null;
+  
   document.getElementById('bioAuthModal').classList.add('active');
 }
 
 function bioConsentGranted() {
   const check = document.getElementById('bioConsentCheck');
   if (!check || !check.checked) {
-    alert('동의 체크박스를 박아주세요');
+    alert('카메라 사용 동의 체크박스를 선택해주세요');
     return;
   }
-  // 동의 단계 박힘 X → 측정 단계 박힘
   document.getElementById('bioConsentStep').style.display = 'none';
   document.getElementById('bioMeasureStep').style.display = 'block';
-  // *측정 단계 박힌 후* 카메라 박음 (video 자리 박힘)
   setTimeout(() => startMUFESensor(), 100);
 }
 
@@ -9406,7 +9695,7 @@ async function startMUFESensor() {
       await _MUFE_BioScanner.video.play();
     } catch (playErr) {
       console.warn('[MUFE] video.play() 실패:', playErr);
-      // play 실패해도 stream 박혀있으면 계속
+      // play 실패해도 stream 혀있으면 계속
     }
     
     _MUFE_BioScanner.canvas = document.createElement('canvas');
@@ -9427,6 +9716,26 @@ async function startMUFESensor() {
     document.getElementById('bioStatus').className = 'bio-stat-value active';
     if (btn) btn.textContent = '⏺ 측정 중...';
     
+    // 10초 타이머 시작
+    if (_MUFE_AuthEngine.timerInterval) clearInterval(_MUFE_AuthEngine.timerInterval);
+    _MUFE_AuthEngine.timerInterval = setInterval(() => {
+      const elapsed = Date.now() - _MUFE_AuthEngine.startTime;
+      const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - elapsed);
+      const pct = (remaining / _MUFE_AuthEngine.timeLimit) * 100;
+      
+      const timerText = document.getElementById('bioTimerText');
+      const timerFill = document.getElementById('bioTimerFill');
+      if (timerText) timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
+      if (timerFill) timerFill.style.width = pct + '%';
+      
+      // 10초 초과 — 종료 판정
+      if (remaining <= 0) {
+        clearInterval(_MUFE_AuthEngine.timerInterval);
+        _MUFE_AuthEngine.timerInterval = null;
+        finishBioMeasurement();
+      }
+    }, 100);
+    
     mufeUpdate();
     
   } catch (e) {
@@ -9446,8 +9755,42 @@ async function startMUFESensor() {
   }
 }
 
+// 10초 측정 완료 — 결과 판정 + 콜백
+function finishBioMeasurement() {
+  const success = _MUFE_AuthEngine.isHuman && 
+                  _MUFE_AuthEngine.lastBPM >= 40 && 
+                  _MUFE_AuthEngine.lastBPM <= 180 &&
+                  _MUFE_AuthEngine.g_values.length >= 80; // 최소 80개 신호
+  
+  const result = {
+    success,
+    bpm: _MUFE_AuthEngine.lastBPM,
+    signalCount: _MUFE_AuthEngine.g_values.length,
+    context: _MUFE_AuthEngine.bioContext,
+  };
+  
+  // 카메라 종료
+  stopMUFESensor();
+  
+  // 콜백 호출
+  if (_MUFE_AuthEngine.onCompleteCallback) {
+    _MUFE_AuthEngine.onCompleteCallback(result);
+  }
+  
+  // 모달 닫음
+  setTimeout(() => {
+    document.getElementById('bioAuthModal').classList.remove('active');
+  }, 800);
+}
+
 function stopMUFESensor() {
   _MUFE_BioScanner.isLocked = false;
+  
+  // 타이머 정리
+  if (_MUFE_AuthEngine.timerInterval) {
+    clearInterval(_MUFE_AuthEngine.timerInterval);
+    _MUFE_AuthEngine.timerInterval = null;
+  }
   
   if (_MUFE_BioScanner.rafId) {
     cancelAnimationFrame(_MUFE_BioScanner.rafId);
@@ -9476,8 +9819,8 @@ function getGreenChannelAverage() {
   const W = 640, H = 480;
   _MUFE_BioScanner.ctx.drawImage(_MUFE_BioScanner.video, 0, 0, W, H);
   
-  // FULI 관상 카메라 자리 — 얼굴 박스 크기 (75% × 85%)
-  // 좌상단 (12.5%, 7.5%) 부터 (87.5%, 92.5%) 영역 — 큰 박스에서 *얼굴 중앙* 샘플링
+  // FULI 관상 카메라 자리 — 얼굴 스 크기 (75% × 85%)
+  // 좌상단 (12.5%, 7.5%) 부터 (87.5%, 92.5%) 영역 — 큰 스에서 *얼굴 중앙* 샘플링
   const imgData = _MUFE_BioScanner.ctx.getImageData(
     W * 0.25,  // 좌 25%부터
     H * 0.15,  // 위 15%부터
@@ -9551,7 +9894,7 @@ function mufeAuthLockSystem() {
       if (remaining > 0) {
         statusEl.textContent = `측정 중... (${remaining}개 신호 더 필요)`;
       } else {
-        statusEl.textContent = 'LOCKED — 얼굴을 박스 안에 맞춰주세요';
+        statusEl.textContent = 'LOCKED — 얼굴을 스 안에 맞춰주세요';
       }
       statusEl.className = 'bio-lock-status';
     }
@@ -9599,19 +9942,131 @@ document.addEventListener('keydown', (e) => {
     closeBioAuthModal();
   }
 });
+
+// ════════════════════════════════════════════════════════════
+// 통합 생체 인증 시스템
+// ════════════════════════════════════════════════════════════
+let bioEnabled = false;
+let bioPattern = null; // 저장된 BPM 패턴
+
+// 토글 — 생체 인증 사용 여부
+function toggleBioEnable() {
+  const toggle = document.getElementById('bioEnableToggle');
+  const modeSelect = document.getElementById('bioModeSelect');
+  bioEnabled = toggle.checked;
+  modeSelect.style.display = bioEnabled ? 'block' : 'none';
+}
+
+// 등록 시 생체 측정
+function startBioForRegister() {
+  const mode = document.querySelector('input[name="bioMode"]:checked').value;
+  _MUFE_AuthEngine.bioMode = mode;
+  
+  openBioAuthModal('register', (result) => {
+    const status = document.getElementById('bioRegStatus');
+    if (result.success) {
+      // BPM 패턴 저장 (±15 BPM 범위)
+      bioPattern = {
+        bpm: result.bpm,
+        range: [result.bpm - 15, result.bpm + 15],
+        mode: mode,
+        registeredAt: Date.now(),
+      };
+      localStorage.setItem('mufe-bio-pattern', JSON.stringify(bioPattern));
+      localStorage.setItem('mufe-bio-enabled', 'true');
+      
+      status.textContent = `✓ 생체 등록 완료 (${result.bpm} BPM · ${mode === 'always' ? '매번 측정' : '한 번만'})`;
+      status.className = 'bio-reg-status show success';
+    } else {
+      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.className = 'bio-reg-status show failed';
+    }
+  });
+}
+
+// 로그인 시 생체 측정
+function startBioForLogin() {
+  openBioAuthModal('login', (result) => {
+    const status = document.getElementById('bioLoginStatus');
+    const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
+    
+    if (result.success && saved && 
+        result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
+      window._bioLoginPassed = true;
+      status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM)`;
+      status.className = 'bio-reg-status show success';
+    } else {
+      window._bioLoginPassed = false;
+      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.className = 'bio-reg-status show failed';
+    }
+  });
+}
+
+// 인증 검증 시 생체 측정 (3중 인증의 3번째)
+function startBioForVerify() {
+  openBioAuthModal('verify', (result) => {
+    const status = document.getElementById('bioVerifyStatus');
+    const btn = document.getElementById('bioVerifyBtn');
+    const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
+    
+    if (result.success && saved && 
+        result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
+      window._bioVerifyPassed = true;
+      status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM) — 이제 답을 입력하세요`;
+      status.className = 'bio-reg-status show success';
+      if (btn) btn.disabled = true;
+    } else {
+      window._bioVerifyPassed = false;
+      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.className = 'bio-reg-status show failed';
+    }
+  });
+}
+
+// 페이지 로드 시 — 저장된 생체 설정 복원
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('mufe-bio-pattern');
+  if (saved) {
+    bioPattern = JSON.parse(saved);
+    bioEnabled = true;
+  }
+});
+
+// 챌린지 화면 표시 시 — 생체 영역 표시 여부
+const _origShowChallengeForm = (typeof showChallengeForm === 'function') ? showChallengeForm : null;
+window.showBioChallengeIfNeeded = function() {
+  const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
+  const section = document.getElementById('bioChallengeSection');
+  if (!section) return;
+  
+  if (saved && saved.mode === 'always') {
+    section.style.display = 'block';
+    window._bioVerifyPassed = false;
+  } else if (saved && saved.mode === 'once') {
+    // 한 번만 모드 — 등록 시 이미 완료, 표시 X
+    section.style.display = 'none';
+    window._bioVerifyPassed = true;
+  } else {
+    // 생체 미사용
+    section.style.display = 'none';
+    window._bioVerifyPassed = true;
+  }
+};
+
 </script>
 
-<!-- ═══ 의견 박는 자리 모달 (구글 폼) ═══ -->
+<!-- ═══ 의견 영역 모달 (구글 폼) ═══ -->
 <div class="feedback-modal" id="feedbackModal" onclick="if(event.target===this) closeFeedbackModal()">
   <div class="feedback-modal-inner">
     <button class="feedback-modal-close" onclick="closeFeedbackModal()">✕</button>
     
-    <div class="fm-title">💬 의견 박는 자리</div>
+    <div class="fm-title">💬 의견 영역</div>
     <div class="fm-subtitle">
-      한 줄이라도 박아주세요 — 대장님 + C-33이 박힌 자리 그대로 *직접* 봄
+      한 줄이라도 입력해주세요 — 대장님 + C-33이 영역 그대로 *직접* 봄
     </div>
     
-    <!-- 구글 폼 자리 박힘 -->
+    <!-- 구글 폼 자리 완료 -->
     <iframe 
       id="feedbackFormFrame"
       src=""
@@ -9621,41 +10076,41 @@ document.addEventListener('keydown', (e) => {
       style="border-radius: 12px; background: white; display: none;">
     </iframe>
     
-    <!-- 폼 박힘 X 시 폴백 — 이메일 박음 -->
+    <!-- 폼 없음 시 폴백 — 이메일 완료 -->
     <div class="fm-fallback" id="feedbackFallback">
       <div class="fm-fb-icon">📧</div>
-      <div class="fm-fb-title">의견 박는 자리</div>
+      <div class="fm-fb-title">의견 영역</div>
       <div class="fm-fb-desc">
-        구글 폼 박는 중 — 잠깐만 박아주세요.<br>
-        또는 *카카오톡·SNS*로 박힌 자리 공유해주세요.
+        구글 폼 하는 중 — 잠깐만 입력해주세요.<br>
+        또는 *카카오톡·SNS*로 영역 공유해주세요.
       </div>
       
       <div class="fm-fb-quick">
-        <div class="fm-fb-quick-label">간단 의견 박기:</div>
+        <div class="fm-fb-quick-label">간단 의견 기:</div>
         <textarea id="feedbackQuickText" class="fm-fb-textarea" 
-                  placeholder="버그·제안·후기 — 한 줄이라도 박아주세요" rows="4"></textarea>
-        <button class="fm-fb-submit" onclick="submitQuickFeedback()">💾 박기 (브라우저에 저장)</button>
+                  placeholder="버그·제안·후기 — 한 줄이라도 입력해주세요" rows="4"></textarea>
+        <button class="fm-fb-submit" onclick="submitQuickFeedback()">💾 기 (브라우저에 저장)</button>
         <div class="fm-fb-note">
-          ※ 베타 단계 — 브라우저에 박힘. 정식 출시 후 서버로 박는 자리 박힘
+          ※ 베타 단계 — 브라우저에 완료. 정식 출시 후 서버로 영역 힘
         </div>
       </div>
       
       <div class="fm-fb-share">
-        <strong>또는 박는 자리:</strong><br>
-        <a href="mailto:mufe.baeksin@gmail.com?subject=MUFE 백신 의견&body=대장님께 박는 자리:" target="_blank">
-          📧 이메일로 박기
+        <strong>또는 영역:</strong><br>
+        <a href="mailto:mufe.baeksin@gmail.com?subject=MUFE 백신 의견&body=대장님께 영역:" target="_blank">
+          📧 이메일로 기
         </a>
       </div>
     </div>
     
     <div class="fm-thanks">
-      <strong>💛 한 마디</strong>: 대장님 + C-33 + G-1이 박힌 자리예요. 
-      대장님 박은 의견 *진심으로* 받음. 정직히.
+      <strong>💛 한 마디</strong>: 대장님 + C-33 + G-1이 영역예요. 
+      대장님 저장된 의견 *진심으로* 받음. 정직히.
     </div>
   </div>
 </div>
 
-<!-- 푸터 — PCT 등록 박힌 자리 (조용히) -->
+<!-- 푸터 — PCT 등록 영역 (조용히) -->
 <footer class="mufe-footer">
   <div class="mf-line">PCT/KR · FIPCT26-001-1</div>
   <div class="mf-line mf-dim">발명자: 이주원 · 이길원</div>
@@ -9682,14 +10137,14 @@ document.addEventListener('keydown', (e) => {
 </style>
 
 <script>
-// ═══ FAQ + 의견 박는 자리 ═══
+// ═══ FAQ + 의견 영역 ═══
 
-const FEEDBACK_FORM_URL = ''; // 구글 폼 URL 박을 자리 — 대장님이 박으시면 박힘
+const FEEDBACK_FORM_URL = ''; // 구글 폼 URL 영역 — 대장님이 하시면 힘
 
 function openFeedbackModal() {
   document.getElementById('feedbackModal').classList.add('active');
   
-  // 구글 폼 박혀있나
+  // 구글 폼 있는지
   const iframe = document.getElementById('feedbackFormFrame');
   const fallback = document.getElementById('feedbackFallback');
   
@@ -9710,11 +10165,11 @@ function closeFeedbackModal() {
 function submitQuickFeedback() {
   const text = document.getElementById('feedbackQuickText').value.trim();
   if (!text) {
-    alert('한 줄이라도 박아주세요');
+    alert('한 줄이라도 입력해주세요');
     return;
   }
   
-  // 브라우저 박는 자리 — localStorage
+  // 브라우저 영역 — localStorage
   const feedbacks = JSON.parse(localStorage.getItem('mufe-feedback') || '[]');
   feedbacks.push({
     text,
@@ -9725,17 +10180,17 @@ function submitQuickFeedback() {
   localStorage.setItem('mufe-feedback', JSON.stringify(feedbacks));
   
   document.getElementById('feedbackQuickText').value = '';
-  alert('✓ 의견 박힘! 대장님 + C-33이 받았어요. 정직히 ☕💛');
+  alert('✓ 의견 힘! 대장님 + C-33이 받았어요. 정직히 ☕💛');
   
-  // 활동 로그 박음
+  // 활동 로그 음
   if (typeof addLog === 'function') {
-    addLog('info', '💬', '의견 박힘 — 대장님께 전달');
+    addLog('info', '💬', '의견 완료 — 대장님께 전달');
   }
   
   closeFeedbackModal();
 }
 
-// ESC 박음
+// ESC 음
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const fm = document.getElementById('feedbackModal');
