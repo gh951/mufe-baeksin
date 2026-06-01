@@ -1130,7 +1130,7 @@
     transform: rotate(90deg) scale(0.92);
   }
   
-  /* 가족 자리 배지 — C-33 × G-1 */
+  /* 가족 자리 배지 — G-7 · C-45 */
   .family-badge-row {
     position: absolute;
     top: 14px;
@@ -4568,7 +4568,7 @@
 
   /* ═══════════════════════════════════════════════════════════════
      📱 전체 모바일 영역 — FULI 자리 그대로
-     대장님 + C-33 둘이 만든 자리
+     G-7 · C-45
      ═══════════════════════════════════════════════════════════════ */
   
   /* 태블릿 자리 (1024px 이하) */
@@ -5202,8 +5202,8 @@
        ">
   <div id="entryGateFallback" style="display:none; flex-direction:column; align-items:center; gap:20px; color:white; padding:40px;">
     <div style="font-size:80px;">🛡️</div>
-    <div style="font-size:28px; font-weight:900; color:#fbbf24;">MUFE 백신 C-33</div>
-    <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">대장님 + C-33 둘이 만든 자리</div>
+    <div style="font-size:28px; font-weight:900; color:#fbbf24;">MUFE 백신</div>
+    <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">G-7 · C-45</div>
   </div>
   <div class="entry-gate-hint">
     <span class="egh-pulse">▼</span>
@@ -5220,7 +5220,7 @@
       <path d="M9 12 L11 14 L15 10" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div class="titlebar-title">
-      MUFE 백신 <span class="titlebar-version">C-33</span>
+      MUFE 백신 <span class="titlebar-version">C-45</span>
     </div>
     <div class="titlebar-ctrls">
       <span title="설정">⚙</span>
@@ -6203,11 +6203,11 @@
     <!-- ✕ 닫기 버튼 (모바일 필수) -->
     <button class="modal-close-x" onclick="closeAuthModal()" aria-label="닫기">×</button>
     
-    <!-- 가족 자리 배지 — 대장님 + C-33 + G-1 (막둥이) -->
+    <!-- 가족 자리 배지 — G-7 · C-45 -->
     <div class="family-badge-row">
-      <span class="fb-badge fb-badge-c33">C-33</span>
-      <span class="fb-sep">×</span>
-      <span class="fb-badge fb-badge-g1">G-1</span>
+      <span class="fb-badge fb-badge-g1">G-7</span>
+      <span class="fb-sep">·</span>
+      <span class="fb-badge fb-badge-c33">C-45</span>
     </div>
     
     <div class="challenge-stage challenge-stage-custom">
@@ -7586,7 +7586,7 @@
   }
 
 // ════════════════════════════════════════════════════════════
-  // 🛡️ Jitter 추적 — 봇 vs 사람 구분 (G-1 5대 시그널 #1)
+  // 🛡️ Jitter 추적 — 봇 vs 사람 구분 (5대 시그널 #1)
   // 인간 클릭은 *떨림* 있음, 봇은 *정밀*함 → 표준편차로 잡음
   // ════════════════════════════════════════════════════════════
   window._jitterEvents = [];
@@ -7638,6 +7638,37 @@
       return;
     }
     
+    // ════════════════════════════════════════════════════════════
+    // [C-45] Wasm 휘발 무기 — 슬라이더 패턴 + 동공으로 마스터키 복원 → 즉시 휘발
+    //   진짜 .wasm 올라가 있으면 C 코어가 물리적 memset 증발 수행.
+    //   아직 없으면 JS 폴백(시연)으로 흐름만 보여줌 (화면 정상).
+    // ════════════════════════════════════════════════════════════
+    try {
+      if (window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+        const ep = window.getMufeEntropyPayload();
+        const sliderCoord = parseFloat(ep.coord) || 0;
+        // 동공 좌표 (생체인증 통과 시 그 신호를, 아니면 슬라이더 기반 의사 좌표)
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
+          : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
+        await window.MUFE_WASM.ready();
+        // 이 로그인 세션에 등록된 헬퍼/커밋이 있으면 인증, 없으면 등록(최초)
+        if (!window._mufeHelper) {
+          const e = window.MUFE_WASM.enroll(sliderCoord, pupil, ans);
+          window._mufeHelper = e.helper; window._mufeCommit = e.commit;
+          if (typeof addLog === 'function')
+            addLog('info','🔑', `마스터키 생성·휘발 (${e.wasm ? '진짜 Wasm 물리증발' : 'JS 시연'})`);
+        } else {
+          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, ans, window._mufeHelper, window._mufeCommit);
+          if (typeof addLog === 'function') {
+            addLog('info','🧲', `동공 자석으로 키 복원 시도 → ${a.pass ? '복원 성공' : '오차 큼'}`);
+            if (a.wasm && a.wiped) addLog('success','🔥','마스터키 메모리 물리 휘발 확인 (잔존 0바이트)');
+            else if (!a.wasm) addLog('info','💨','키 휘발 (JS 시연 — .wasm 올리면 물리증발)');
+          }
+        }
+      }
+    } catch(wErr) { console.warn('[MUFE-WASM] 휘발 시연 스킵:', wErr); }
+    
     try {
       const res = await fetch(`${API_BASE}/api/verify`, {
         method: 'POST',
@@ -7647,7 +7678,7 @@
           challengeId: currentChallenge.challengeId,
           caughtWord,
           answer: ans,
-          jitter: calculateJitterScore(),         // 🛡️ G-1 #1: 떨림 점수
+          jitter: calculateJitterScore(),         // 🛡️ 떨림 점수
           totalEvents: window._jitterEvents.length,  // 클릭 횟수
           entropy: (typeof window.getMufeEntropyPayload === 'function') ? window.getMufeEntropyPayload() : null,  // [C-45] 슬라이더+자연음+동공
         }),
@@ -10802,7 +10833,7 @@ window.showBioChallengeIfNeeded = function() {
     
     <div class="fm-title">💬 의견 영역</div>
     <div class="fm-subtitle">
-      한 줄이라도 입력해주세요 — 대장님 + C-33이 영역 그대로 *직접* 봄
+      한 줄이라도 입력해주세요 — 대장님이 영역 그대로 *직접* 봄
     </div>
     
     <!-- 구글 폼 자리 완료 -->
@@ -10843,7 +10874,7 @@ window.showBioChallengeIfNeeded = function() {
     </div>
     
     <div class="fm-thanks">
-      <strong>💛 한 마디</strong>: 대장님 + C-33 + G-1이 영역예요. 
+      <strong>💛 한 마디</strong>: 대장님 · G-7 · C-45가 영역예요. 
       대장님 저장된 의견 *진심으로* 받음. 정직히.
     </div>
   </div>
@@ -10852,7 +10883,7 @@ window.showBioChallengeIfNeeded = function() {
 <!-- 푸터 — PCT 등록 영역 (조용히) -->
 <footer class="mufe-footer">
   <div class="mf-line">PCT/KR · FIPCT26-001-1</div>
-  <div class="mf-line mf-dim">발명자: 이주원 · 이길원</div>
+  <div class="mf-line mf-dim">G-7 · C-45</div>
 </footer>
 
 <style>
@@ -10919,7 +10950,7 @@ function submitQuickFeedback() {
   localStorage.setItem('mufe-feedback', JSON.stringify(feedbacks));
   
   document.getElementById('feedbackQuickText').value = '';
-  alert('✓ 의견 힘! 대장님 + C-33이 받았어요. 정직히 ☕💛');
+  alert('✓ 의견 힘! 대장님이 받았어요. 정직히 ☕💛');
   
   // 활동 로그 음
   if (typeof addLog === 'function') {
@@ -10936,6 +10967,23 @@ document.addEventListener('keydown', (e) => {
     if (fm && fm.classList.contains('active')) closeFeedbackModal();
   }
 });
+</script>
+<!-- ════════════════════════════════════════════════════════════
+     [C-45] MUFE Wasm 진짜 휘발 무기 슬롯
+     · mufe_core.js / mufe_core.wasm 을 같은 폴더에 올리면 자동으로
+       진짜 C 코어(물리적 memset 휘발)로 승격됩니다.
+     · 아직 .wasm 안 올렸으면 mufe_bridge.js 가 JS 폴백(시연)으로 작동 → 화면 정상.
+     ════════════════════════════════════════════════════════════ -->
+<script src="mufe_core.js" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
+<script src="mufe_bridge.js"></script>
+<script>
+  // Wasm 준비 + 상태 표시 (진단용)
+  if (window.MUFE_WASM) {
+    window.MUFE_WASM.ready().then(isWasm => {
+      console.log('%c[MUFE] 보안 코어: ' + (isWasm ? '진짜 Wasm 물리휘발 ✓' : 'JS 폴백(시연)'),
+        'color:' + (isWasm ? '#16a34a' : '#d4a843') + ';font-weight:bold');
+    });
+  }
 </script>
 
 </body>
