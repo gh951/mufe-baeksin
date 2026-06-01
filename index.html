@@ -624,6 +624,15 @@
   #bioVideo {
     min-height: 480px;
   }
+  .bio-light-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: background-color 0.06s linear, opacity 0.06s linear;
+  }
   .bio-video-overlay {
     position: absolute;
     inset: 0;
@@ -10355,7 +10364,7 @@
     <!-- ═══ 2단계: 측정 화면 ═══ -->
     <div class="bio-measure-step" id="bioMeasureStep" style="display:none;">
       <div class="bio-modal-subtitle">
-        💡 얼굴을 <strong style="color:#fbbf24;">스 안에 가까이</strong> 으세요 — 화면에서 30~40cm 거리
+        💡 얼굴을 <strong style="color:#fbbf24;">화면 안에 가까이</strong> 맞춰주세요 — 화면에서 30~40cm 거리
       </div>
 
       <div class="bio-video-container" id="bioVideoContainer">
@@ -10363,6 +10372,8 @@
         <div class="bio-video-overlay">
           <div class="bio-target-area"></div>
         </div>
+        <!-- [C-45] 난수 광원 레이어 — 무작위 색을 쏴서 사진·영상을 가려냄 -->
+        <div class="bio-light-flash" id="bioLightFlash"></div>
       </div>
 
       <div class="bio-stats">
@@ -10416,10 +10427,15 @@ const _MUFE_AuthEngine = {
   timestamps: [],
   lastBPM: 0,
   isHuman: false,
+  skinDetected: false,
   authStatus: 'LOCKED',
   sampleCount: 0,
   startTime: 0,
   _logged: false,
+  // [C-45] 난수 광원 반사 검증 상태
+  lightColor: 'none',        // 지금 쏘는 색 (r/g/b/none)
+  lightSamples: [],          // {color, r, g, b} 기록
+  lightReflexPassed: false,  // 광원-반사 상관관계 통과 여부
   timeLimit: 10000,        // 10초 정확 제한
   timerInterval: null,     // 타이머
   bioContext: null,        // 'register' / 'login' / 'verify'
@@ -10508,6 +10524,11 @@ async function startMUFESensor() {
     _MUFE_AuthEngine.isHuman = false;
     _MUFE_AuthEngine.authStatus = 'PROCESSING';
     _MUFE_AuthEngine._logged = false;
+    // [C-45] 난수 광원 반사 초기화 + 광원 깜빡 시작
+    _MUFE_AuthEngine.lightSamples = [];
+    _MUFE_AuthEngine.lightReflexPassed = false;
+    _MUFE_AuthEngine.lightColor = 'none';
+    startRandomLightReflex();
     
     document.getElementById('bioStatus').textContent = '측정 중';
     document.getElementById('bioStatus').className = 'bio-stat-value active';
@@ -10583,6 +10604,15 @@ function finishBioMeasurement() {
 function stopMUFESensor() {
   _MUFE_BioScanner.isLocked = false;
   
+  // [C-45] 난수 광원 정지 + 숨김
+  if (_MUFE_BioScanner._lightTimer) {
+    clearInterval(_MUFE_BioScanner._lightTimer);
+    _MUFE_BioScanner._lightTimer = null;
+  }
+  const _flash = document.getElementById('bioLightFlash');
+  if (_flash) _flash.style.opacity = '0';
+  _MUFE_AuthEngine.lightColor = 'none';
+  
   // 타이머 정리
   if (_MUFE_AuthEngine.timerInterval) {
     clearInterval(_MUFE_AuthEngine.timerInterval);
@@ -10616,22 +10646,41 @@ function getGreenChannelAverage() {
   const W = 640, H = 480;
   _MUFE_BioScanner.ctx.drawImage(_MUFE_BioScanner.video, 0, 0, W, H);
   
-  // FULI 관상 카메라 자리 — 얼굴 스 크기 (75% × 85%)
-  // 좌상단 (12.5%, 7.5%) 부터 (87.5%, 92.5%) 영역 — 큰 스에서 *얼굴 중앙* 샘플링
+  // 얼굴 중앙 영역 샘플링
   const imgData = _MUFE_BioScanner.ctx.getImageData(
-    W * 0.25,  // 좌 25%부터
-    H * 0.15,  // 위 15%부터
-    W * 0.50,  // 폭 50% (중앙)
-    H * 0.60   // 높이 60% (얼굴 전체)
+    W * 0.25, H * 0.15, W * 0.50, H * 0.60
   );
   const pixels = imgData.data;
-  let g = 0;
+  let r = 0, g = 0, bl = 0, n = 0;
   
   for (let i = 0; i < pixels.length; i += 4) {
-    g += pixels[i+1];
+    r  += pixels[i];
+    g  += pixels[i+1];
+    bl += pixels[i+2];
+    n++;
   }
-  
-  return g / (pixels.length / 4);
+  r /= n; g /= n; bl /= n;
+
+  // ═══ [C-45] 혈류 STOP 법칙 — 피부 판정 ═══
+  // CGO MESSAGE 건강예측과 동일 원칙: 살아있는 피부가 아니면 측정 거부.
+  // 사람 피부는 적색(R)이 녹색(G)·청색(B)보다 높고, 너무 어둡거나 밝지 않음.
+  //  · 책상/벽/사진(균일색·R<G 등)은 여기서 걸러져 신호로 안 쌓임.
+  const isSkin =
+        r > g && g > bl * 0.85 &&     // 피부 색비율: R > G > (B 근처)
+        r > 60 && r < 245 &&          // 너무 어둡거나(빛없음) 너무 밝지(과노출) 않음
+        (r - bl) > 12;                // 적색-청색 차이(혈색) 존재
+
+  _MUFE_AuthEngine.skinDetected = isSkin;
+
+  // [C-45] 난수 광원 반사 기록 — 지금 쏘는 색일 때의 얼굴 RGB 저장
+  if (isSkin && _MUFE_AuthEngine.lightColor !== 'none') {
+    _MUFE_AuthEngine.lightSamples.push({
+      color: _MUFE_AuthEngine.lightColor, r: r, g: g, b: bl
+    });
+    if (_MUFE_AuthEngine.lightSamples.length > 120) _MUFE_AuthEngine.lightSamples.shift();
+  }
+
+  return { green: g, isSkin };
 }
 
 function calculateMUFEBpm() {
@@ -10639,6 +10688,17 @@ function calculateMUFEBpm() {
   
   const signals = _MUFE_AuthEngine.g_values.slice(-100);
   const mean = signals.reduce((a, b) => a + b) / signals.length;
+  
+  // [C-45] 혈류 신호 강도(분산) 검사 — 진짜 맥파는 일정한 진폭으로 진동.
+  //   책상·벽처럼 변화 없는 평탄 신호나, 무작위 노이즈는 여기서 걸러짐.
+  let variance = 0;
+  for (let i = 0; i < signals.length; i++) {
+    variance += (signals[i] - mean) * (signals[i] - mean);
+  }
+  variance /= signals.length;
+  const std = Math.sqrt(variance);
+  // 맥파라면 적정 진폭 범위(너무 평탄≠혈류, 너무 요동≠노이즈)
+  const validPulse = std > 0.25 && std < 25;
   
   let crossings = 0;
   for (let i = 1; i < signals.length; i++) {
@@ -10649,11 +10709,15 @@ function calculateMUFEBpm() {
   const sampleRate = _MUFE_AuthEngine.sampleCount / Math.max(elapsedSec, 1);
   const estimatedBPM = (crossings / 2) * (60 / (signals.length / Math.max(sampleRate, 10)));
   
-  if (estimatedBPM > 40 && estimatedBPM < 180) {
+  // 피부 감지 + 적정 맥파 진폭 + BPM 범위 + 난수광원 반사 정합 — 모두 만족해야 사람
+  if (_MUFE_AuthEngine.skinDetected && validPulse && estimatedBPM > 40 && estimatedBPM < 180) {
     _MUFE_AuthEngine.lastBPM = Math.round(estimatedBPM);
-    _MUFE_AuthEngine.isHuman = true;
+    // 광반사 검증: 표본이 충분히 모이면 상관관계 확인
+    _MUFE_AuthEngine.lightReflexPassed = analyzeLightReflex();
+    _MUFE_AuthEngine.isHuman = _MUFE_AuthEngine.lightReflexPassed;
   } else {
     _MUFE_AuthEngine.isHuman = false;
+    if (!_MUFE_AuthEngine.skinDetected) _MUFE_AuthEngine.lastBPM = 0;
   }
 }
 
@@ -10665,6 +10729,20 @@ function mufeAuthLockSystem() {
   
   if (signalsEl) signalsEl.textContent = `${Math.min(_MUFE_AuthEngine.g_values.length, 100)} / 100`;
   if (bpmEl) bpmEl.textContent = _MUFE_AuthEngine.lastBPM > 0 ? _MUFE_AuthEngine.lastBPM : '— —';
+  // [C-45] 🔬 상태 — 피부(혈류) 감지 여부 실시간 표시
+  const bioStatusEl = document.getElementById('bioStatus');
+  if (bioStatusEl) {
+    if (_MUFE_AuthEngine.authStatus === 'UNLOCKED') {
+      bioStatusEl.textContent = '확인됨';
+      bioStatusEl.style.color = '#34d399';
+    } else if (_MUFE_AuthEngine.skinDetected) {
+      bioStatusEl.textContent = '측정 중';
+      bioStatusEl.style.color = '';
+    } else {
+      bioStatusEl.textContent = '정지 (혈류 없음)';
+      bioStatusEl.style.color = '#f87171';
+    }
+  }
   
   if (_MUFE_AuthEngine.isHuman && _MUFE_AuthEngine.lastBPM > 0) {
     _MUFE_AuthEngine.authStatus = 'UNLOCKED';
@@ -10687,27 +10765,106 @@ function mufeAuthLockSystem() {
       lockEl.style.color = '#f87171';
     }
     if (statusEl) {
-      const remaining = Math.max(0, 100 - _MUFE_AuthEngine.g_values.length);
-      if (remaining > 0) {
-        statusEl.textContent = `측정 중... (${remaining}개 신호 더 필요)`;
+      if (!_MUFE_AuthEngine.skinDetected) {
+        // 혈류 STOP: 피부 미감지 — 측정 진행 안 됨을 명확히 안내
+        statusEl.textContent = '얼굴을 비춰주세요 — 혈류 신호 없음 (측정 정지)';
       } else {
-        statusEl.textContent = '얼굴을 화면 안에 맞춰주세요';
+        const remaining = Math.max(0, 100 - _MUFE_AuthEngine.g_values.length);
+        if (remaining > 0) {
+          statusEl.textContent = `측정 중... (${remaining}개 신호 더 필요)`;
+        } else {
+          statusEl.textContent = '얼굴을 화면 안에 맞춰주세요';
+        }
       }
       statusEl.className = 'bio-lock-status';
     }
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// [C-45] 난수 광원 동공/피부 광반사 검증
+//  화면에서 무작위 색(R/G/B)을 쏘고, 그 색에 따라 얼굴 반사가
+//  따라 변하는지 본다.
+//   · 진짜 3D 얼굴 → 빨강 쏘면 R반사↑, 초록 쏘면 G반사↑ (상관관계 O)
+//   · 사진/영상 → 화면색 바뀌어도 반사 안 변함 (상관관계 X) → 차단
+// ════════════════════════════════════════════════════════════
+function startRandomLightReflex() {
+  const flash = document.getElementById('bioLightFlash');
+  if (!flash) return;
+  const colors = [
+    { name:'r', css:'rgba(255,40,40,0.55)' },
+    { name:'g', css:'rgba(40,255,40,0.55)' },
+    { name:'b', css:'rgba(40,80,255,0.55)' },
+  ];
+  if (_MUFE_BioScanner._lightTimer) clearInterval(_MUFE_BioScanner._lightTimer);
+  _MUFE_BioScanner._lightTimer = setInterval(() => {
+    if (!_MUFE_BioScanner.isLocked) {
+      clearInterval(_MUFE_BioScanner._lightTimer);
+      _MUFE_BioScanner._lightTimer = null;
+      flash.style.opacity = '0';
+      _MUFE_AuthEngine.lightColor = 'none';
+      return;
+    }
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    flash.style.background = c.css;
+    flash.style.opacity = '1';
+    _MUFE_AuthEngine.lightColor = c.name;
+  }, 350);
+}
+
+function analyzeLightReflex() {
+  const s = _MUFE_AuthEngine.lightSamples;
+  if (s.length < 18) return false;
+  const acc = { r:{r:0,g:0,b:0,n:0}, g:{r:0,g:0,b:0,n:0}, b:{r:0,g:0,b:0,n:0} };
+  for (const x of s) {
+    const a = acc[x.color]; if (!a) continue;
+    a.r += x.r; a.g += x.g; a.b += x.b; a.n++;
+  }
+  if (acc.r.n < 4 || acc.g.n < 4 || acc.b.n < 4) return false;
+  const avg = k => ({ r:acc[k].r/acc[k].n, g:acc[k].g/acc[k].n, b:acc[k].b/acc[k].n });
+  const R = avg('r'), G = avg('g'), B = avg('b');
+
+  // [핵심] 절대값이 아니라 "색을 바꿨을 때 반사가 변했는가"를 본다.
+  //  · 진짜 3D 얼굴: 빨강 쏠 때 R반사가 (초록·파랑 쏠 때의 R반사)보다 확 높아짐 (변화 O)
+  //  · 사진/영상: 화면색 바꿔도 반사가 거의 안 변함 → 채널 변화량 ≈ 0 → 차단
+  const THRESH = 6; // 최소 반사 변화량(노이즈 여유)
+
+  // 빨강 쏠 때 R반사가 다른 색 쏠 때 R반사보다 THRESH 이상 높은가
+  const redReflex   = R.r - Math.max(G.r, B.r);
+  const greenReflex = G.g - Math.max(R.g, B.g);
+  const blueReflex  = B.b - Math.max(R.b, G.b);
+
+  // 색 변화에 반사가 따라온 채널 수
+  const score = (redReflex > THRESH ? 1 : 0)
+              + (greenReflex > THRESH ? 1 : 0)
+              + (blueReflex > THRESH ? 1 : 0);
+
+  // 또한 전체 반사 변화가 너무 작으면(사진) 무조건 실패
+  const totalChange = Math.max(redReflex, 0) + Math.max(greenReflex, 0) + Math.max(blueReflex, 0);
+  if (totalChange < THRESH) return false;
+
+  // 3색 중 2색 이상에서 "쏜 색 = 반사 증가"가 성립해야 살아있는 표면
+  return score >= 2;
+}
+
 function mufeUpdate() {
   if (!_MUFE_BioScanner.isLocked) return;
   
-  const currentG = getGreenChannelAverage();
-  if (currentG > 0) {
-    _MUFE_AuthEngine.g_values.push(currentG);
+  const sample = getGreenChannelAverage();
+  // [C-45] 혈류 STOP 법칙: 살아있는 피부가 감지될 때만 신호 축적.
+  //   책상·벽·사진 등 피부가 아니면 신호를 쌓지 않아 측정이 진행되지 않음.
+  if (sample && sample.isSkin && sample.green > 0) {
+    _MUFE_AuthEngine.g_values.push(sample.green);
     _MUFE_AuthEngine.sampleCount++;
     if (_MUFE_AuthEngine.g_values.length > 200) {
       _MUFE_AuthEngine.g_values.shift();
     }
+  } else if (!sample || !sample.isSkin) {
+    // 피부 미감지 — 기존에 쌓인 신호도 점진적으로 무효화 (가짜 정지)
+    if (_MUFE_AuthEngine.g_values.length > 0 && Math.random() < 0.5) {
+      _MUFE_AuthEngine.g_values.shift();
+    }
+    _MUFE_AuthEngine.isHuman = false;
   }
   
   calculateMUFEBpm();
