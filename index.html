@@ -9779,8 +9779,11 @@
         .then(reg => {
           console.log('%c[PWA] 서비스 워커 등록 완료', 'color:#16a34a');
           
-          // 매 페이지 로드마다 업데이트 체크
-          reg.update();
+          // 매 페이지 로드마다 업데이트 체크 (실패해도 조용히)
+          try {
+            const up = reg.update();
+            if (up && typeof up.catch === 'function') up.catch(() => {});
+          } catch (e) { /* 파일 없거나 네트워크 문제 — 무시 */ }
           
           // 새 워커 감지 → 자동 활성화
           reg.addEventListener('updatefound', () => {
