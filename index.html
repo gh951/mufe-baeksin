@@ -1843,6 +1843,32 @@
     visibility: hidden;
     pointer-events: none;
   }
+  .entry-gate-credit {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #e8f4ff;
+    text-shadow:
+      0 0 8px rgba(124, 58, 237, 0.9),
+      0 0 18px rgba(34, 211, 238, 0.7),
+      0 0 30px rgba(124, 58, 237, 0.5);
+    pointer-events: none;
+    white-space: nowrap;
+    animation: gate-credit-glow 2.6s ease-in-out infinite;
+  }
+  @keyframes gate-credit-glow {
+    0%, 100% { opacity: 0.82; text-shadow: 0 0 8px rgba(124,58,237,0.9), 0 0 18px rgba(34,211,238,0.7), 0 0 30px rgba(124,58,237,0.5); }
+    50%      { opacity: 1;    text-shadow: 0 0 12px rgba(124,58,237,1), 0 0 26px rgba(34,211,238,0.9), 0 0 44px rgba(124,58,237,0.7); }
+  }
+  @media (max-width: 480px) {
+    .entry-gate-credit { font-size: 17px; top: 20px; }
+  }
   .entry-gate-img {
     max-width: 100%;
     max-height: 90vh;
@@ -5184,6 +5210,7 @@
 
 <!-- ═══ 통과 게이트 — 대문 이미지 클릭해야 들어옴 ═══ -->
 <div class="entry-gate" id="entryGate">
+  <div class="entry-gate-credit">G-7 · C-45</div>
   <img src="/무폐 이미지/chaos-000.png.jpeg" 
        alt="MUFE 대문"
        class="entry-gate-img"
@@ -5623,7 +5650,7 @@
     <div class="panel panel-security" data-panel="security">
       <div class="panel-content">
         <div class="panel-header">
-          <h2>보안 정책 <span class="policy-signature">C-34</span></h2>
+          <h2>보안 정책</h2>
           <p>현재 시스템에 적용된 보안 원칙을 확인하세요.</p>
         </div>
 
@@ -10882,7 +10909,6 @@ window.showBioChallengeIfNeeded = function() {
 
 <!-- 푸터 — PCT 등록 영역 (조용히) -->
 <footer class="mufe-footer">
-  <div class="mf-line">PCT/KR · FIPCT26-001-1</div>
   <div class="mf-line mf-dim">G-7 · C-45</div>
 </footer>
 
