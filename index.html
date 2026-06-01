@@ -6391,8 +6391,8 @@
           <div class="bio-option-header">
             <span class="bio-option-icon">🫀</span>
             <div class="bio-option-text">
-              <strong>생체 인증 추가 (선택)</strong>
-              <small>심박 측정으로 살아있는 사람만 통과 — AI·사진·영상 무력화</small>
+              <strong>생체 인증 (선택)</strong>
+              <small>심박을 측정해 살아있는 본인만 통과시킵니다</small>
             </div>
             <label class="bio-toggle">
               <input type="checkbox" id="bioEnableToggle" onchange="toggleBioEnable()">
@@ -6405,15 +6405,15 @@
               <label class="bio-mode-radio">
                 <input type="radio" name="bioMode" value="always" checked>
                 <span class="bio-mode-text">
-                  <strong>매번 인증</strong>
-                  <small>가장 안전 — 매 로그인마다 측정</small>
+                  <strong>매번 측정</strong>
+                  <small>로그인할 때마다 측정 (가장 안전)</small>
                 </span>
               </label>
               <label class="bio-mode-radio">
                 <input type="radio" name="bioMode" value="once">
                 <span class="bio-mode-text">
                   <strong>한 번만</strong>
-                  <small>최초 등록만 — 패턴 저장</small>
+                  <small>등록할 때 한 번만 측정</small>
                 </span>
               </label>
             </div>
@@ -6457,7 +6457,7 @@
             <span class="bio-option-icon">🫀</span>
             <div class="bio-option-text">
               <strong>생체 인증 필요</strong>
-              <small>등록 시 생체 인증을 설정하셨습니다 — 측정해주세요</small>
+              <small>등록 시 생체 인증을 설정하셨습니다. 아래에서 측정해주세요</small>
             </div>
           </div>
           <button class="bio-measure-btn" onclick="startBioForLogin()">
@@ -6575,8 +6575,8 @@
         <div class="bio-challenge-header">
           <span class="bio-challenge-icon">🫀</span>
           <div class="bio-challenge-text">
-            <strong>3중 인증 — 생체 측정 필요</strong>
-            <small>비번 + 잡은 단어 + 살아있는 사람 확인</small>
+            <strong>3중 인증 — 생체 측정</strong>
+            <small>비번 · 잡은 단어 · 살아있는 본인 확인</small>
           </div>
         </div>
         <button class="bio-measure-btn" onclick="startBioForVerify()" id="bioVerifyBtn">
@@ -10317,26 +10317,26 @@
       <div class="bio-consent-info">
         <div class="bci-row">
           <span class="bci-check">✓</span>
-          <span><strong>심 측정</strong>만 완료 — 얼굴 인식·저장 *안 함*</span>
+          <span><strong>심박 측정</strong>만 합니다 — 얼굴 인식·저장은 하지 않습니다</span>
         </div>
         <div class="bci-row">
           <span class="bci-check">✓</span>
-          <span>영상은 <strong>실시간 분석만</strong> — 서버 전송 *안 함*</span>
+          <span>영상은 <strong>실시간 분석만</strong> 하고 서버로 전송하지 않습니다</span>
         </div>
         <div class="bci-row">
           <span class="bci-check">✓</span>
-          <span>측정 끝나면 카메라 <strong>즉시 꺼짐</strong></span>
+          <span>측정이 끝나면 카메라가 <strong>즉시 꺼집니다</strong></span>
         </div>
         <div class="bci-row">
           <span class="bci-check">✓</span>
-          <span><strong>완전 선택</strong>입니다 — 일반 인증으로도 사용 가능</span>
+          <span><strong>선택 사항</strong>입니다 — 일반 인증만으로도 사용할 수 있습니다</span>
         </div>
       </div>
 
       <div class="bio-consent-detail">
         <strong>왜 카메라가 필요한가요?</strong><br>
-        rPPG (광혈류 측정)은 카메라로 *얼굴 피부색 미세 변화*를 감지하여
-        심할 측정합니다. 살아있는 사람만 통과 — 사진·영상·AI 무력화.
+        rPPG(광혈류 측정)는 카메라로 얼굴 피부색의 미세한 변화를 감지해
+        심박을 측정합니다. 이로써 살아있는 본인만 통과시키고, 사진·영상·AI 위조를 차단합니다.
       </div>
 
       <div class="bio-consent-checkbox">
@@ -10382,7 +10382,7 @@
 
       <div class="bio-lock-display">
         <span id="mufe-lock-icon">🔒</span>
-        <span class="bio-lock-status" id="bioLockStatus">LOCKED — 측정 시작 대기</span>
+        <span class="bio-lock-status" id="bioLockStatus">측정 대기 중</span>
       </div>
       
       <!-- 10초 타이머 + 진행바 -->
@@ -10673,7 +10673,7 @@ function mufeAuthLockSystem() {
       lockEl.style.color = '#34d399';
     }
     if (statusEl) {
-      statusEl.textContent = `UNLOCKED — 살아있는 사람 확인 (${_MUFE_AuthEngine.lastBPM} BPM)`;
+      statusEl.textContent = `인증 완료 — 살아있는 본인 확인 (${_MUFE_AuthEngine.lastBPM} BPM)`;
       statusEl.className = 'bio-lock-status unlocked';
     }
     if (typeof addLog === 'function' && !_MUFE_AuthEngine._logged) {
@@ -10691,7 +10691,7 @@ function mufeAuthLockSystem() {
       if (remaining > 0) {
         statusEl.textContent = `측정 중... (${remaining}개 신호 더 필요)`;
       } else {
-        statusEl.textContent = 'LOCKED — 얼굴을 스 안에 맞춰주세요';
+        statusEl.textContent = '얼굴을 화면 안에 맞춰주세요';
       }
       statusEl.className = 'bio-lock-status';
     }
@@ -10810,7 +10810,7 @@ function startBioForVerify() {
     if (result.success && saved && 
         result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
       window._bioVerifyPassed = true;
-      status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM) — 이제 답을 입력하세요`;
+      status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM) · 이제 답을 입력하세요`;
       status.className = 'bio-reg-status show success';
       if (btn) btn.disabled = true;
     } else {
