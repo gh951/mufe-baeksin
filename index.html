@@ -5120,6 +5120,7 @@
   .mufe-entropy-section .mes-title{font-size:14px;font-weight:800;color:var(--navy-900);}
   .mufe-entropy-section .mes-title small{display:block;font-size:11px;color:var(--gray-500);font-weight:500;margin-top:2px;}
   .mufe-entropy-section .mes-opt{font-size:10px;color:var(--purple);font-weight:700;}
+  .mufe-slider-block{margin-top:14px;padding-top:14px;border-top:1px dashed var(--gray-200);}
   .mufe-slider-row{margin-bottom:13px;}
   .mufe-slider-row .msr-label{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-700);margin-bottom:6px;font-weight:600;}
   .mufe-slider-row .msr-val{font-family:'JetBrains Mono',monospace;color:var(--purple);font-weight:800;}
@@ -6272,6 +6273,57 @@
                autocomplete="off"
                autocapitalize="off"
                spellcheck="false" />
+
+        <!-- ═══ [C-45] 물리 좌표 + 자연 엔트로피 (자연음 위 → 슬라이더 아래) ═══ -->
+        <div class="mufe-entropy-section" id="mufeEntropySection">
+          <div class="mes-header">
+            <span class="mes-icon">🎚️</span>
+            <div class="mes-title">나만의 카오스 키 더하기 <span class="mes-opt">(선택)</span>
+              <small>자연음과 슬라이더로 비밀번호에 물리 좌표를 섞습니다</small>
+            </div>
+          </div>
+
+          <!-- 자연음 믹서 (위) -->
+          <div class="mufe-sound-mixer">
+            <div class="msm-label">🌿 자연음 선택 (탭하여 켜기 + 볼륨)</div>
+            <div class="msm-grid">
+              <div class="msm-sound" data-sound="baby" data-freq="440">
+                <div class="msm-emoji">🍼</div><div class="msm-name">아기 울음</div>
+                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="baby">
+              </div>
+              <div class="msm-sound" data-sound="rain" data-freq="220">
+                <div class="msm-emoji">🌧️</div><div class="msm-name">빗소리</div>
+                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="rain">
+              </div>
+              <div class="msm-sound" data-sound="wind" data-freq="110">
+                <div class="msm-emoji">💨</div><div class="msm-name">바람</div>
+                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="wind">
+              </div>
+            </div>
+          </div>
+
+          <!-- 대·소·미세 슬라이더 (아래) -->
+          <div class="mufe-slider-block">
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
+            </div>
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
+            </div>
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
+              <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
+            </div>
+          </div>
+
+          <div class="mes-result">
+            카오스 키 좌표: <b id="keyCoord">—</b><br>
+            자연음 시드: <b id="soundSeed">없음</b>
+          </div>
+        </div>
+        <!-- ═══ [C-45 끝] ═══ -->
         
         <div class="reg-spacing">
           <div class="reg-spacing-label">잡은 단어와 어떻게 합치시겠어요?</div>
@@ -6482,59 +6534,6 @@
           🔒 <em>글자 안에 수학 매립됨 — AI·양자가 분석 시 자원 소모</em>
         </div>
       </div>
-
-      <!-- ═══ [C-45 추가] 물리 좌표 + 자연 엔트로피층 (대·소·미세 슬라이더 + 자연음) ═══ -->
-      <div class="mufe-entropy-section" id="mufeEntropySection">
-        <div class="mes-header">
-          <span class="mes-icon">🎚️</span>
-          <div class="mes-title">물리 좌표 + 자연 엔트로피 <span class="mes-opt">(선택)</span>
-            <small>슬라이더와 자연음으로 나만의 카오스 키를 더합니다</small>
-          </div>
-        </div>
-
-        <div class="mufe-slider-row">
-          <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
-          <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
-        </div>
-        <div class="mufe-slider-row">
-          <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
-          <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
-        </div>
-        <div class="mufe-slider-row">
-          <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
-          <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
-        </div>
-
-        <div class="mufe-sound-mixer">
-          <div class="msm-label">🌿 자연음 믹싱 (탭하여 켜기 + 볼륨)</div>
-          <div class="msm-grid">
-            <div class="msm-sound" data-sound="baby" data-freq="440">
-              <div class="msm-emoji">🍼</div><div class="msm-name">아기</div>
-              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="baby">
-            </div>
-            <div class="msm-sound" data-sound="rain" data-freq="220">
-              <div class="msm-emoji">🌧️</div><div class="msm-name">빗소리</div>
-              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="rain">
-            </div>
-            <div class="msm-sound" data-sound="wind" data-freq="110">
-              <div class="msm-emoji">💨</div><div class="msm-name">바람</div>
-              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="wind">
-            </div>
-          </div>
-        </div>
-
-        <div class="mes-result">
-          카오스 키 좌표: <b id="keyCoord">—</b><br>
-          자연음 시드: <b id="soundSeed">없음</b>
-        </div>
-
-        <!-- 난수 광원 동공 광반사 -->
-        <button class="pupil-test-btn" id="pupilTestBtn" type="button">🔦 난수 광원 동공 광반사 측정</button>
-        <div class="pupil-result-box" id="pupilResultBox" style="display:none;">
-          동공 반응: <b id="pupilResult">대기 중</b>
-        </div>
-      </div>
-      <!-- ═══ [C-45 추가 끝] ═══ -->
 
       <input type="text" 
              class="auth-input" 
@@ -6957,6 +6956,8 @@
     document.getElementById('userInfoBar').style.display = 'none';
     document.getElementById('regMsg').className = 'response-msg';
     document.getElementById('regPasscode').value = '';
+    // [C-45] 비번 만들기 화면 — 슬라이더+자연음 초기화
+    if (typeof _mufeInitEntropyUI === 'function') setTimeout(_mufeInitEntropyUI, 120);
     setTimeout(() => document.getElementById('regPasscode').focus(), 350);
   }
   
@@ -7029,11 +7030,6 @@
       window.showBioChallengeIfNeeded();
     }
     
-    // [C-45] 슬라이더+자연음+동공 UI 초기화
-    if (typeof _mufeInitEntropyUI === 'function') {
-      setTimeout(_mufeInitEntropyUI, 100);
-    }
-    
     await loadChallengeAndStartRotation();
   }
 
@@ -7088,27 +7084,24 @@
   
   // 🚀 시작하기 — 비번 저장된 사람은 챌린지 화면으로, 미등록자는 왼쪽 등록 탭으로 안내
   function goToChallenge() {
-    // 진단 로그 (콘솔 F12 + 화면 메시지)
-    console.log('[MUFE 시작하기] 클릭됨. userToken:', !!userToken, 'userPasscode:', !!userPasscode);
+    console.log('[MUFE 시작하기] 클릭됨. userToken:', !!userToken);
     
+    // [C-45] 비번 원본은 저장 안 함 → 토큰만 있으면 챌린지로.
+    //   비번은 챌린지 화면에서 사용자가 매번 직접 입력 (휘발 원칙)
     const hasToken = !!(userToken || localStorage.getItem('mufe-user-token'));
-    const hasPass = !!(userPasscode || localStorage.getItem('mufe-user-passcode'));
     
-    if (hasToken && hasPass) {
-      // 이 기기에 비번 저장됨 → 바로 챌린지 (회전 화면)
+    if (hasToken) {
       console.log('[MUFE] → 챌린지 화면 진입');
-      // 변수 못 박혀있으면 localStorage에서 다시 박기
       if (!userToken) userToken = localStorage.getItem('mufe-user-token');
-      if (!userPasscode) userPasscode = localStorage.getItem('mufe-user-passcode');
       if (!userSpacing) userSpacing = localStorage.getItem('mufe-user-spacing');
       showChallengeForm();
     } else {
       // 미등록 → 왼쪽 "비번 만들기" 탭 활성화 + 안내
-      console.log('[MUFE] → 비번 없음 → 등록 안내');
+      console.log('[MUFE] → 토큰 없음 → 등록 안내');
       switchRegMode('register');
       const msg = document.getElementById('regMsg');
       if (msg) {
-        msg.innerHTML = '<strong>⚠ 비번을 먼저 만들어주세요</strong><br><small>왼쪽 "비번 만들기" 탭에서 박은 후 다시 시작하기 클릭</small>';
+        msg.innerHTML = '<strong>⚠ 비번을 먼저 만들어주세요</strong><br><small>왼쪽 "비번 만들기" 탭에서 만든 후 다시 시작하기 클릭</small>';
         msg.className = 'response-msg retry show';
       }
       const el = document.getElementById('regPasscode');
@@ -7134,11 +7127,11 @@
       
       if (result.status === 'success') {
         userToken = result.token;
-        userPasscode = passcode;
         userSpacing = result.format;
         localStorage.setItem('mufe-user-token', userToken);
-        localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
+        // [C-45] 비번 휘발: 원본 저장 안 함
+        userPasscode = null;
         
         // 🫀 생체 옵션 저장 — 토글 켜져있으면 챌린지 화면에 카드 자동 표시
         const bioToggle = document.getElementById('bioEnableToggle');
@@ -7183,11 +7176,12 @@
       
       if (result.status === 'success') {
         userToken = result.token;           // 서버 응답: 'token' 있음
-        userPasscode = passcode;            // 사용자가 저장된 비번 그대로 저장 (UI 표시 X)
-        userSpacing = format;               // 사용자가 저장된 형식
+        userSpacing = format;               // 형식만 저장 (비번 원본 X)
         localStorage.setItem('mufe-user-token', userToken);
-        localStorage.setItem('mufe-user-passcode', userPasscode);
         localStorage.setItem('mufe-user-spacing', userSpacing);
+        // [C-45] 비번 휘발: 원본은 localStorage에 저장하지 않음.
+        //   사용자가 로그인할 때마다 직접 입력 → 함수 종료 시 원본 소멸.
+        userPasscode = null;
         
         showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
         
@@ -7463,7 +7457,8 @@
       coord: (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
       big:MUFE_Entropy.big, small:MUFE_Entropy.small, micro:MUFE_Entropy.micro,
       soundSeed: Object.entries(MUFE_Entropy.sounds).filter(([k,v])=>v.on).map(([k,v])=>`${k}:${v.vol}`).join('+'),
-      pupil: MUFE_Entropy.pupilPassed,
+      // [C-45] 동공은 기존 생체인증(rPPG) 결과를 사용 — 별도 가짜 측정 안 함
+      pupil: !!window._bioVerifyPassed,
     };
   };
 
@@ -7504,11 +7499,7 @@
       }
     });
 
-    const pbtn = document.getElementById('pupilTestBtn');
-    if(pbtn && !pbtn._mufeBound){
-      pbtn._mufeBound = true;
-      pbtn.addEventListener('click', _mufeRunPupilFlash);
-    }
+    // [C-45] 동공 광반사는 기존 생체인증(rPPG 카메라)을 활용 — 가짜 깜빡임 버튼 제거됨
     _mufeRecomputeKey();
   }
 
@@ -7531,27 +7522,6 @@
       if(o){ try{o.osc.stop();}catch(e){} delete MUFE_Entropy.oscillators[key]; }
     }
     _mufeRecomputeKey();
-  }
-
-  async function _mufeRunPupilFlash(){
-    const flash = document.getElementById('mufePupilFlash');
-    const box = document.getElementById('pupilResultBox');
-    const result = document.getElementById('pupilResult');
-    if(box) box.style.display = 'block';
-    if(result) result.textContent = '난수 광원 발사 중...';
-    const colors = ['#ffffff','#a855f7','#22d3ee'];
-    for(let i=0;i<3;i++){
-      if(flash){
-        flash.style.background = colors[Math.floor(Math.random()*colors.length)];
-        flash.style.opacity = (0.5+Math.random()*0.5).toString();
-      }
-      await new Promise(r=>setTimeout(r,180));
-      if(flash) flash.style.opacity = '0';
-      await new Promise(r=>setTimeout(r,150));
-    }
-    MUFE_Entropy.pupilPassed = true;
-    if(result) result.innerHTML = '<span style="color:#16a34a">✓ 광반사 패턴 측정 — 살아있는 동공 확인</span>';
-    if(typeof addLog === 'function') addLog('success','🔦','난수 광원 동공 광반사 측정 완료');
   }
 
   // 챌린지 화면 뜰 때마다 엔트로피 UI 초기화 (DOM 준비 후)
