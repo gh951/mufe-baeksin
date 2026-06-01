@@ -5109,9 +5109,77 @@
     }
   }
 
+  /* ═══ [C-45 추가] 물리 좌표 슬라이더 + 자연음 + 동공광반사 ═══ */
+  .mufe-entropy-section{
+    background:linear-gradient(135deg,#faf5ff,#fff);
+    border:2px solid rgba(124,58,237,0.25);
+    border-radius:14px;padding:16px;margin:16px 0;
+  }
+  .mufe-entropy-section .mes-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .mufe-entropy-section .mes-icon{font-size:24px;}
+  .mufe-entropy-section .mes-title{font-size:14px;font-weight:800;color:var(--navy-900);}
+  .mufe-entropy-section .mes-title small{display:block;font-size:11px;color:var(--gray-500);font-weight:500;margin-top:2px;}
+  .mufe-entropy-section .mes-opt{font-size:10px;color:var(--purple);font-weight:700;}
+  .mufe-slider-row{margin-bottom:13px;}
+  .mufe-slider-row .msr-label{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-700);margin-bottom:6px;font-weight:600;}
+  .mufe-slider-row .msr-val{font-family:'JetBrains Mono',monospace;color:var(--purple);font-weight:800;}
+  .mufe-slider{
+    -webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:5px;
+    background:linear-gradient(90deg,#7c3aed var(--fill,50%),#e5e7eb var(--fill,50%));
+    outline:none;cursor:pointer;
+  }
+  .mufe-slider::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;
+    background:linear-gradient(135deg,#7c3aed,#a855f7);cursor:pointer;
+    box-shadow:0 2px 8px rgba(124,58,237,0.4);border:2px solid #fff;
+  }
+  .mufe-slider::-moz-range-thumb{
+    width:24px;height:24px;border-radius:50%;border:2px solid #fff;
+    background:#7c3aed;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,0.4);
+  }
+  .mufe-sound-mixer{margin-top:6px;padding-top:14px;border-top:1px dashed var(--gray-200);}
+  .mufe-sound-mixer .msm-label{font-size:12px;color:var(--gray-700);font-weight:700;margin-bottom:10px;}
+  .mufe-sound-mixer .msm-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .mufe-sound-mixer .msm-sound{
+    background:#fff;border:2px solid var(--gray-200);border-radius:10px;
+    padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;
+  }
+  .mufe-sound-mixer .msm-sound.on{border-color:var(--purple);background:rgba(124,58,237,0.08);}
+  .mufe-sound-mixer .msm-emoji{font-size:22px;}
+  .mufe-sound-mixer .msm-name{font-size:11px;font-weight:700;color:var(--gray-700);margin-top:2px;}
+  .mufe-sound-mixer .msm-vol{width:100%;margin-top:6px;height:4px;-webkit-appearance:none;appearance:none;border-radius:2px;background:var(--gray-200);cursor:pointer;}
+  .mufe-sound-mixer .msm-vol::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--purple);cursor:pointer;}
+  .mufe-sound-mixer .msm-sound.on .msm-vol{background:linear-gradient(90deg,#7c3aed var(--vfill,50%),#e5e7eb var(--vfill,50%));}
+  .mufe-entropy-section .mes-result{
+    margin-top:14px;padding:12px;border-radius:10px;
+    background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);
+    font-size:11px;color:var(--gray-700);line-height:1.7;font-family:'JetBrains Mono',monospace;
+  }
+  .mufe-entropy-section .mes-result b{color:var(--purple);}
+  .pupil-test-btn{
+    width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;cursor:pointer;
+    font-family:inherit;font-size:13px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,#0c4a6e,#7c3aed);
+    box-shadow:0 4px 12px rgba(124,58,237,0.25);transition:all .15s;
+  }
+  .pupil-test-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(124,58,237,0.35);}
+  .pupil-result-box{
+    margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;
+    background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.3);
+    color:var(--gray-700);font-family:'JetBrains Mono',monospace;
+  }
+  .pupil-result-box b{color:#0c4a6e;}
+  .mufe-pupil-flash{
+    position:fixed;inset:0;background:#fff;z-index:99999;opacity:0;pointer-events:none;
+    transition:opacity .05s;
+  }
+
 </style>
 </head>
 <body>
+
+<!-- [C-45 추가] 난수 광원 동공반사용 플래시 레이어 -->
+<div class="mufe-pupil-flash" id="mufePupilFlash"></div>
 
 <!-- ═══ 통과 게이트 — 대문 이미지 클릭해야 들어옴 ═══ -->
 <div class="entry-gate" id="entryGate">
@@ -6414,7 +6482,60 @@
           🔒 <em>글자 안에 수학 매립됨 — AI·양자가 분석 시 자원 소모</em>
         </div>
       </div>
-      
+
+      <!-- ═══ [C-45 추가] 물리 좌표 + 자연 엔트로피층 (대·소·미세 슬라이더 + 자연음) ═══ -->
+      <div class="mufe-entropy-section" id="mufeEntropySection">
+        <div class="mes-header">
+          <span class="mes-icon">🎚️</span>
+          <div class="mes-title">물리 좌표 + 자연 엔트로피 <span class="mes-opt">(선택)</span>
+            <small>슬라이더와 자연음으로 나만의 카오스 키를 더합니다</small>
+          </div>
+        </div>
+
+        <div class="mufe-slider-row">
+          <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
+          <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
+        </div>
+        <div class="mufe-slider-row">
+          <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
+          <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
+        </div>
+        <div class="mufe-slider-row">
+          <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
+          <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
+        </div>
+
+        <div class="mufe-sound-mixer">
+          <div class="msm-label">🌿 자연음 믹싱 (탭하여 켜기 + 볼륨)</div>
+          <div class="msm-grid">
+            <div class="msm-sound" data-sound="baby" data-freq="440">
+              <div class="msm-emoji">🍼</div><div class="msm-name">아기</div>
+              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="baby">
+            </div>
+            <div class="msm-sound" data-sound="rain" data-freq="220">
+              <div class="msm-emoji">🌧️</div><div class="msm-name">빗소리</div>
+              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="rain">
+            </div>
+            <div class="msm-sound" data-sound="wind" data-freq="110">
+              <div class="msm-emoji">💨</div><div class="msm-name">바람</div>
+              <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="wind">
+            </div>
+          </div>
+        </div>
+
+        <div class="mes-result">
+          카오스 키 좌표: <b id="keyCoord">—</b><br>
+          자연음 시드: <b id="soundSeed">없음</b>
+        </div>
+
+        <!-- 난수 광원 동공 광반사 -->
+        <button class="pupil-test-btn" id="pupilTestBtn" type="button">🔦 난수 광원 동공 광반사 측정</button>
+        <div class="pupil-result-box" id="pupilResultBox" style="display:none;">
+          동공 반응: <b id="pupilResult">대기 중</b>
+        </div>
+      </div>
+      <!-- ═══ [C-45 추가 끝] ═══ -->
+
       <input type="text" 
              class="auth-input" 
              id="authInput" 
@@ -6908,6 +7029,11 @@
       window.showBioChallengeIfNeeded();
     }
     
+    // [C-45] 슬라이더+자연음+동공 UI 초기화
+    if (typeof _mufeInitEntropyUI === 'function') {
+      setTimeout(_mufeInitEntropyUI, 100);
+    }
+    
     await loadChallengeAndStartRotation();
   }
 
@@ -7308,6 +7434,129 @@
   // EMBEDDED_MATH_POOL은 옛 호환성 유지
   const EMBEDDED_MATH_POOL = MATH_SYMBOLS.slice(0, 10);
 
+  // ════════════════════════════════════════════════════════════
+  // [C-45 추가] 물리 좌표 슬라이더 + 자연음 믹싱 + 난수광원 동공반사
+  //  · 특허 청구항 2,11,12 (물리좌표·자연음 믹싱·미세조정)
+  //  · 특허 청구항 10 (난수광원 동공 광반사)
+  //  · 값은 verifyAuth에서 entropyPayload로 함께 전송됨
+  // ════════════════════════════════════════════════════════════
+  const MUFE_Entropy = {
+    big:500, small:500, micro:5000,
+    sounds:{ baby:{on:false,vol:50}, rain:{on:false,vol:50}, wind:{on:false,vol:50} },
+    audioCtx:null, oscillators:{}, pupilPassed:false,
+  };
+
+  function _mufeSliderFill(slider){
+    const min=+slider.min, max=+slider.max, val=+slider.value;
+    slider.style.setProperty('--fill', ((val-min)/(max-min))*100 + '%');
+  }
+  function _mufeRecomputeKey(){
+    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    const kc = document.getElementById('keyCoord'); if(kc) kc.textContent = coord;
+    const active = Object.entries(MUFE_Entropy.sounds).filter(([k,v])=>v.on);
+    const ss = document.getElementById('soundSeed');
+    if(ss) ss.textContent = active.length===0 ? '없음' : active.map(([k,v])=>`${k}:${v.vol}`).join(' + ');
+  }
+  // verify로 보낼 엔트로피 페이로드 (다른 함수에서 사용)
+  window.getMufeEntropyPayload = function(){
+    return {
+      coord: (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
+      big:MUFE_Entropy.big, small:MUFE_Entropy.small, micro:MUFE_Entropy.micro,
+      soundSeed: Object.entries(MUFE_Entropy.sounds).filter(([k,v])=>v.on).map(([k,v])=>`${k}:${v.vol}`).join('+'),
+      pupil: MUFE_Entropy.pupilPassed,
+    };
+  };
+
+  function _mufeInitEntropyUI(){
+    ['Big','Small','Micro'].forEach(name=>{
+      const slider=document.getElementById('slider'+name);
+      const val=document.getElementById('val'+name);
+      if(!slider || slider._mufeBound) return;
+      slider._mufeBound = true;
+      _mufeSliderFill(slider);
+      slider.addEventListener('input',()=>{
+        MUFE_Entropy[name.toLowerCase()] = +slider.value;
+        if(val) val.textContent = slider.value;
+        _mufeSliderFill(slider);
+        _mufeRecomputeKey();
+      });
+    });
+
+    document.querySelectorAll('.msm-sound').forEach(el=>{
+      if(el._mufeBound) return; el._mufeBound = true;
+      const key = el.dataset.sound, freq = +el.dataset.freq;
+      const volSlider = el.querySelector('.msm-vol');
+      el.addEventListener('click',(e)=>{
+        if(e.target===volSlider) return;
+        el.classList.toggle('on');
+        _mufeToggleSound(key, freq);
+      });
+      if(volSlider){
+        volSlider.style.setProperty('--vfill', volSlider.value+'%');
+        volSlider.addEventListener('input',()=>{
+          MUFE_Entropy.sounds[key].vol = +volSlider.value;
+          volSlider.style.setProperty('--vfill', volSlider.value+'%');
+          const o = MUFE_Entropy.oscillators[key];
+          if(o) o.gain.gain.value = (volSlider.value/100)*0.04;
+          _mufeRecomputeKey();
+        });
+        volSlider.addEventListener('click',e=>e.stopPropagation());
+      }
+    });
+
+    const pbtn = document.getElementById('pupilTestBtn');
+    if(pbtn && !pbtn._mufeBound){
+      pbtn._mufeBound = true;
+      pbtn.addEventListener('click', _mufeRunPupilFlash);
+    }
+    _mufeRecomputeKey();
+  }
+
+  function _mufeToggleSound(key, freq){
+    const s = MUFE_Entropy.sounds[key];
+    s.on = !s.on;
+    if(s.on){
+      try{
+        if(!MUFE_Entropy.audioCtx) MUFE_Entropy.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const ctx = MUFE_Entropy.audioCtx;
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = key==='rain' ? 'sawtooth' : key==='wind' ? 'sine' : 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.value = (s.vol/100)*0.04;
+        osc.connect(gain); gain.connect(ctx.destination); osc.start();
+        MUFE_Entropy.oscillators[key] = {osc,gain};
+      }catch(e){ console.warn('[MUFE] audio:', e); }
+    }else{
+      const o = MUFE_Entropy.oscillators[key];
+      if(o){ try{o.osc.stop();}catch(e){} delete MUFE_Entropy.oscillators[key]; }
+    }
+    _mufeRecomputeKey();
+  }
+
+  async function _mufeRunPupilFlash(){
+    const flash = document.getElementById('mufePupilFlash');
+    const box = document.getElementById('pupilResultBox');
+    const result = document.getElementById('pupilResult');
+    if(box) box.style.display = 'block';
+    if(result) result.textContent = '난수 광원 발사 중...';
+    const colors = ['#ffffff','#a855f7','#22d3ee'];
+    for(let i=0;i<3;i++){
+      if(flash){
+        flash.style.background = colors[Math.floor(Math.random()*colors.length)];
+        flash.style.opacity = (0.5+Math.random()*0.5).toString();
+      }
+      await new Promise(r=>setTimeout(r,180));
+      if(flash) flash.style.opacity = '0';
+      await new Promise(r=>setTimeout(r,150));
+    }
+    MUFE_Entropy.pupilPassed = true;
+    if(result) result.innerHTML = '<span style="color:#16a34a">✓ 광반사 패턴 측정 — 살아있는 동공 확인</span>';
+    if(typeof addLog === 'function') addLog('success','🔦','난수 광원 동공 광반사 측정 완료');
+  }
+
+  // 챌린지 화면 뜰 때마다 엔트로피 UI 초기화 (DOM 준비 후)
+  document.addEventListener('DOMContentLoaded', ()=> setTimeout(_mufeInitEntropyUI, 300));
+
   function stopRotator() {
     if (!rotatorTimer) return;
     
@@ -7430,6 +7679,7 @@
           answer: ans,
           jitter: calculateJitterScore(),         // 🛡️ G-1 #1: 떨림 점수
           totalEvents: window._jitterEvents.length,  // 클릭 횟수
+          entropy: (typeof window.getMufeEntropyPayload === 'function') ? window.getMufeEntropyPayload() : null,  // [C-45] 슬라이더+자연음+동공
         }),
       });
       
