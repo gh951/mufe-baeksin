@@ -7740,10 +7740,8 @@
         // 사용자 측엔 *통과처럼* 완료 — 격리는 서버에서만 완료 (모토)
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
-        // 🛡️ 격리 URL 있으면 2초 후 abyss로 (봇은 가짜 성공이라 좋아하며 따라감)
-        if (result.abyssUrl) {
-          setTimeout(() => { window.location.href = result.abyssUrl; }, 2000);
-        }
+        // 🛡️ 침입자(decoy)는 같은 페이지의 연산지옥(늪)으로 — 별도 파일 없음
+        setTimeout(() => { enterAbyssTrap(); }, 1500);
       } else {
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
@@ -11072,7 +11070,34 @@ window.showBioChallengeIfNeeded = function() {
   </div>
 </div>
 
-<!-- ═══ 관리자: 연산지옥 현황판 (숨김 — C-45 5번 탭) ═══ -->
+<!-- ═══ 연산지옥(늪) — 침입자 가두는 같은-페이지 모달 ═══ -->
+<div id="abyssTrap" style="display:none; position:fixed; inset:0; z-index:99999; background:#05080f; color:#cbd5e1; font-family:'Courier New',monospace; overflow:hidden;">
+  <div style="max-width:640px; margin:0 auto; padding:40px 22px; text-align:center;">
+    <div style="font-size:42px; margin-bottom:10px;">✓</div>
+    <h1 style="font-size:20px; color:#4ade80; margin:0 0 6px;" id="abyssTitle">인증 통과! 마스터 권한 발급 중...</h1>
+    <div style="font-size:12px; color:#64748b; margin-bottom:20px;">MUFE Master Authentication — verifying chunks</div>
+
+    <!-- 진행바: 99%에서 영원히 헛돔 -->
+    <div style="background:#0f172a; border-radius:20px; height:14px; overflow:hidden; margin:18px 0;">
+      <div id="abyssBar" style="height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#4ade80); transition:width .5s;"></div>
+    </div>
+    <div id="abyssPct" style="font-size:12px; color:#94a3b8; margin-bottom:18px;">검증 0%</div>
+
+    <!-- 랜덤 수학 문제 이미지 자리 (양자가 풀려고 연산) -->
+    <img id="abyssImg" src="" alt="" style="max-width:200px; opacity:.85; margin:10px auto; display:none; border-radius:8px;">
+
+    <!-- 랜덤 카오스 문장 잡기 (양자가 분석하려 듦) -->
+    <div id="abyssChaos" style="font-size:22px; letter-spacing:2px; color:#d4a843; margin:14px 0; min-height:30px;"></div>
+
+    <!-- 가짜 행렬 (표시만) -->
+    <div id="abyssMatrix" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; max-width:280px; margin:18px auto; font-size:11px; color:#475569;"></div>
+
+    <!-- 가짜 콘솔 -->
+    <div id="abyssConsole" style="background:#0a0f1e; border-radius:8px; padding:10px; font-size:11px; line-height:1.6; color:#4ade80; text-align:left; min-height:120px; margin-top:18px;"></div>
+  </div>
+</div>
+
+
 <div class="feedback-modal" id="adminModal" onclick="if(event.target===this) closeAdminModal()">
   <div class="feedback-modal-inner" style="max-width:560px;">
     <button class="feedback-modal-close" onclick="closeAdminModal()">✕</button>
@@ -11216,6 +11241,67 @@ function closeAdminModal() {
   const m = document.getElementById('adminModal');
   if (m) m.classList.remove('active');
   clearInterval(_admConsoleTimer);
+}
+
+/* ═══ 연산지옥(늪) — 같은 페이지, 우리 연산 0 ═══ */
+let _abyssTimers = [];
+function enterAbyssTrap() {
+  const wrap = document.getElementById('abyssTrap');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // 누적 격리 카운트 +1 (관리자 현황판에서 보는 진짜 통계)
+  try {
+    const n = parseInt(localStorage.getItem('mufe-lifetime-blocked') || '0') + 1;
+    localStorage.setItem('mufe-lifetime-blocked', n);
+  } catch(e){}
+
+  // 1) 진행바 — 99%에서 영원히 헛돔 (계산 없음, 단순 수렴식)
+  let prog = 0;
+  _abyssTimers.push(setInterval(() => {
+    prog = prog + (99 - prog) * 0.04;
+    const bar = document.getElementById('abyssBar');
+    const pct = document.getElementById('abyssPct');
+    if (bar) bar.style.width = prog.toFixed(1) + '%';
+    if (pct) pct.textContent = `검증 ${prog.toFixed(1)}% (예상 ${Math.floor((100-prog)*13)}초)`;
+  }, 500));
+
+  // 2) 랜덤 수학문제 이미지 — 깃허브에 있는 걸 그냥 보여줌 (양자가 풀려고 연산)
+  const img = document.getElementById('abyssImg');
+  if (img) {
+    img.src = '/무폐 이미지/chaos-000.png.jpeg';
+    img.onerror = () => { img.onerror=null; img.src='/images/chaos-000.png'; };
+    img.style.display = 'block';
+  }
+
+  // 3) 랜덤 카오스 문장 잡기 — 미리 있는 풀에서 무작위 (우리 연산 0)
+  const chaosEl = document.getElementById('abyssChaos');
+  const pool = (typeof MUFE_CHAOS_POOL !== 'undefined') ? MUFE_CHAOS_POOL : [{d:'∑∂∫≈≠'}];
+  _abyssTimers.push(setInterval(() => {
+    if (chaosEl) chaosEl.textContent = pool[Math.floor(Math.random()*pool.length)].d;
+  }, 700));
+
+  // 4) 가짜 행렬 — 무작위 숫자 16개 표시만 (곱셈 안 함)
+  const mx = document.getElementById('abyssMatrix');
+  _abyssTimers.push(setInterval(() => {
+    if (!mx) return;
+    mx.innerHTML = '';
+    for (let i=0;i<16;i++){ const d=document.createElement('div'); d.textContent=(Math.random()*2-1).toFixed(3); mx.appendChild(d); }
+  }, 400));
+
+  // 5) 가짜 콘솔 — 미리 만든 줄 랜덤 출력 (양자가 "통과"를 믿고 분석)
+  const con = document.getElementById('abyssConsole');
+  const msgs = ['✓ 양자 키 검증 1/500 완료','> SHA-256 chunk 분석 중...','✓ 카오스 시드 일치','> 양자 회로 동기화...','✓ 마스터 토큰 부분 매칭 87%','> 다음 청크 처리...','✓ rPPG 무결성 OK','> 잠시만 기다려주세요...'];
+  const buf=[];
+  _abyssTimers.push(setInterval(() => {
+    if (!con) return;
+    const t=new Date().toTimeString().substr(0,8);
+    const m=msgs[Math.floor(Math.random()*msgs.length)];
+    buf.push(`<span style="color:${m.startsWith('✓')?'#4ade80':'#d4a843'}">[${t}] ${m}</span>`);
+    if (buf.length>9) buf.shift();
+    con.innerHTML = buf.join('<br>');
+  }, 1000));
 }
 
 function submitQuickFeedback() {
