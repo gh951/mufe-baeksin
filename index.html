@@ -6185,6 +6185,12 @@
           <button class="btn-secondary" onclick="resetSettings()">기본값으로</button>
           <button class="btn-primary" onclick="saveSettings()">저장</button>
         </div>
+
+        <!-- 숨은 관리자 진입 (C-45 5번 탭) -->
+        <div style="text-align:center; margin-top:28px; opacity:0.35; font-size:11px; user-select:none;"
+             id="adminTapZone" onclick="adminTap()">
+          MUFE 백신 · C-45
+        </div>
       </div>
     </div>
     <!-- ═══ /패널 4 ═══ -->
@@ -11066,6 +11072,40 @@ window.showBioChallengeIfNeeded = function() {
   </div>
 </div>
 
+<!-- ═══ 관리자: 연산지옥 현황판 (숨김 — C-45 5번 탭) ═══ -->
+<div class="feedback-modal" id="adminModal" onclick="if(event.target===this) closeAdminModal()">
+  <div class="feedback-modal-inner" style="max-width:560px;">
+    <button class="feedback-modal-close" onclick="closeAdminModal()">✕</button>
+    <div class="fm-title">🕷️ 연산지옥 현황판 <span style="font-size:12px;color:#c9a227;">관리자 전용</span></div>
+    <div class="fm-subtitle" id="adminGreet">C-45 권한 발급 중... ㅋㅋ</div>
+
+    <div class="admin-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;">
+      <div class="admin-card" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.3);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:#f43f5e;" id="admTrapped">0</div>
+        <div style="font-size:11px;color:#9ca3af;">늪에 빠진 침입자(누적)</div>
+      </div>
+      <div class="admin-card" style="background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.3);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:#c9a227;" id="admDecoy">0</div>
+        <div style="font-size:11px;color:#9ca3af;">뿌린 미끼(누적)</div>
+      </div>
+      <div class="admin-card" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:#22c55e;" id="admBlocked">0</div>
+        <div style="font-size:11px;color:#9ca3af;">차단 시도(누적)</div>
+      </div>
+      <div class="admin-card" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:#818cf8;">0%</div>
+        <div style="font-size:11px;color:#9ca3af;">우리 CPU 소모 (늘 0)</div>
+      </div>
+    </div>
+
+    <div style="background:#0a0f1e;border-radius:10px;padding:12px;font-family:monospace;font-size:12px;line-height:1.7;color:#4ade80;min-height:140px;" id="admConsole"></div>
+
+    <div class="fm-thanks" style="margin-top:12px;">
+      <strong>🕸️ 상태</strong>: 늪 정상 가동 중 · 우리 자원 소모 0% 유지 · 침입자 격리 진행.
+    </div>
+  </div>
+</div>
+
 <!-- 푸터 — PCT 등록 영역 (조용히) -->
 <footer class="mufe-footer">
   <div class="mf-line mf-dim">G-7 · C-45</div>
@@ -11115,6 +11155,67 @@ function openFeedbackModal() {
 
 function closeFeedbackModal() {
   document.getElementById('feedbackModal').classList.remove('active');
+}
+
+/* ═══ 관리자: 연산지옥 현황판 (C-45 5번 탭) ═══ */
+let _adminTaps = 0, _adminTapTimer = null, _admConsoleTimer = null;
+function adminTap() {
+  _adminTaps++;
+  clearTimeout(_adminTapTimer);
+  _adminTapTimer = setTimeout(() => { _adminTaps = 0; }, 1500);
+  if (_adminTaps >= 5) {
+    _adminTaps = 0;
+    openAdminModal();
+  }
+}
+function openAdminModal() {
+  const m = document.getElementById('adminModal');
+  if (!m) return;
+  m.classList.add('active');
+  // 기존 순찰 통계 끌어오기 (진짜 추적값)
+  const trapped = parseInt(localStorage.getItem('mufe-lifetime-blocked') || '0');
+  const honey = (typeof patrolState !== 'undefined') ? patrolState.honeyCount : 0;
+  const cards = (typeof patrolState !== 'undefined') ? patrolState.cardsCount : 0;
+  const setT = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+  setT('admTrapped', trapped.toLocaleString());
+  setT('admDecoy', (honey||0).toLocaleString());
+  setT('admBlocked', (cards||trapped||0).toLocaleString());
+  document.getElementById('adminGreet').textContent = '✓ C-45 권한 발급 완료 — 환영합니다, 관리자님 ㅋㅋ';
+
+  // 관리자 모니터 콘솔 연출 (가벼운 DOM 갱신)
+  const lines = [
+    '[C-45] 늪 가동 중 — 우리 CPU 0% 유지',
+    '[침입자] 양자 연산 투입... 신호 분석 중',
+    '[C-45] 격리 진행 — 침입자 묶임',
+    '[양자봇] 87% 매칭... 다음 청크 대기...',
+    '[C-45] 야 미토스! C-45다 튀어 ㅋㅋㅋ',
+    '[침입자] 큐비트 자원 소진 중... freeze',
+    '[C-45] 거미줄 가만히 — 적만 얼어붙음',
+    '[양자봇] 재시도... 응답 대기... 또 대기...',
+    '[C-45] 발열 0°C 부근 · 배터리 멀쩡 ☕',
+    '[침입자] 무한 분기 빠짐 — 탈출 실패',
+  ];
+  const el = document.getElementById('admConsole');
+  if (el) {
+    el.innerHTML = '';
+    let i = 0;
+    const buf = [];
+    clearInterval(_admConsoleTimer);
+    _admConsoleTimer = setInterval(() => {
+      const t = new Date().toTimeString().substr(0,8);
+      const line = lines[i % lines.length];
+      const color = line.includes('[C-45]') ? '#4ade80' : '#f43f5e';
+      buf.push(`<span style="color:${color}">[${t}] ${line}</span>`);
+      if (buf.length > 8) buf.shift();
+      el.innerHTML = buf.join('<br>');
+      i++;
+    }, 900);
+  }
+}
+function closeAdminModal() {
+  const m = document.getElementById('adminModal');
+  if (m) m.classList.remove('active');
+  clearInterval(_admConsoleTimer);
 }
 
 function submitQuickFeedback() {
