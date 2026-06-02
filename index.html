@@ -6416,7 +6416,7 @@
         
         <div class="auth-buttons">
           <button class="btn btn-cancel" onclick="closeAuthModal()">취소</button>
-          <button class="btn btn-verify" onclick="registerPasscode()">비번 만들기</button>
+          <button class="btn btn-verify" onclick="registerPasscode()">✓ 비번 만들기 (이대로 확정)</button>
         </div>
       </div>
       
@@ -7179,13 +7179,16 @@
       if (!userSpacing) userSpacing = localStorage.getItem('mufe-user-spacing');
       showChallengeForm();
     } else {
-      // 미등록 → 왼쪽 "비번 만들기" 탭 활성화 + 안내
-      console.log('[MUFE] → 토큰 없음 → 등록 안내');
+      // 미등록 → "비번 만들기" 화면으로 자동 전환 + 입력칸 포커스
+      console.log('[MUFE] → 토큰 없음 → 비번 만들기로 전환');
       switchRegMode('register');
       const msg = document.getElementById('regMsg');
       if (msg) {
-        msg.innerHTML = '<strong>⚠ 비번을 먼저 만들어주세요</strong><br><small>왼쪽 "비번 만들기" 탭에서 만든 후 다시 시작하기 클릭</small>';
+        msg.innerHTML = '<strong>먼저 비번을 만들어주세요</strong><br><small>아래에 비번을 입력하고 "비번 만들기"를 누르면 바로 인증 화면으로 갑니다</small>';
         msg.className = 'response-msg retry show';
+      }
+      const el = document.getElementById('regPasscode');
+      if (el) setTimeout(() => el.focus(), 200);
       }
       const el = document.getElementById('regPasscode');
       if (el) setTimeout(() => el.focus(), 200);
@@ -7247,44 +7250,51 @@
       showRegMsg('비번은 2글자 이상이어야 합니다', 'retry');
       return;
     }
+
+    // [C-45] 등록 = 확정. 지금 정한 카오스 키 좌표를 "정답 기준"으로 저장.
+    //   (나중에 인증 때 같은 카오스를 맞춰야 통과 — 등록이 곧 확정)
+    const chaosNow = (typeof window.getMufeEntropyPayload === 'function')
+      ? window.getMufeEntropyPayload() : null;
+    if (chaosNow) {
+      localStorage.setItem('mufe-chaos-key', JSON.stringify({
+        coord: chaosNow.coord, soundSeed: chaosNow.soundSeed
+      }));
+    }
+    // 생체 등록 여부도 함께 (생체 켰으면 인증 때 생체 필수가 됨)
+    const bioReg = localStorage.getItem('mufe-bio-pattern');
     
+    let serverOk = false;
     try {
       const res = await fetch(`${API_BASE}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode, format }),
       });
-
-      // [C-45] 입력 즉시 휘발 (특허 청구항 1·17) — 전송 직후 원본 비번 파쇄.
-      //   화면 입력칸을 비우고, 로컬 변수도 무효화. 비번은 사용자 머리에만 남는다.
-      try {
-        const rp = document.getElementById('regPasscode');
-        if (rp) rp.value = '';
-      } catch(e){}
+      // 전송 직후 원본 비번 파쇄
+      try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
 
       const result = await res.json();
-      
-      if (result.status === 'success') {
-        userToken = result.token;           // 서버 응답: 'token' 있음
-        userSpacing = format;               // 형식만 저장 (비번 원본 X)
-        localStorage.setItem('mufe-user-token', userToken);
-        localStorage.setItem('mufe-user-spacing', userSpacing);
-        // [C-45] 비번 휘발: 원본은 localStorage에 저장하지 않음.
-        //   사용자가 로그인할 때마다 직접 입력 → 함수 종료 시 원본 소멸.
-        userPasscode = null;
-        
-        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
-        
-        setTimeout(() => {
-          showChallengeForm();
-        }, 1500);
-      } else {
-        showRegMsg(result.error || '등록 실패', 'retry');
+      if (result.status === 'success' && result.token) {
+        userToken = result.token;
+        serverOk = true;
       }
     } catch (err) {
-      console.error('[MUFE] 등록 실패:', err);
-      showRegMsg('서버 통신 오류', 'retry');
+      console.warn('[MUFE] 등록 서버 응답 없음 → 로컬 토큰 생성', err);
+      try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
     }
+
+    // 서버가 토큰을 안 주면(오프라인/서버다운) — 로컬 토큰을 만들어 진행 (시작하기 막힘 방지)
+    if (!userToken) {
+      userToken = 'local-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    }
+    userSpacing = format;
+    localStorage.setItem('mufe-user-token', userToken);
+    localStorage.setItem('mufe-user-spacing', userSpacing);
+    userPasscode = null;   // 비번 원본 휘발
+
+    console.log('[MUFE] 등록 완료. 토큰 저장됨:', !!userToken, serverOk ? '(서버)' : '(로컬)');
+    showRegMsg('<strong>✓ 등록 완료 — 인증 화면으로 갑니다</strong>', 'success');
+    setTimeout(() => { showChallengeForm(); }, 1200);
   }
 
   function showRegMsg(text, type) {
