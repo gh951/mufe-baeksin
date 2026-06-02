@@ -6552,12 +6552,12 @@
         </div>
       </div>
 
-      <!-- 🎚️ 카오스 키 (인증 시에도 — 등록 때와 같은 소리·슬라이더를 맞춰야 좌표 일치) -->
+      <!-- 🎚️ 카오스 키 (인증 시 — 등록 때와 비슷하게 맞추면 헬퍼가 보정해 복원) -->
       <div class="mufe-entropy-section" id="mufeEntropySectionAuth" style="margin-top:14px;">
         <div class="mes-header">
           <span class="mes-icon">🎚️</span>
-          <div class="mes-title">나만의 카오스 키 맞추기 <span class="mes-opt">(등록 시 사용했다면)</span>
-            <small>등록 때 고른 소리 2개 + 슬라이더 모양을 그대로 맞춰주세요</small>
+          <div class="mes-title">나만의 카오스 키 <span class="mes-opt">(등록 시 사용했다면)</span>
+            <small>등록 때 고른 소리·슬라이더와 비슷하게 맞추세요 — 정밀하지 않아도 보정됩니다</small>
           </div>
         </div>
         <div class="mufe-sound-mixer">
@@ -7287,6 +7287,27 @@
     userSpacing = format;
     localStorage.setItem('mufe-user-token', userToken);
     localStorage.setItem('mufe-user-spacing', userSpacing);
+
+    // [C-45] 진짜 묶임 — 비번+카오스+생체로 헬퍼/커밋 생성 후 저장.
+    //   인증 때 이 헬퍼로 복원 시도 → 비슷하게 입력하면 같은 키, 틀리면 실패→연산지옥.
+    try {
+      if (window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+        const ep = window.getMufeEntropyPayload();
+        const sliderCoord = parseFloat(ep.coord) || 0;
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
+          : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
+        await window.MUFE_WASM.ready();
+        // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
+        const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passcode);
+        if (e && e.helper && e.commit) {
+          window._mufeHelper = e.helper; window._mufeCommit = e.commit;
+          localStorage.setItem('mufe-key-helper', JSON.stringify({ helper: e.helper, commit: e.commit }));
+          console.log('[MUFE] 키 헬퍼 저장됨 (카오스+생체+비번 묶임)');
+        }
+      }
+    } catch(e){ console.warn('[MUFE] enroll 스킵:', e); }
+
     userPasscode = null;   // 비번 원본 휘발
 
     console.log('[MUFE] 등록 완료. 토큰 저장됨:', !!userToken, serverOk ? '(서버)' : '(로컬)');
@@ -7809,36 +7830,63 @@
     //   진짜 .wasm 올라가 있으면 C 코어가 물리적 memset 증발 수행.
     //   아직 없으면 JS 폴백(시연)으로 흐름만 보여줌 (화면 정상).
     // ════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    // [C-45] 진짜 묶임 — 등록 때 저장한 헬퍼로 카오스+생체+비번을 복원 인증.
+    //   카오스를 "똑같이" 맞추는 게 아니라, 비슷하면 헬퍼(쓰레기값)가 같은 키를 복원.
+    //   복원 실패(=입력이 틀림) → keyOk=false → 연산지옥行.
+    // ════════════════════════════════════════════════════════════
+    let keyOk = true;   // Wasm 복원 결과 (기본 true = wasm 없으면 서버판정에 맡김)
+    let keyChecked = false;
     try {
       if (window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
-        // 동공 좌표 (생체인증 통과 시 그 신호를, 아니면 슬라이더 기반 의사 좌표)
         const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
           ? window._mufePupilCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
-        // 이 로그인 세션에 등록된 헬퍼/커밋이 있으면 인증, 없으면 등록(최초)
-        if (!window._mufeHelper) {
-          const e = window.MUFE_WASM.enroll(sliderCoord, pupil, ans);
-          window._mufeHelper = e.helper; window._mufeCommit = e.commit;
-          if (typeof addLog === 'function')
-            addLog('info','🔑', `마스터키 생성·휘발 (${e.wasm ? '진짜 Wasm 물리증발' : 'JS 시연'})`);
-        } else {
-          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, ans, window._mufeHelper, window._mufeCommit);
+
+        // 등록 때 저장한 헬퍼/커밋 불러오기
+        let helper = window._mufeHelper, commit = window._mufeCommit;
+        if (!helper || !commit) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('mufe-key-helper') || 'null');
+            if (stored) { helper = stored.helper; commit = stored.commit; }
+          } catch(e){}
+        }
+
+        if (helper && commit) {
+          // 답(비번+단어)에서 단어를 떼어 비번만 추출 — 등록 때 enroll(passcode)와 맞춤
+          const w = (window._lastCaughtWord || caughtWord || '');
+          let passOnly = ans;
+          if (w && ans.endsWith(w)) passOnly = ans.slice(0, ans.length - w.length).trim();
+          else if (w && ans.startsWith(w)) passOnly = ans.slice(w.length).trim();
+          // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
+          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
+          keyOk = !!a.pass;
+          keyChecked = true;
           if (typeof addLog === 'function') {
-            addLog('info','🧲', `동공 자석으로 키 복원 시도 → ${a.pass ? '복원 성공' : '오차 큼'}`);
-            if (a.wasm && a.wiped) addLog('success','🔥','마스터키 메모리 물리 휘발 확인 (잔존 0바이트)');
-            else if (!a.wasm) addLog('info','💨','키 휘발 (JS 시연 — .wasm 올리면 물리증발)');
+            addLog('info','🧲', `카오스+생체로 키 복원 → ${a.pass ? '✓ 성공(통과)' : '✗ 실패(연산지옥)'}`);
+            if (a.wasm && a.wiped) addLog('success','🔥','마스터키 물리 휘발 확인 (잔존 0바이트)');
           }
+        } else {
+          // 저장된 헬퍼가 없음 = 카오스 미설정 사용자 → 키검증 건너뜀(비번+단어로만)
+          keyChecked = false;
         }
       }
-    } catch(wErr) { console.warn('[MUFE-WASM] 휘발 시연 스킵:', wErr); }
+    } catch(wErr) { console.warn('[MUFE-WASM] 복원 스킵:', wErr); }
+
+    // 키 검증을 했고 실패했으면 → 즉시 연산지옥 (서버 안 가도 됨)
+    if (keyChecked && !keyOk) {
+      const _i2 = document.getElementById('authInput'); if (_i2) _i2.value = '';
+      showMsg('<strong>정답입니다. 통과 다음 단계로</strong>', 'decoy');
+      if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
+      setTimeout(() => { enterAbyssTrap(); }, 1500);
+      return;
+    }
 
     // ════════════════════════════════════════════════════════════
     // [C-45] 입력 즉시 휘발 (특허 청구항 1·17) — 원본 비번을 메모리·화면에서 파쇄.
-    //   마스터키는 위에서 도출·증발됐고, 이제 사용자가 친 '원본 입력'도 즉시 없앤다.
-    //   verify에 보낼 값(answerForVerify)만 잠깐 분리 보관 후, 그것도 전송 직후 파쇄.
     // ════════════════════════════════════════════════════════════
     const answerForVerify = ans;          // 서버 검증용 1회성 사본 (전송 후 무효화)
 
