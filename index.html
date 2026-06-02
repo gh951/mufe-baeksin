@@ -6552,14 +6552,6 @@
         </div>
       </div>
 
-      <input type="text" 
-             class="auth-input" 
-             id="authInput" 
-             placeholder="등록한 비번 + 위 잡힌 단어 (예: 1로렌)" 
-             autocomplete="off"
-             autocapitalize="off"
-             spellcheck="false" />
-
       <!-- 🎚️ 카오스 키 (인증 시에도 — 등록 때와 같은 소리·슬라이더를 맞춰야 좌표 일치) -->
       <div class="mufe-entropy-section" id="mufeEntropySectionAuth" style="margin-top:14px;">
         <div class="mes-header">
@@ -6604,6 +6596,12 @@
           카오스 키 좌표: <b id="keyCoordC">—</b><br>
           자연음 시드: <b id="soundSeedC">없음</b>
         </div>
+        <button type="button" id="chaosConfirmBtn" onclick="confirmChaosKey()"
+                style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:none;
+                       background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:14px;cursor:pointer;">
+          ✓ 카오스 키 확정
+        </button>
+        <div id="chaosConfirmStatus" style="text-align:center;font-size:12px;color:#16a34a;margin-top:6px;min-height:16px;"></div>
       </div>
       
       <!-- 🫀 생체 인증 (잡힌 단어 아래) — 생체 사용자만 표시 -->
@@ -6611,7 +6609,7 @@
         <div class="bio-challenge-header">
           <span class="bio-challenge-icon">🫀</span>
           <div class="bio-challenge-text">
-            <strong>3중 인증 — 생체 측정</strong>
+            <strong>생체 인증 <span id="bioAppliedBadge" style="display:none; color:#16a34a; font-size:12px;">✓ 적용됨</span></strong>
             <small>비번 · 잡은 단어 · 살아있는 본인 확인</small>
           </div>
         </div>
@@ -6620,6 +6618,18 @@
         </button>
         <div id="bioVerifyStatus" class="bio-reg-status"></div>
       </div>
+      
+      <!-- 최종 단계: 본 비밀번호 + 단어 입력 (카오스·생체 다 맞춘 뒤 맨 마지막) -->
+      <div class="ci-hint" style="margin-top:16px;">
+        🔑 마지막 — <strong>본 비밀번호 + 위 잡은 단어</strong>를 입력하고 인증하세요
+      </div>
+      <input type="text" 
+             class="auth-input" 
+             id="authInput" 
+             placeholder="본 비밀번호 + 잡힌 단어 (예: 1로렌)" 
+             autocomplete="off"
+             autocapitalize="off"
+             spellcheck="false" />
       
       <div class="auth-buttons">
         <button class="btn btn-cancel" onclick="resetAuthModal()">처음부터</button>
@@ -7545,6 +7555,13 @@
     set('soundSeed',seed); set('soundSeedC',seed);
     set('soundAName',a.n); set('soundANameC',a.n);
     set('soundBName',bb.n); set('soundBNameC',bb.n);
+    // 키가 바뀌면 확정 해제
+    if (window._chaosConfirmed) {
+      window._chaosConfirmed = false;
+      const st = document.getElementById('chaosConfirmStatus'); if (st) st.textContent = '';
+      const btn = document.getElementById('chaosConfirmBtn');
+      if (btn) { btn.textContent = '✓ 카오스 키 확정'; btn.style.background = 'linear-gradient(135deg,#7c3aed,#a855f7)'; }
+    }
   }
   // verify로 보낼 엔트로피 페이로드 (소리 2축 + 볼륨 + 슬라이더 = 71비트+ 엔트로피)
   window.getMufeEntropyPayload = function(){
@@ -7554,7 +7571,18 @@
       // 소리 선택값(인덱스)과 볼륨을 숫자화 — 실시간 진폭 아님(재현 가능)
       soundSeed: `${MUFE_Entropy.soundA}:${MUFE_Entropy.volA}+${MUFE_Entropy.soundB}:${MUFE_Entropy.volB}`,
       pupil: !!window._bioVerifyPassed,
+      confirmed: !!window._chaosConfirmed,
     };
+  };
+
+  // 카오스 키 확정 — 사용자가 소리·슬라이더 다 맞춘 뒤 누름
+  window.confirmChaosKey = function(){
+    window._chaosConfirmed = true;
+    const st = document.getElementById('chaosConfirmStatus');
+    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    if (st) st.textContent = `✓ 확정됨 — 좌표 ${coord}`;
+    const btn = document.getElementById('chaosConfirmBtn');
+    if (btn) { btn.textContent = '✓ 카오스 키 확정됨'; btn.style.background = '#16a34a'; }
   };
 
   function _mufeInitEntropyUI(){
@@ -7622,8 +7650,7 @@
   }
 
   // 내 소리 조합 미리듣기 (2초) — 합성음 2개 동시 재생
-  window.mufePreviewSound = function(){
-    try{
+  window.mufePreviewSound = function(){    try{
       if(!MUFE_Entropy.audioCtx) MUFE_Entropy.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
       const ctx = MUFE_Entropy.audioCtx;
       if(ctx.state==='suspended') ctx.resume();
@@ -11111,6 +11138,8 @@ function startBioForVerify() {
       status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM) · 이제 답을 입력하세요`;
       status.className = 'bio-reg-status show success';
       if (btn) btn.disabled = true;
+      const badge = document.getElementById('bioAppliedBadge');
+      if (badge) badge.style.display = 'inline';
     } else {
       window._bioVerifyPassed = false;
       status.textContent = `정답입니다. 통과 다음 단계로`;
