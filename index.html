@@ -6317,11 +6317,20 @@
         <input type="text" 
                class="auth-input" 
                id="regPasscode" 
-               placeholder="비번 (2~10자, 예: 34AK71)" 
-               maxlength="20"
+               placeholder="비번 (8자 이상, 숫자+영문+기호 섞기 권장)" 
+               maxlength="40"
                autocomplete="off"
                autocapitalize="off"
-               spellcheck="false" />
+               spellcheck="false"
+               oninput="mufeShowPassStrength(this.value)" />
+
+        <!-- [C-47] 비번 강도 실시간 표시 — 도난 방어의 핵심이 비번 세기 -->
+        <div id="passStrengthBox" style="margin:6px 2px 2px;font-size:12px;display:none;">
+          <div style="height:6px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;">
+            <div id="passStrengthBar" style="height:100%;width:0;transition:all .25s;"></div>
+          </div>
+          <div id="passStrengthLabel" style="margin-top:4px;color:#9aa7c0;"></div>
+        </div>
 
         <!-- ═══ [C-45] 물리 좌표 + 자연 엔트로피 (자연음 위 → 슬라이더 아래) ═══ -->
         <div class="mufe-entropy-section" id="mufeEntropySection">
@@ -7279,13 +7288,59 @@
     }
   }
 
+  // [C-47] 비번 강도 계산 — 길이 + 문자 다양성(숫자/소문자/대문자/기호)
+  window.mufePassStrength = function(pw){
+    if(!pw) return {score:0,label:'',color:'#dc2626',pct:0};
+    let variety=0;
+    if(/[0-9]/.test(pw)) variety++;
+    if(/[a-z]/.test(pw)) variety++;
+    if(/[A-Z]/.test(pw)) variety++;
+    if(/[^0-9a-zA-Z]/.test(pw)) variety++;   // 기호/한글 등
+    let score=0;
+    if(pw.length>=8)  score++;
+    if(pw.length>=12) score++;
+    if(variety>=2)    score++;
+    if(variety>=3 && pw.length>=10) score++;
+    // 단조로운 반복(1111, abab) 감점
+    if(/^(.)\1+$/.test(pw) || /^(..)\1+$/.test(pw)) score=0;
+    const map=[
+      {label:'매우 약함 — 더 길게',      color:'#dc2626',pct:20},
+      {label:'약함 — 숫자·기호 섞기',     color:'#f59e0b',pct:40},
+      {label:'보통',                      color:'#eab308',pct:60},
+      {label:'강함 ✓',                    color:'#22c55e',pct:80},
+      {label:'매우 강함 ✓',               color:'#16a34a',pct:100},
+    ];
+    const m=map[Math.min(score,4)];
+    return {score, label:m.label, color:m.color, pct:m.pct};
+  };
+  window.mufeShowPassStrength = function(pw){
+    const box=document.getElementById('passStrengthBox');
+    const bar=document.getElementById('passStrengthBar');
+    const lab=document.getElementById('passStrengthLabel');
+    if(!box||!bar||!lab) return;
+    if(!pw){ box.style.display='none'; return; }
+    box.style.display='block';
+    const s=window.mufePassStrength(pw);
+    bar.style.width=s.pct+'%'; bar.style.background=s.color;
+    lab.textContent=s.label; lab.style.color=s.color;
+  };
+
   async function registerPasscode() {
     const passcode = document.getElementById('regPasscode').value.trim();
     const format = (document.getElementById('regFormat') || {}).value || 'joined-after';
     
-    if (!passcode || passcode.length < 2) {
-      showRegMsg('비번은 2글자 이상이어야 합니다', 'retry');
+    // [C-47] 비번 강도 강제 — 도난 시 오프라인 대입 천장이 곧 비번 세기.
+    //   Argon2id가 1회 대입을 느리게 해도, 비번이 짧으면 결국 뚫림 → 최소 8자 + 다양성.
+    if (!passcode || passcode.length < 8) {
+      showRegMsg('비번은 <strong>8글자 이상</strong>이어야 합니다 (도난 대비 — 길수록 안전)', 'retry');
       return;
+    }
+    {
+      const s = window.mufePassStrength ? window.mufePassStrength(passcode) : {score:2,label:''};
+      if (s.score < 2) {   // 너무 약함(흔한/단조로운) 차단
+        showRegMsg('비번이 너무 약합니다 — 숫자·영문·기호를 섞어 더 길게 만들어주세요', 'retry');
+        return;
+      }
     }
 
     // [C-45] 등록 = 확정. 지금 정한 카오스 키 좌표를 "정답 기준"으로 저장.
