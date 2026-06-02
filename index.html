@@ -6617,6 +6617,12 @@
           📷 생체 측정 시작 (10초)
         </button>
         <div id="bioVerifyStatus" class="bio-reg-status"></div>
+        <button type="button" id="bioConfirmBtn" onclick="confirmBioKey()" disabled
+                style="width:100%;margin-top:8px;padding:11px;border-radius:10px;border:none;
+                       background:#d1d5db;color:#fff;font-weight:800;font-size:14px;cursor:not-allowed;">
+          ✓ 생체 인증 확정
+        </button>
+        <div id="bioConfirmStatus" style="text-align:center;font-size:12px;color:#16a34a;margin-top:6px;min-height:16px;"></div>
       </div>
       
       <!-- 최종 단계: 본 비밀번호 + 단어 입력 (카오스·생체 다 맞춘 뒤 맨 마지막) -->
@@ -7770,10 +7776,14 @@
       return;
     }
     
-    // 3중 인증 — 생체는 비번의 일부. 등록했으면 모드 무관하게 생체 통과 필수.
+    // 3중 인증 — 생체는 비번의 일부. 등록했으면 측정+확정까지 필수.
     const bioSaved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
     if (bioSaved && !window._bioVerifyPassed) {
-      showMsg('생체 인증을 먼저 완료해주세요', 'retry');
+      if (window._bioMeasured) {
+        showMsg('생체 측정은 됐어요 — "생체 인증 확정" 버튼을 눌러주세요', 'retry');
+      } else {
+        showMsg('생체 측정을 먼저 완료해주세요 (📷 생체 측정 시작)', 'retry');
+      }
       return;
     }
     
@@ -11134,19 +11144,36 @@ function startBioForVerify() {
     
     if (result.success && saved && 
         result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
-      window._bioVerifyPassed = true;
-      status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM) · 이제 답을 입력하세요`;
+      // 측정 통과 — 아직 확정 전. 확정 버튼을 활성화해서 사용자가 눌러야 잠김.
+      window._bioMeasured = true;
+      status.textContent = `✓ 생체 측정 통과 (${result.bpm} BPM) · 아래 "생체 인증 확정"을 눌러주세요`;
       status.className = 'bio-reg-status show success';
-      if (btn) btn.disabled = true;
-      const badge = document.getElementById('bioAppliedBadge');
-      if (badge) badge.style.display = 'inline';
+      const cb = document.getElementById('bioConfirmBtn');
+      if (cb) {
+        cb.disabled = false;
+        cb.style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
+        cb.style.cursor = 'pointer';
+      }
     } else {
+      window._bioMeasured = false;
       window._bioVerifyPassed = false;
       status.textContent = `정답입니다. 통과 다음 단계로`;
       status.className = 'bio-reg-status show failed';
     }
   });
 }
+
+// 생체 인증 확정 — 측정 통과 후 사용자가 눌러 잠금 (인증 검증과 연동)
+window.confirmBioKey = function(){
+  if (!window._bioMeasured) return;
+  window._bioVerifyPassed = true;
+  const st = document.getElementById('bioConfirmStatus');
+  if (st) st.textContent = '✓ 생체 인증 확정됨';
+  const cb = document.getElementById('bioConfirmBtn');
+  if (cb) { cb.textContent = '✓ 생체 인증 확정됨'; cb.style.background = '#16a34a'; }
+  const badge = document.getElementById('bioAppliedBadge');
+  if (badge) badge.style.display = 'inline';
+};
 
 // 페이지 로드 시 — 저장된 생체 설정 복원
 document.addEventListener('DOMContentLoaded', () => {
@@ -11170,6 +11197,13 @@ window.showBioChallengeIfNeeded = function() {
   if (saved) {
     section.style.display = 'block';
     window._bioVerifyPassed = false;
+    window._bioMeasured = false;
+    // 확정 버튼·상태 초기화
+    const cb = document.getElementById('bioConfirmBtn');
+    if (cb) { cb.disabled = true; cb.textContent = '✓ 생체 인증 확정'; cb.style.background = '#d1d5db'; cb.style.cursor = 'not-allowed'; }
+    const cs = document.getElementById('bioConfirmStatus'); if (cs) cs.textContent = '';
+    const vs = document.getElementById('bioVerifyStatus'); if (vs) { vs.textContent = ''; vs.className = 'bio-reg-status'; }
+    const badge = document.getElementById('bioAppliedBadge'); if (badge) badge.style.display = 'none';
   } else {
     // 생체 미등록 사용자 — 비번+단어 2중
     section.style.display = 'none';
