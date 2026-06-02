@@ -5219,7 +5219,7 @@
 
 <!-- ═══ 통과 게이트 — 대문 이미지 클릭해야 들어옴 ═══ -->
 <div class="entry-gate" id="entryGate">
-  <div class="entry-gate-credit">G-7 · C-45</div>
+  <div class="entry-gate-credit">C-47</div>
   <img src="/무폐 이미지/chaos-000.png.jpeg" 
        alt="MUFE 대문"
        class="entry-gate-img"
@@ -5239,7 +5239,7 @@
   <div id="entryGateFallback" style="display:none; flex-direction:column; align-items:center; gap:20px; color:white; padding:40px;">
     <div style="font-size:80px;">🛡️</div>
     <div style="font-size:28px; font-weight:900; color:#fbbf24;">MUFE 백신</div>
-    <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">G-7 · C-45</div>
+    <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">C-47</div>
   </div>
   <div class="entry-gate-hint">
     <span class="egh-pulse">▼</span>
@@ -6252,11 +6252,9 @@
     <!-- ✕ 닫기 버튼 (모바일 필수) -->
     <button class="modal-close-x" onclick="closeAuthModal()" aria-label="닫기">×</button>
     
-    <!-- 가족 자리 배지 — G-7 · C-45 -->
+    <!-- 가족 자리 배지 — C-47 -->
     <div class="family-badge-row">
-      <span class="fb-badge fb-badge-g1">G-7</span>
-      <span class="fb-sep">·</span>
-      <span class="fb-badge fb-badge-c33">C-45</span>
+      <span class="fb-badge fb-badge-g1">C-47</span>
     </div>
     
     <div class="challenge-stage challenge-stage-custom">
@@ -6343,7 +6341,15 @@
 
           <!-- 자연음 믹서 (위) — 2축 합성음 선택 (동지님 원래 비전: 많은 소리 다축 믹싱) -->
           <div class="mufe-sound-mixer">
-            <div class="msm-label">🌿 자연음 조합 (소리 2개 + 음높이 + 볼륨 = 나만의 카오스 음)</div>
+            <div class="msm-label">🌿 자연음 조합 (색 + 소리 2개 + 음높이 + 볼륨 = 나만의 카오스 음)</div>
+
+            <!-- [C-47] 색 주(主) 바 — 색을 맞추면 소리가 자동으로 따라옴 (사용자 편의·재현↑) -->
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>🎨 나의 색 (주 좌표)</span><span class="msr-val" id="colorName">—</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderColor">
+              <div id="colorSwatch" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
+            </div>
+            <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 색 바를 내 색에 맞추면 아래 소리가 자동으로 정해집니다 (빨주노초파남보로 기억하세요)</div>
 
             <!-- 소리 A 축 -->
             <div class="mufe-slider-row">
@@ -6587,6 +6593,13 @@
           </div>
         </div>
         <div class="mufe-sound-mixer">
+          <!-- [C-47] 인증 화면 색 주 바 -->
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>🎨 나의 색 (주 좌표)</span><span class="msr-val" id="colorNameC">—</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderColorC">
+            <div id="colorSwatchC" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
+          </div>
+          <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 등록 때 맞춘 내 색으로 (빨주노초파남보)</div>
           <div class="mufe-slider-row">
             <div class="msr-label"><span>🎵 첫 번째 소리</span><span class="msr-val" id="soundANameC">—</span></div>
             <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundASelC">
@@ -7654,8 +7667,17 @@
   const MUFE_Entropy = {
     big:500, small:500, micro:5000,
     soundA:0, soundB:0, volA:50, volB:50,
+    color:500,
     audioCtx:null, pupilPassed:false,
   };
+
+  // [C-47] 색 좌표(0~1000) → HSL 색 + 이름. 색을 맞추면 소리가 이 좌표로 자동 결정됨.
+  function _mufeColorFromCoord(c){
+    const hue = Math.round((c/1000)*360) % 360;       // 0~360 색상환 (빨주노초파남보)
+    const names = [[15,'빨강'],[45,'주황'],[70,'노랑'],[160,'초록'],[200,'청록'],[260,'파랑'],[290,'남색'],[330,'보라'],[360,'빨강']];
+    let nm='빨강'; for(const [h,n] of names){ if(hue<=h){ nm=n; break; } }
+    return { hue, css:`hsl(${hue},70%,55%)`, name:nm };
+  }
 
   // 48종 합성음 뱅크 (파일 없이 코드로 생성) — 각 소리 = {이름, 파형, 기준주파수}
   const MUFE_SOUND_BANK = [
@@ -7678,12 +7700,22 @@
     slider.style.setProperty('--fill', ((val-min)/(max-min))*100 + '%');
   }
   function _mufeRecomputeKey(){
-    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    // [C-47] 색이 주(主) 좌표 — 색에서 소리 A/B를 자동 결정(색 맞추면 소리 따라옴)
+    const col = _mufeColorFromCoord(MUFE_Entropy.color);
+    MUFE_Entropy.soundA = MUFE_Entropy.color % 48;                 // 색→소리A 자동
+    MUFE_Entropy.soundB = Math.floor(MUFE_Entropy.color/48) % 48;  // 색→소리B 자동
+    const coord = (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const a = MUFE_SOUND_BANK[MUFE_Entropy.soundA] || {n:'—'};
     const bb = MUFE_SOUND_BANK[MUFE_Entropy.soundB] || {n:'—'};
     const seed = `${a.n}(${MUFE_Entropy.volA}) + ${bb.n}(${MUFE_Entropy.volB})`;
     // 등록 화면 + 인증 화면 양쪽 표시 갱신
     const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+    // 색 스와치·이름 표시
+    ['colorSwatch','colorSwatchC'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.background=col.css; });
+    set('colorName', col.name); set('colorNameC', col.name);
+    // 소리 슬라이더도 자동 위치로 이동(시각 동기화)
+    ['soundASel','soundASelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundA; });
+    ['soundBSel','soundBSelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundB; });
     set('keyCoord',coord); set('keyCoordC',coord);
     set('soundSeed',seed); set('soundSeedC',seed);
     set('soundAName',a.n); set('soundANameC',a.n);
@@ -7699,8 +7731,9 @@
   // verify로 보낼 엔트로피 페이로드 (소리 2축 + 볼륨 + 슬라이더 = 71비트+ 엔트로피)
   window.getMufeEntropyPayload = function(){
     return {
-      coord: (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
+      coord: (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
       big:MUFE_Entropy.big, small:MUFE_Entropy.small, micro:MUFE_Entropy.micro,
+      color:MUFE_Entropy.color,
       // 소리 선택값(인덱스)과 볼륨을 숫자화 — 실시간 진폭 아님(재현 가능)
       soundSeed: `${MUFE_Entropy.soundA}:${MUFE_Entropy.volA}+${MUFE_Entropy.soundB}:${MUFE_Entropy.volB}`,
       pupil: !!window._bioVerifyPassed,
@@ -7717,7 +7750,7 @@
     const ids = ['soundASelC','soundAVolC','soundBSelC','soundBVolC','sliderBigC','sliderSmallC','sliderMicroC'];
     ids.forEach(id=>{ const s=document.getElementById(id); if(s){ s.disabled = window._chaosLocked; s.style.opacity = window._chaosLocked ? '0.55' : '1'; } });
     const st = document.getElementById('chaosConfirmStatus');
-    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    const coord = (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const btn = document.getElementById('chaosConfirmBtn');
     if (window._chaosLocked){
       if (st) st.textContent = `🔒 바 고정됨 — 좌표 ${coord} (다시 누르면 풀림)`;
@@ -7729,6 +7762,20 @@
   };
 
   function _mufeInitEntropyUI(){
+    // [C-47] 색 주(主) 바 — 등록(sliderColor) + 인증(sliderColorC) 양쪽. 색→소리 자동.
+    ['sliderColor','sliderColorC'].forEach(cid=>{
+      const cs=document.getElementById(cid);
+      if(cs && !cs._mufeBound){
+        cs._mufeBound=true; _mufeSliderFill(cs);
+        cs.addEventListener('input',()=>{
+          MUFE_Entropy.color=+cs.value; _mufeSliderFill(cs);
+          // 양쪽 색 바 값 동기화
+          ['sliderColor','sliderColorC'].forEach(o=>{ const e=document.getElementById(o); if(e&&e!==cs){ e.value=cs.value; _mufeSliderFill(e); } });
+          _mufeRecomputeKey();
+        });
+      }
+    });
+
     ['Big','Small','Micro'].forEach(name=>{
       const slider=document.getElementById('slider'+name);
       const val=document.getElementById('val'+name);
