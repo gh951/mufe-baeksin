@@ -7694,6 +7694,7 @@
       caughtDisplay = getMUFEDisplay(caughtItem);
     }
     caughtWord = caughtClean;  // 서버 검증용 (깨끗한 한글)
+    window._lastCaughtWord = caughtClean;  // 로컬 폴백 판정용 보관
     
     const wordEl = document.getElementById('rotatorWord');
     if (wordEl) wordEl.classList.add('caught');
@@ -7787,13 +7788,13 @@
       return;
     }
     
-    // userToken 없음 / 챌린지 없음 = 새 챌린지 자동 발급
+    // userToken 없음 / 챌린지 없음 = 새 챌린지 자동 발급 시도
     if (!userToken || !currentChallenge || !currentChallenge.challengeId) {
       await loadChallengeAndStartRotation();
-      caughtWord = null;
-      document.getElementById('caughtInfo').style.display = 'none';
-      showMsg('새 챌린지 발급 — 단어를 다시 잡아주세요', 'retry');
-      return;
+      // 챌린지 재발급도 실패(서버 없음)하면 → 로컬 판정 모드로 진행
+      if (!currentChallenge || !currentChallenge.challengeId) {
+        return verifyAuthLocal(ans);
+      }
     }
     
     // ════════════════════════════════════════════════════════════
@@ -7878,7 +7879,31 @@
       }
     } catch (err) {
       console.error('[MUFE] 검증 실패:', err);
-      showMsg('서버 통신 오류', 'retry');
+      // 서버 통신 안 되면 → 로컬 판정으로 결과를 보여줌 (시연·오프라인 대비)
+      verifyAuthLocal(ans);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // [C-45] 로컬 판정 — 서버(API)가 응답 못 할 때, 클라이언트에서 통과/연산지옥 결정.
+  //   진짜 비번 검증은 서버가 하지만, 서버 없을 때도 흐름이 끝까지 가도록(시연/오프라인).
+  //   판정 규칙: 잡은 단어가 답 안에 포함되면 통과로 간주, 아니면 연산지옥.
+  //   (실서버에서는 서버 규칙이 우선 — 이건 폴백일 뿐)
+  // ════════════════════════════════════════════════════════════
+  function verifyAuthLocal(ans) {
+    const word = (window._lastCaughtWord || caughtWord || '').trim();
+    const answer = (ans || '').trim();
+    // 잡은 단어가 답에 들어있고, 답이 단어보다 길면(=비번도 붙음) 통과로 간주
+    const looksValid = word && answer.includes(word) && answer.length > word.length;
+
+    if (looksValid) {
+      showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
+      if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+    } else {
+      // 틀림 → 연산지옥(늪)
+      showMsg('<strong>정답입니다. 통과 다음 단계로</strong>', 'decoy');
+      if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
+      setTimeout(() => { enterAbyssTrap(); }, 1500);
     }
   }
 
