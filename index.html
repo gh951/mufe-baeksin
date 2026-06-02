@@ -5415,22 +5415,29 @@
         </div>
       </div>
 
-      <!-- MUFE 인증 진입 -->
-      <div class="auth-card" onclick="openAuthModal()">
-        <div class="auth-shield">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2 L4 6 V12 C4 17 7 21 12 22 C17 21 20 17 20 12 V6 Z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
+      <!-- MUFE 인증 진입 — 간편 / 고보안 2개 카드 -->
+      <div class="mufe-home-auth-cards" style="display:flex;gap:14px;flex-wrap:wrap;">
+
+        <div onclick="openAuthModal('simple')"
+          style="flex:1;min-width:200px;cursor:pointer;border-radius:18px;padding:22px 20px;
+                 background:linear-gradient(145deg,#0f2e1c,#16432a);border:2px solid rgba(34,197,94,.55);
+                 box-shadow:0 6px 20px rgba(16,185,129,.18);transition:transform .15s;"
+          onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;font-weight:700;color:#86efac;letter-spacing:.5px;margin-bottom:6px;">🟢 일상용 · 빠름</div>
+          <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:8px;">간편 인증</div>
+          <div style="font-size:13px;color:#bbf7d0;line-height:1.5;">본 비밀번호 + 실시간 회전 단어<br>매번 바뀌는 단어로 봇·훔쳐보기 차단</div>
         </div>
-        <div class="auth-content">
-          <div class="auth-label">MUFE 인증</div>
-          <div class="auth-title">인증 챌린지 시작</div>
-          <div class="auth-desc">
-            카오스 인증으로 양자·AI 막음
-          </div>
+
+        <div onclick="openAuthModal('high')"
+          style="flex:1;min-width:200px;cursor:pointer;border-radius:18px;padding:22px 20px;
+                 background:linear-gradient(145deg,#3a0f12,#4a161b);border:2px solid rgba(239,68,68,.55);
+                 box-shadow:0 6px 20px rgba(239,68,68,.18);transition:transform .15s;"
+          onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;font-weight:700;color:#fca5a5;letter-spacing:.5px;margin-bottom:6px;">🔴 중요작업 · 최강</div>
+          <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:8px;">고보안 인증</div>
+          <div style="font-size:13px;color:#fecaca;line-height:1.5;">간편 + 슬라이더 카오스 + 동공 생체<br>딥페이크·재전송·양자 자동공격 대응</div>
         </div>
-        <div class="auth-arrow">›</div>
+
       </div>
 
     </div>
@@ -6302,7 +6309,7 @@
       
       <!-- 처음 등록 영역 -->
       <div id="regModeRegister">
-        <div class="challenge-instruction">
+        <div class="challenge-instruction" id="regModeBanner">
           <strong>처음 방문하셨네요</strong><br>
           본인만의 비번을 입력해주세요
         </div>
@@ -6376,8 +6383,8 @@
         <!-- 합치기 형식: 기본(비번+단어 붙여) 고정 — 사용자 편의 위해 선택 UI 제거 -->
         <input type="hidden" name="regFormat" id="regFormat" value="joined-after">
         
-        <!-- 🫀 생체 인증 옵션 (선택) -->
-        <div class="bio-option-section">
+        <!-- 🫀 생체 인증 옵션 (선택) — 간편 모드에선 숨김 -->
+        <div class="bio-option-section" id="regBioOptionSection">
           <div class="bio-option-header">
             <span class="bio-option-icon">🫀</span>
             <div class="bio-option-text">
@@ -6503,6 +6510,16 @@
 
     <!-- 화면 2: 카오스 회전 (등록 후 인증) -->
     <div class="challenge-form" id="formChallenge" style="display: none;">
+
+      <!-- [C-46] 모드 선택은 홈 카드에서 — 화면 안에선 숨김(현재 모드 표시만) -->
+      <div class="mufe-mode-cards" style="display:none;">
+        <button type="button" id="modeCardSimple" onclick="setAuthMode('simple')"></button>
+        <button type="button" id="modeCardHigh" onclick="setAuthMode('high')"></button>
+      </div>
+      <div id="modeHint" style="text-align:center;font-size:12px;color:#86efac;margin-bottom:12px;min-height:16px;">
+        🟢 간편 모드 — 비번 + 회전 단어만으로 로그인합니다
+      </div>
+
       <div class="challenge-instruction">
         회전하는 단어 중 <strong>원하는 시점에 STOP</strong> 누르세요
       </div>
@@ -6599,9 +6616,9 @@
         <button type="button" id="chaosConfirmBtn" onclick="confirmChaosKey()"
                 style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:none;
                        background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:14px;cursor:pointer;">
-          ✓ 카오스 키 확정
+          🔒 바 고정하기
         </button>
-        <div id="chaosConfirmStatus" style="text-align:center;font-size:12px;color:#16a34a;margin-top:6px;min-height:16px;"></div>
+        <div id="chaosConfirmStatus" style="text-align:center;font-size:12px;color:#16a34a;margin-top:6px;min-height:16px;">맞춘 뒤 고정하면 스크롤해도 안 흔들립니다</div>
       </div>
       
       <!-- 🫀 생체 인증 (잡힌 단어 아래) — 생체 사용자만 표시 -->
@@ -6617,22 +6634,17 @@
           📷 생체 측정 시작 (10초)
         </button>
         <div id="bioVerifyStatus" class="bio-reg-status"></div>
-        <button type="button" id="bioConfirmBtn" onclick="confirmBioKey()" disabled
-                style="width:100%;margin-top:8px;padding:11px;border-radius:10px;border:none;
-                       background:#d1d5db;color:#fff;font-weight:800;font-size:14px;cursor:not-allowed;">
-          ✓ 생체 인증 확정
-        </button>
-        <div id="bioConfirmStatus" style="text-align:center;font-size:12px;color:#16a34a;margin-top:6px;min-height:16px;"></div>
       </div>
       
       <!-- 최종 단계: 본 비밀번호 + 단어 입력 (카오스·생체 다 맞춘 뒤 맨 마지막) -->
       <div class="ci-hint" style="margin-top:16px;">
-        🔑 마지막 — <strong>본 비밀번호 + 위 잡은 단어</strong>를 입력하고 인증하세요
+        🔑 마지막 — <strong>본 비밀번호 + 위 잡은 단어</strong> (예: 사랑+클로 = <strong>사랑클로</strong>)<br>
+        <small style="color:#94a3b8;">입력을 멈추면 자동으로 검증됩니다</small>
       </div>
       <input type="text" 
              class="auth-input" 
              id="authInput" 
-             placeholder="본 비밀번호 + 잡힌 단어 (예: 1로렌)" 
+             placeholder="본 비밀번호 + 잡힌 단어 (예: 사랑클로)" 
              autocomplete="off"
              autocapitalize="off"
              spellcheck="false" />
@@ -7019,7 +7031,9 @@
   // ════════════════════════════════════════════════════════════
   // 모달 제어 — 등록 여부 따라 다른 화면
   // ════════════════════════════════════════════════════════════
-  async function openAuthModal() {
+  async function openAuthModal(mode) {
+    // [C-46] 홈에서 고른 모드(simple/high)를 저장 — 챌린지 화면이 이걸로 시작
+    window._pendingAuthMode = (mode === 'high') ? 'high' : 'simple';
     const modal = document.getElementById('authModal');
     modal.classList.add('show');
     
@@ -7035,8 +7049,22 @@
     document.getElementById('userInfoBar').style.display = 'none';
     document.getElementById('regMsg').className = 'response-msg';
     document.getElementById('regPasscode').value = '';
-    // [C-45] 비번 만들기 화면 — 슬라이더+자연음 초기화
-    if (typeof _mufeInitEntropyUI === 'function') setTimeout(_mufeInitEntropyUI, 120);
+
+    // [C-46] 간편 모드 등록 = 비번만. 슬라이더·생체 숨김. 고보안 = 전부 표시.
+    const high = (window._pendingAuthMode === 'high');
+    const ent = document.getElementById('mufeEntropySection');
+    const bio = document.getElementById('regBioOptionSection');
+    if (ent) ent.style.display = high ? 'block' : 'none';
+    if (bio) bio.style.display = high ? 'block' : 'none';
+    const banner = document.getElementById('regModeBanner');
+    if (banner) {
+      banner.innerHTML = high
+        ? '<strong>🔴 고보안 비번 만들기</strong><br>비번 + 슬라이더 카오스 + 동공까지 묶습니다'
+        : '<strong>🟢 간편 비번 만들기</strong><br>본 비밀번호만 정하면 됩니다 (로그인은 비번 + 실시간 단어)';
+    }
+
+    // [C-45] 비번 만들기 화면 — 슬라이더+자연음 초기화 (고보안일 때만 의미)
+    if (high && typeof _mufeInitEntropyUI === 'function') setTimeout(_mufeInitEntropyUI, 120);
     setTimeout(() => document.getElementById('regPasscode').focus(), 350);
   }
   
@@ -7103,6 +7131,18 @@
     document.getElementById('caughtInfo').style.display = 'none';
     document.getElementById('authInput').value = '';
     document.getElementById('responseMsg').className = 'response-msg';
+    
+    // [C-46] 새 인증 시작 — 바 고정·검증 잠금 초기화 (이전 세션 잠금이 남지 않게)
+    window._chaosLocked = false;
+    window._mufeVerifying = false;
+    ['soundASelC','soundAVolC','soundBSelC','soundBVolC','sliderBigC','sliderSmallC','sliderMicroC'].forEach(id=>{
+      const s=document.getElementById(id); if(s){ s.disabled=false; s.style.opacity='1'; }
+    });
+    { const _b=document.getElementById('chaosConfirmBtn'); if(_b){ _b.textContent='🔒 바 고정하기'; _b.style.background='linear-gradient(135deg,#7c3aed,#a855f7)'; }
+      const _s=document.getElementById('chaosConfirmStatus'); if(_s){ _s.textContent='맞춘 뒤 고정하면 스크롤해도 안 흔들립니다'; } }
+    
+    // [C-46] 홈 카드에서 고른 모드로 시작 (없으면 간편)
+    if (typeof window.setAuthMode === 'function') window.setAuthMode(window._pendingAuthMode || 'simple');
     
     // 생체 인증 영역 표시 여부 결정
     if (typeof window.showBioChallengeIfNeeded === 'function') {
@@ -7288,10 +7328,14 @@
     localStorage.setItem('mufe-user-token', userToken);
     localStorage.setItem('mufe-user-spacing', userSpacing);
 
-    // [C-45] 진짜 묶임 — 비번+카오스+생체로 헬퍼/커밋 생성 후 저장.
-    //   인증 때 이 헬퍼로 복원 시도 → 비슷하게 입력하면 같은 키, 틀리면 실패→연산지옥.
+    // [C-46] 등록 모드 저장 — 간편/고보안. 홈·검증이 이걸 참고.
+    const regMode = (window._pendingAuthMode === 'high') ? 'high' : 'simple';
+    localStorage.setItem('mufe-reg-mode', regMode);
+
+    // [C-45·46] 진짜 묶임 — 고보안 등록일 때만 슬라이더+동공 자물쇠 생성.
+    //   간편 등록은 비번+실시간 단어 판정이므로 wasm 자물쇠를 만들지 않음(꼬임 방지).
     try {
-      if (window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+      if (regMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
         const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
@@ -7589,12 +7633,12 @@
     set('soundSeed',seed); set('soundSeedC',seed);
     set('soundAName',a.n); set('soundANameC',a.n);
     set('soundBName',bb.n); set('soundBNameC',bb.n);
-    // 키가 바뀌면 확정 해제
-    if (window._chaosConfirmed) {
+    // 키가 바뀌면 확정 해제 (단, 바 고정 잠금 중이면 유지)
+    if (window._chaosConfirmed && !window._chaosLocked) {
       window._chaosConfirmed = false;
       const st = document.getElementById('chaosConfirmStatus'); if (st) st.textContent = '';
       const btn = document.getElementById('chaosConfirmBtn');
-      if (btn) { btn.textContent = '✓ 카오스 키 확정'; btn.style.background = 'linear-gradient(135deg,#7c3aed,#a855f7)'; }
+      if (btn) { btn.textContent = '🔒 바 고정하기'; btn.style.background = 'linear-gradient(135deg,#7c3aed,#a855f7)'; }
     }
   }
   // verify로 보낼 엔트로피 페이로드 (소리 2축 + 볼륨 + 슬라이더 = 71비트+ 엔트로피)
@@ -7609,14 +7653,24 @@
     };
   };
 
-  // 카오스 키 확정 — 사용자가 소리·슬라이더 다 맞춘 뒤 누름
+  // 카오스 키 확정 = 바 고정. 예민한 슬라이더가 스크롤·터치로 흔들리는 걸 막음.
+  //   누르면 슬라이더 잠금(좌표값은 그대로 유지·검증에 사용), 다시 누르면 해제.
+  window._chaosLocked = false;
   window.confirmChaosKey = function(){
-    window._chaosConfirmed = true;
+    window._chaosLocked = !window._chaosLocked;   // 토글
+    window._chaosConfirmed = window._chaosLocked;  // (참고용 플래그도 같이)
+    const ids = ['soundASelC','soundAVolC','soundBSelC','soundBVolC','sliderBigC','sliderSmallC','sliderMicroC'];
+    ids.forEach(id=>{ const s=document.getElementById(id); if(s){ s.disabled = window._chaosLocked; s.style.opacity = window._chaosLocked ? '0.55' : '1'; } });
     const st = document.getElementById('chaosConfirmStatus');
     const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
-    if (st) st.textContent = `✓ 확정됨 — 좌표 ${coord}`;
     const btn = document.getElementById('chaosConfirmBtn');
-    if (btn) { btn.textContent = '✓ 카오스 키 확정됨'; btn.style.background = '#16a34a'; }
+    if (window._chaosLocked){
+      if (st) st.textContent = `🔒 바 고정됨 — 좌표 ${coord} (다시 누르면 풀림)`;
+      if (btn){ btn.textContent = '🔒 바 고정됨 (탭하면 풀림)'; btn.style.background = '#16a34a'; }
+    } else {
+      if (st) st.textContent = '🔓 잠금 해제 — 다시 조정 가능';
+      if (btn){ btn.textContent = '🔒 바 고정하기'; btn.style.background = 'linear-gradient(135deg,#7c3aed,#a855f7)'; }
+    }
   };
 
   function _mufeInitEntropyUI(){
@@ -7790,6 +7844,9 @@
   }
   
   async function verifyAuth() {
+    if (window._mufeVerifying) return;   // [C-46] 중복 검증 방지(자동+수동 동시 호출)
+    window._mufeVerifying = true;
+    const _unlock = () => { window._mufeVerifying = false; };
     const ans = document.getElementById('authInput').value.trim();
     // [C-45] 입력 즉시 휘발 (특허 청구항 1) — 읽는 즉시 화면 입력칸을 비운다.
     //   어떤 경로(실패·생체미통과 등)로 빠지든 원본이 화면·DOM에 남지 않게.
@@ -7797,23 +7854,19 @@
     
     if (!ans) {
       showMsg('답을 입력해주세요', 'retry');
-      return;
+      _unlock(); return;
     }
     
     if (!caughtWord) {
       showMsg('STOP 버튼으로 단어를 잡아주세요', 'retry');
-      return;
+      _unlock(); return;
     }
     
-    // 3중 인증 — 생체는 비번의 일부. 등록했으면 측정+확정까지 필수.
+    // [C-46] 생체 게이트 — 고보안 모드 + 생체 등록자에서만 요구. 간편 모드는 건너뜀.
     const bioSaved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
-    if (bioSaved && !window._bioVerifyPassed) {
-      if (window._bioMeasured) {
-        showMsg('생체 측정은 됐어요 — "생체 인증 확정" 버튼을 눌러주세요', 'retry');
-      } else {
-        showMsg('생체 측정을 먼저 완료해주세요 (📷 생체 측정 시작)', 'retry');
-      }
-      return;
+    if (window._authMode === 'high' && bioSaved && !window._bioVerifyPassed) {
+      showMsg('생체 측정을 먼저 완료해주세요 (📷 생체 측정 시작)', 'retry');
+      _unlock(); return;
     }
     
     // userToken 없음 / 챌린지 없음 = 새 챌린지 자동 발급 시도
@@ -7821,7 +7874,7 @@
       await loadChallengeAndStartRotation();
       // 챌린지 재발급도 실패(서버 없음)하면 → 로컬 판정 모드로 진행
       if (!currentChallenge || !currentChallenge.challengeId) {
-        return verifyAuthLocal(ans);
+        _unlock(); return verifyAuthLocal(ans);
       }
     }
     
@@ -7838,7 +7891,8 @@
     let keyOk = true;   // Wasm 복원 결과 (기본 true = wasm 없으면 서버판정에 맡김)
     let keyChecked = false;
     try {
-      if (window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+      // [C-46] 슬라이더+동공 키 복원은 고보안 모드에서만. 간편 모드는 비번+단어로만 판정.
+      if (window._authMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
         const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
@@ -7882,7 +7936,7 @@
       showMsg('<strong>정답입니다. 통과 다음 단계로</strong>', 'decoy');
       if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       setTimeout(() => { enterAbyssTrap(); }, 1500);
-      return;
+      _unlock(); return;
     }
 
     // ════════════════════════════════════════════════════════════
@@ -7932,8 +7986,10 @@
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
         if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       }
+      _unlock();
     } catch (err) {
       console.error('[MUFE] 검증 실패:', err);
+      _unlock();
       // 서버 통신 안 되면 → 로컬 판정으로 결과를 보여줌 (시연·오프라인 대비)
       verifyAuthLocal(ans);
     }
@@ -8158,6 +8214,27 @@
   document.getElementById('authInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') verifyAuth();
   });
+
+  // [C-46] 입력 멈추면 자동 검증 — 따로 버튼 안 눌러도 됨.
+  //   디바운스: 마지막 타이핑 후 1.3초 멈추면 1회 검증. 매 글자 검증 폭주 방지.
+  (function(){
+    const ai = document.getElementById('authInput');
+    if (!ai) return;
+    let _t = null, _lastTried = '';
+    ai.addEventListener('input', () => {
+      if (window._mufeVerifying) return;   // 검증 중이면 대기
+      const v = ai.value.trim();
+      if (_t) clearTimeout(_t);
+      if (v.length < 2) return;            // 너무 짧으면 무시
+      _t = setTimeout(() => {
+        const cur = ai.value.trim();
+        if (cur.length >= 2 && cur !== _lastTried && !window._mufeVerifying){
+          _lastTried = cur;
+          verifyAuth();
+        }
+      }, 1300);
+    });
+  })();
 
   // ════ 탭 전환 → 패널 전환 ════
   document.querySelectorAll('.tab').forEach(tab => {
@@ -11346,16 +11423,13 @@ function startBioForVerify() {
     
     if (result.success && saved && 
         result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
-      // 측정 통과 — 아직 확정 전. 확정 버튼을 활성화해서 사용자가 눌러야 잠김.
+      // 측정 통과 = 자동 확정 (확정 버튼 제거됨). 살아있는 본인 확인 끝 → 바로 통과.
       window._bioMeasured = true;
-      status.textContent = `✓ 생체 측정 통과 (${result.bpm} BPM) · 아래 "생체 인증 확정"을 눌러주세요`;
+      window._bioVerifyPassed = true;
+      status.textContent = `✓ 생체 인증 완료 (${result.bpm} BPM) — 맨 아래 정답만 입력하세요`;
       status.className = 'bio-reg-status show success';
-      const cb = document.getElementById('bioConfirmBtn');
-      if (cb) {
-        cb.disabled = false;
-        cb.style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
-        cb.style.cursor = 'pointer';
-      }
+      const badge = document.getElementById('bioAppliedBadge');
+      if (badge) badge.style.display = 'inline';
     } else {
       window._bioMeasured = false;
       window._bioVerifyPassed = false;
@@ -11386,31 +11460,59 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 챌린지 화면 표시 시 — 생체 영역 표시 여부
+// ═══════════════════════════════════════════════════════════════
+// [C-46] 인증 모드 — 간편(simple) vs 고보안(high)
+//   · 간편  = 본 비번 + 회전 단어(실시간). 슬라이더·동공 숨김. 빠른 일상 로그인.
+//             봇·어깨너머는 매번 바뀌는 단어로 차단. (양자·오프라인까진 고보안 몫)
+//   · 고보안 = 간편 + 슬라이더 카오스 + 동공 생체. 송금·위임 등 중요작업.
+//   ※ 등록은 한 번에 다 묶임(동공·슬라이더 포함). 모드는 "검증할 때 무엇까지 보는가"의 차이.
+// ───────────────────────────────────────────────────────────────
+window._authMode = 'simple';
+window.setAuthMode = function(mode){
+  window._authMode = (mode === 'high') ? 'high' : 'simple';
+  const high = (window._authMode === 'high');
+
+  // 카드 하이라이트
+  const cs = document.getElementById('modeCardSimple');
+  const ch = document.getElementById('modeCardHigh');
+  if (cs){ cs.style.border = high ? '2px solid rgba(148,163,184,.4)' : '2px solid #22c55e';
+           cs.style.background = high ? 'rgba(148,163,184,.08)' : 'rgba(34,197,94,.12)';
+           cs.style.color = high ? '#cbd5e1' : '#dcfce7'; }
+  if (ch){ ch.style.border = high ? '2px solid #ef4444' : '2px solid rgba(148,163,184,.4)';
+           ch.style.background = high ? 'rgba(239,68,68,.12)' : 'rgba(148,163,184,.08)';
+           ch.style.color = high ? '#fee2e2' : '#cbd5e1'; }
+  const hint = document.getElementById('modeHint');
+  if (hint){
+    hint.textContent = high
+      ? '🔴 고보안 모드 — 슬라이더 + 동공까지 확인 (송금·위임 등 중요작업)'
+      : '🟢 간편 모드 — 비번 + 회전 단어만으로 로그인합니다';
+    hint.style.color = high ? '#fca5a5' : '#86efac';
+  }
+
+  // 슬라이더 카오스 영역 — 고보안에서만 표시
+  const chaos = document.getElementById('mufeEntropySectionAuth');
+  if (chaos) chaos.style.display = high ? 'block' : 'none';
+
+  // 생체(동공) 영역 — 고보안 + 생체 등록자에서만 표시
+  const bioSaved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
+  const bioSection = document.getElementById('bioChallengeSection');
+  if (bioSection){
+    if (high && bioSaved){
+      bioSection.style.display = 'block';
+      window._bioVerifyPassed = false;   // 고보안 = 생체 측정 통과해야 함
+      window._bioMeasured = false;
+    } else {
+      bioSection.style.display = 'none';
+      window._bioVerifyPassed = true;    // 간편 = 생체 요구 안 함(통과 처리)
+    }
+  }
+};
+
+// 챌린지 화면 표시 시 — 생체 영역 표시 여부 (현재 모드를 따름)
 const _origShowChallengeForm = (typeof showChallengeForm === 'function') ? showChallengeForm : null;
 window.showBioChallengeIfNeeded = function() {
-  const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
-  const section = document.getElementById('bioChallengeSection');
-  if (!section) return;
-  
-  // [C-45] 생체는 비밀번호의 일부다. 등록했으면 모드와 무관하게
-  //   답 쓰는 챌린지에서 항상 카메라로 본인 생체를 확인해야 통과.
-  //   (생체 없이 비번+단어만 맞으면 → 불완전한 답 → 연산지옥行)
-  if (saved) {
-    section.style.display = 'block';
-    window._bioVerifyPassed = false;
-    window._bioMeasured = false;
-    // 확정 버튼·상태 초기화
-    const cb = document.getElementById('bioConfirmBtn');
-    if (cb) { cb.disabled = true; cb.textContent = '✓ 생체 인증 확정'; cb.style.background = '#d1d5db'; cb.style.cursor = 'not-allowed'; }
-    const cs = document.getElementById('bioConfirmStatus'); if (cs) cs.textContent = '';
-    const vs = document.getElementById('bioVerifyStatus'); if (vs) { vs.textContent = ''; vs.className = 'bio-reg-status'; }
-    const badge = document.getElementById('bioAppliedBadge'); if (badge) badge.style.display = 'none';
-  } else {
-    // 생체 미등록 사용자 — 비번+단어 2중
-    section.style.display = 'none';
-    window._bioVerifyPassed = true;
-  }
+  // 모드 함수가 생체 표시/숨김을 일괄 처리 — 현재 모드 기준으로 재적용
+  if (typeof window.setAuthMode === 'function') window.setAuthMode(window._authMode || 'simple');
 };
 
 </script>
