@@ -7664,9 +7664,9 @@
       return;
     }
     
-    // 3중 인증 — 생체 사용자 + always 모드 = 생체 통과 필수
+    // 3중 인증 — 생체는 비번의 일부. 등록했으면 모드 무관하게 생체 통과 필수.
     const bioSaved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
-    if (bioSaved && bioSaved.mode === 'always' && !window._bioVerifyPassed) {
+    if (bioSaved && !window._bioVerifyPassed) {
       showMsg('생체 인증을 먼저 완료해주세요', 'retry');
       return;
     }
@@ -11001,15 +11001,14 @@ window.showBioChallengeIfNeeded = function() {
   const section = document.getElementById('bioChallengeSection');
   if (!section) return;
   
-  if (saved && saved.mode === 'always') {
+  // [C-45] 생체는 비밀번호의 일부다. 등록했으면 모드와 무관하게
+  //   답 쓰는 챌린지에서 항상 카메라로 본인 생체를 확인해야 통과.
+  //   (생체 없이 비번+단어만 맞으면 → 불완전한 답 → 연산지옥行)
+  if (saved) {
     section.style.display = 'block';
     window._bioVerifyPassed = false;
-  } else if (saved && saved.mode === 'once') {
-    // 한 번만 모드 — 등록 시 이미 완료, 표시 X
-    section.style.display = 'none';
-    window._bioVerifyPassed = true;
   } else {
-    // 생체 미사용
+    // 생체 미등록 사용자 — 비번+단어 2중
     section.style.display = 'none';
     window._bioVerifyPassed = true;
   }
@@ -11123,15 +11122,15 @@ window.showBioChallengeIfNeeded = function() {
         <div style="font-size:11px;color:#9ca3af;">차단 시도(누적)</div>
       </div>
       <div class="admin-card" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:26px;font-weight:800;color:#818cf8;">0%</div>
-        <div style="font-size:11px;color:#9ca3af;">우리 CPU 소모 (늘 0)</div>
+        <div style="font-size:26px;font-weight:800;color:#818cf8;" id="admSessions">0</div>
+        <div style="font-size:11px;color:#9ca3af;">현재 격리 세션</div>
       </div>
     </div>
 
     <div style="background:#0a0f1e;border-radius:10px;padding:12px;font-family:monospace;font-size:12px;line-height:1.7;color:#4ade80;min-height:140px;" id="admConsole"></div>
 
     <div class="fm-thanks" style="margin-top:12px;">
-      <strong>🕸️ 상태</strong>: 늪 정상 가동 중 · 우리 자원 소모 0% 유지 · 침입자 격리 진행.
+      <strong>🕸️ 상태</strong>: 침입자 격리 진행 중 · 시스템 정상.
     </div>
   </div>
 </div>
@@ -11214,7 +11213,7 @@ function openAdminModal() {
 
   // 관리자 모니터 콘솔 연출 (가벼운 DOM 갱신)
   const lines = [
-    '[C-45] 늪 가동 중 — 우리 CPU 0% 유지',
+    '[C-45] 격리 시스템 가동 중',
     '[침입자] 양자 연산 투입... 신호 분석 중',
     '[C-45] 격리 진행 — 침입자 묶임',
     '[양자봇] 87% 매칭... 다음 청크 대기...',
