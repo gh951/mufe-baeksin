@@ -11071,31 +11071,36 @@ window.showBioChallengeIfNeeded = function() {
 </div>
 
 <!-- ═══ 연산지옥(늪) — 침입자 가두는 같은-페이지 모달 ═══ -->
-<div id="abyssTrap" style="display:none; position:fixed; inset:0; z-index:99999; background:#05080f; color:#cbd5e1; font-family:'Courier New',monospace; overflow:hidden;">
-  <div style="max-width:640px; margin:0 auto; padding:40px 22px; text-align:center;">
+<div id="abyssTrap" style="display:none; position:fixed; inset:0; z-index:99999; background:#05080f; color:#cbd5e1; font-family:'Courier New',monospace; overflow-y:auto;">
+  <div style="width:100%; max-width:1000px; margin:0 auto; padding:34px 24px; text-align:center; box-sizing:border-box;">
     <div style="font-size:42px; margin-bottom:10px;">✓</div>
-    <h1 style="font-size:20px; color:#4ade80; margin:0 0 6px;" id="abyssTitle">인증 통과! 마스터 권한 발급 중...</h1>
+    <h1 style="font-size:22px; color:#4ade80; margin:0 0 6px;" id="abyssTitle">인증 통과! 마스터 권한 발급 중...</h1>
     <div style="font-size:12px; color:#64748b; margin-bottom:20px;">MUFE Master Authentication — verifying chunks</div>
 
     <!-- 진행바: 99%에서 영원히 헛돔 -->
-    <div style="background:#0f172a; border-radius:20px; height:14px; overflow:hidden; margin:18px 0;">
+    <div style="background:#0f172a; border-radius:20px; height:14px; overflow:hidden; margin:18px auto; max-width:700px;">
       <div id="abyssBar" style="height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#4ade80); transition:width .5s;"></div>
     </div>
     <div id="abyssPct" style="font-size:12px; color:#94a3b8; margin-bottom:18px;">검증 0%</div>
 
-    <!-- 랜덤 수학 문제 이미지 자리 (양자가 풀려고 연산) -->
-    <img id="abyssImg" src="" alt="" style="max-width:200px; opacity:.85; margin:10px auto; display:none; border-radius:8px;">
-
-    <!-- 랜덤 카오스 문장 잡기 (양자가 분석하려 듦) -->
-    <div id="abyssChaos" style="font-size:22px; letter-spacing:2px; color:#d4a843; margin:14px 0; min-height:30px;"></div>
+    <!-- 수학문제 이미지 + 그 위에 카오스 문자(단어 잡기 구조) -->
+    <div style="position:relative; width:320px; max-width:80vw; margin:14px auto; border-radius:10px; overflow:hidden;">
+      <img id="abyssImg" src="" alt="" style="width:100%; display:block; opacity:.85;">
+      <!-- 이미지 위에 겹치는 카오스 문자 -->
+      <div id="abyssChaos" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+           font-size:30px; font-weight:800; letter-spacing:3px; color:#fbbf24;
+           text-shadow:0 2px 12px #000, 0 0 20px rgba(0,0,0,.9); min-height:34px; white-space:nowrap;"></div>
+    </div>
+    <div style="font-size:11px; color:#475569; margin-bottom:8px;">↑ 카오스 토큰 분석 중 — 잡으려면 연산하시오</div>
 
     <!-- 가짜 행렬 (표시만) -->
-    <div id="abyssMatrix" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; max-width:280px; margin:18px auto; font-size:11px; color:#475569;"></div>
+    <div id="abyssMatrix" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; max-width:360px; margin:18px auto; font-size:12px; color:#475569;"></div>
 
     <!-- 가짜 콘솔 -->
-    <div id="abyssConsole" style="background:#0a0f1e; border-radius:8px; padding:10px; font-size:11px; line-height:1.6; color:#4ade80; text-align:left; min-height:120px; margin-top:18px;"></div>
+    <div id="abyssConsole" style="background:#0a0f1e; border-radius:8px; padding:12px; font-size:12px; line-height:1.7; color:#4ade80; text-align:left; min-height:150px; max-width:700px; margin:18px auto;"></div>
   </div>
 </div>
+
 
 
 <div class="feedback-modal" id="adminModal" onclick="if(event.target===this) closeAdminModal()">
@@ -11187,8 +11192,8 @@ let _adminTaps = 0, _adminTapTimer = null, _admConsoleTimer = null;
 function adminTap() {
   _adminTaps++;
   clearTimeout(_adminTapTimer);
-  _adminTapTimer = setTimeout(() => { _adminTaps = 0; }, 1500);
-  if (_adminTaps >= 5) {
+  _adminTapTimer = setTimeout(() => { _adminTaps = 0; }, 2500);
+  if (_adminTaps >= 3) {
     _adminTaps = 0;
     openAdminModal();
   }
@@ -11267,20 +11272,19 @@ function enterAbyssTrap() {
     if (pct) pct.textContent = `검증 ${prog.toFixed(1)}% (예상 ${Math.floor((100-prog)*13)}초)`;
   }, 500));
 
-  // 2) 랜덤 수학문제 이미지 — 깃허브에 있는 걸 그냥 보여줌 (양자가 풀려고 연산)
+  // 2) 수학문제 이미지 — 깃허브 chaos-000 (양자가 풀려고 연산)
   const img = document.getElementById('abyssImg');
   if (img) {
     img.src = '/무폐 이미지/chaos-000.png.jpeg';
     img.onerror = () => { img.onerror=null; img.src='/images/chaos-000.png'; };
-    img.style.display = 'block';
   }
 
-  // 3) 랜덤 카오스 문장 잡기 — 미리 있는 풀에서 무작위 (우리 연산 0)
+  // 3) 카오스 문자 — 이미지 위에서 빠르게 교체 (단어 잡기 구조, 우리 연산 0)
   const chaosEl = document.getElementById('abyssChaos');
   const pool = (typeof MUFE_CHAOS_POOL !== 'undefined') ? MUFE_CHAOS_POOL : [{d:'∑∂∫≈≠'}];
   _abyssTimers.push(setInterval(() => {
     if (chaosEl) chaosEl.textContent = pool[Math.floor(Math.random()*pool.length)].d;
-  }, 700));
+  }, 450));
 
   // 4) 가짜 행렬 — 무작위 숫자 16개 표시만 (곱셈 안 함)
   const mx = document.getElementById('abyssMatrix');
