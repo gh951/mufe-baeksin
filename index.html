@@ -10593,6 +10593,11 @@
         <div class="bio-light-flash" id="bioLightFlash"></div>
       </div>
 
+      <!-- [C-46] 동공 좌표 추적 상태 — 폰에서 콘솔 없이 눈으로 확인 -->
+      <div id="bioPupilStatus" style="margin:10px 0;padding:11px 12px;border-radius:10px;font-size:14px;font-weight:800;text-align:center;background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.35);">
+        👁 동공 좌표: 준비 중…
+      </div>
+
       <div class="bio-stats">
         <div class="bio-stat">
           <div class="bio-stat-label">💓 BPM</div>
@@ -10917,17 +10922,31 @@ function _mufeBuildPupilSignature(lm){
   return out.slice(0, 64);
 }
 
+function _mufeSetPupilUI(text, color, bg){
+  const el = document.getElementById('bioPupilStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = color;
+  el.style.background = bg;
+  el.style.borderColor = color;
+}
+
 function _mufeOnFaceMeshResults(results){
   _mufeFaceBusy = false;
   const fl = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
-  if (fl && fl.length >= 478 && flowing){
-    window._mufePupilCoords = _mufeBuildPupilSignature(fl);
-    if (_mufePupilCount === 0) console.log('[MUFE] 👁 동공·홍채 478좌표 캡처됨 → 키 결합');
-    _mufePupilCount++;
-    const st = document.getElementById('bioStatus');
-    if (st && _MUFE_BioScanner.isLocked) st.textContent = '측정 중 👁';
+  if (fl && fl.length >= 478){
+    if (flowing){
+      window._mufePupilCoords = _mufeBuildPupilSignature(fl);
+      _mufePupilCount++;
+      _mufeSetPupilUI(`👁 동공 좌표 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
+    } else {
+      // 얼굴은 보이는데 혈류 아직 — 정지 원칙(혈류 없으면 캡처 X)
+      _mufeSetPupilUI('👁 얼굴 감지됨 — 혈류 측정 중…', '#38bdf8', 'rgba(56,189,248,.12)');
+    }
+  } else {
+    _mufeSetPupilUI('👁 얼굴 찾는 중… (화면 가까이)', '#fbbf24', 'rgba(251,191,36,.12)');
   }
 }
 
@@ -10936,6 +10955,7 @@ function _mufeInitFaceMesh(video){
   _mufePupilCount = 0;
   if (typeof FaceMesh === 'undefined'){
     console.log('[MUFE] FaceMesh 미로드 — 동공 좌표 없이 기존 rPPG로 진행(정상)');
+    _mufeSetPupilUI('👁 동공 추적: 미작동 — 기존 방식으로 인증돼요', '#fbbf24', 'rgba(251,191,36,.12)');
     return;
   }
   try {
@@ -10945,9 +10965,11 @@ function _mufeInitFaceMesh(video){
       _mufeFaceMeshObj.onResults(_mufeOnFaceMeshResults);
     }
     console.log('[MUFE] FaceMesh 478 좌표 추적 시작 (홍채 포함)');
+    _mufeSetPupilUI('👁 동공 추적 시작 — 얼굴 비춰주세요', '#38bdf8', 'rgba(56,189,248,.12)');
   } catch(e){
     console.warn('[MUFE] FaceMesh 초기화 실패 — 기존 rPPG로 진행:', e);
     _mufeFaceMeshObj = null;
+    _mufeSetPupilUI('👁 동공 추적: 미작동 — 기존 방식으로 인증돼요', '#fbbf24', 'rgba(251,191,36,.12)');
   }
 }
 
@@ -10963,6 +10985,9 @@ function _mufeFaceMeshTick(){
 
 function _mufeStopFaceMesh(){
   _mufeFaceBusy = false;
+  if (_mufePupilCount > 0) {
+    _mufeSetPupilUI(`👁 동공 좌표 ${_mufePupilCount}회 캡처 완료 ✓`, '#4ade80', 'rgba(74,222,128,.14)');
+  }
   // _mufePupilCoords 는 유지 — 직후 enroll/authenticate 가 읽음.
   // FaceMesh 객체는 다음 측정 위해 살려둠(재초기화 비용 큼). 다음 _mufeInitFaceMesh 에서 좌표 초기화됨.
 }
