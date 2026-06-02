@@ -11864,5 +11864,73 @@ document.addEventListener('keydown', (e) => {
   }
 </script>
 
+<!-- ════════════════════════════════════════════════════════════
+     [C-46] 양자내성 ML-KEM-768 (NIST FIPS 203) 모듈 로더
+     · mufe_mlkem.js / mufe_mlkem.wasm 을 같은 폴더에 올리면 켜짐.
+     · 통신·키캡슐화 구간의 양자 방어(Harvest-Now-Decrypt-Later 대응) 담당.
+     · 파일 없거나 실패해도 앱은 그대로 작동(연결 전과 동일).
+     · window.MUFE_PQC 로 노출 → 다음 단계에서 인증 통신에 결합.
+     ════════════════════════════════════════════════════════════ -->
+<script src="mufe_mlkem.js" onerror="console.log('[MUFE] ML-KEM 파일 미로드 → 양자내성 모듈 꺼짐(앱은 정상)')"></script>
+<script>
+(function(){
+  // 빌드 시 EXPORT_NAME="MUFE_MLKEM" (MODULARIZE) → 전역 팩토리 함수로 들어옴
+  if (typeof MUFE_MLKEM !== 'function') {
+    console.log('[MUFE] ML-KEM 모듈 없음 — 양자내성 비활성(파일 미업로드 또는 빌드 전)');
+    return;
+  }
+  MUFE_MLKEM().then(function(mod){
+    // C 함수 래핑 (빌드 스크립트의 EXPORTED_FUNCTIONS와 1:1)
+    const selftest = mod.cwrap('mufe_mlkem_selftest', 'number', []);
+    const pkLen = mod.cwrap('mufe_mlkem_pk_bytes','number',[])();
+    const skLen = mod.cwrap('mufe_mlkem_sk_bytes','number',[])();
+    const ctLen = mod.cwrap('mufe_mlkem_ct_bytes','number',[])();
+    const ssLen = mod.cwrap('mufe_mlkem_ss_bytes','number',[])();
+    const _keypair = mod.cwrap('mufe_mlkem_keypair','number',['number','number']);
+    const _enc     = mod.cwrap('mufe_mlkem_enc','number',['number','number','number']);
+    const _dec     = mod.cwrap('mufe_mlkem_dec','number',['number','number','number']);
+
+    // JS에서 쓰기 편한 형태로 노출 (다음 단계에서 인증 통신에 결합)
+    window.MUFE_PQC = {
+      ready: true,
+      sizes: { pk: pkLen, sk: skLen, ct: ctLen, ss: ssLen },
+      keypair: function(){
+        const pk = mod._malloc(pkLen), sk = mod._malloc(skLen);
+        _keypair(pk, sk);
+        const PK = new Uint8Array(mod.HEAPU8.subarray(pk, pk+pkLen));
+        const SK = new Uint8Array(mod.HEAPU8.subarray(sk, sk+skLen));
+        mod._free(pk); mod._free(sk);
+        return { pk: PK, sk: SK };
+      },
+      enc: function(PK){
+        const pk = mod._malloc(pkLen), ct = mod._malloc(ctLen), ss = mod._malloc(ssLen);
+        mod.HEAPU8.set(PK, pk);
+        _enc(ct, ss, pk);
+        const CT = new Uint8Array(mod.HEAPU8.subarray(ct, ct+ctLen));
+        const SS = new Uint8Array(mod.HEAPU8.subarray(ss, ss+ssLen));
+        mod._free(pk); mod._free(ct); mod._free(ss);
+        return { ct: CT, ss: SS };
+      },
+      dec: function(CT, SK){
+        const ct = mod._malloc(ctLen), sk = mod._malloc(skLen), ss = mod._malloc(ssLen);
+        mod.HEAPU8.set(CT, ct); mod.HEAPU8.set(SK, sk);
+        _dec(ss, ct, sk);
+        const SS = new Uint8Array(mod.HEAPU8.subarray(ss, ss+ssLen));
+        mod._free(ct); mod._free(sk); mod._free(ss);
+        return SS;
+      }
+    };
+
+    // 자체점검 — 키생성→캡슐화→복호화 공유키 일치(1)면 진짜 동작
+    const ok = selftest() === 1;
+    console.log('%c[MUFE] 🔐 양자내성 ML-KEM-768: ' + (ok ? '✓ 동작 확인 (공유키 일치)' : '✗ 자체점검 실패'),
+      'color:' + (ok ? '#16a34a' : '#dc2626') + ';font-weight:bold');
+    console.log('[MUFE] ML-KEM 크기 — 공개키 '+pkLen+'B / 암호문 '+ctLen+'B / 공유키 '+ssLen+'B');
+  }).catch(function(e){
+    console.warn('[MUFE] ML-KEM 초기화 실패 — 양자내성 비활성(앱은 정상):', e);
+  });
+})();
+</script>
+
 </body>
 </html>
