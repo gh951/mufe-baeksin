@@ -10728,6 +10728,9 @@ async function startMUFESensor() {
       // play 실패해도 stream 혀있으면 계속
     }
     
+    // [C-46] 478 동공·홍채 좌표 추적 시작 (혈류 감지될 때만 좌표 저장)
+    _mufeInitFaceMesh(_MUFE_BioScanner.video);
+    
     _MUFE_BioScanner.canvas = document.createElement('canvas');
     _MUFE_BioScanner.canvas.width = 640;
     _MUFE_BioScanner.canvas.height = 480;
@@ -10836,6 +10839,8 @@ function finishBioMeasurement() {
 function stopMUFESensor() {
   _MUFE_BioScanner.isLocked = false;
   
+  _mufeStopFaceMesh();   // [C-46] 동공 좌표 추적 정지 (좌표값은 enroll/auth 위해 유지)
+  
   // [C-45] 난수 광원 정지 + 숨김
   if (_MUFE_BioScanner._lightTimer) {
     clearInterval(_MUFE_BioScanner._lightTimer);
@@ -10870,6 +10875,96 @@ function stopMUFESensor() {
     btn.disabled = false;
     btn.textContent = '📷 측정 시작';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// [C-46] CGO 478 FaceMesh 동공·홍채 좌표 → 백신 키 결합
+//   · MediaPipe FaceMesh(refineLandmarks:true) = 478점(얼굴 468 + 홍채 10점)
+//   · 홍채 좌표를 얼굴 기준틀로 정규화(위치·크기 불변) 후 코어스 양자화 →
+//     매번 비슷하게 재현되는 64개 실수 배열 = _mufePupilCoords (enroll/authenticate가 읽음)
+//   · 혈류(맥파) 감지될 때만 좌표 저장 — "혈류 없으면 정지" 원칙 유지
+//   · FaceMesh 미로드(오프라인·CDN차단) 시 자동으로 기존 rPPG 폴백 → 인증 흐름 정상
+// ───────────────────────────────────────────────────────────────
+//  ⚠ MUFE_PUPIL_QUANTIZE = 동공 좌표 스냅 폭(톨러런스).
+//     크게 → 매번 같은 값 잘 나옴(로그인 쉬움), 엔트로피↓
+//     작게 → 엔트로피↑, 그러나 미세 차이로 로그인 실패(연산지옥) 위험↑
+//     ※ 지금은 "안정성 우선" 코어스값. 실측 후 균형 조정. (가정X, 측정O)
+// ═══════════════════════════════════════════════════════════════
+const MUFE_PUPIL_QUANTIZE = 0.05;
+let _mufeFaceMeshObj = null, _mufeFaceBusy = false, _mufeFaceFrame = 0, _mufePupilCount = 0;
+
+function _mufeBuildPupilSignature(lm){
+  // 얼굴 기준틀 — 좌우 볼(234/454)=가로폭, 이마(10)/턱(152)=세로폭 → 위치·크기 불변화
+  const cx = (lm[234].x + lm[454].x) / 2;
+  const cy = (lm[10].y  + lm[152].y) / 2;
+  const faceW = Math.abs(lm[454].x - lm[234].x) || 1e-6;
+  const faceH = Math.abs(lm[152].y - lm[10].y)  || 1e-6;
+  const Q = MUFE_PUPIL_QUANTIZE;
+  const irisIdx = [468,469,470,471,472, 473,474,475,476,477]; // 우홍채5 + 좌홍채5
+  const out = [];
+  for (const i of irisIdx){
+    const p = lm[i]; if (!p) continue;
+    let nx = (p.x - cx) / faceW;            // 위치·크기 불변 좌표
+    let ny = (p.y - cy) / faceH;
+    nx = Math.round(nx / Q) * Q;            // 코어스 스냅 → 재현 안정
+    ny = Math.round(ny / Q) * Q;
+    out.push(0.5 + nx);                     // wasm 폴백과 같은 대역(~0.3~0.7)으로 맞춤
+    out.push(0.5 + ny);
+  }
+  // 결정적 패딩으로 정확히 64개 (enroll/authenticate 가 기대하는 길이)
+  let k = 0;
+  while (out.length < 64) { out.push(out[k % (irisIdx.length * 2)] ?? 0.5); k++; }
+  return out.slice(0, 64);
+}
+
+function _mufeOnFaceMeshResults(results){
+  _mufeFaceBusy = false;
+  const fl = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
+  // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
+  const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
+  if (fl && fl.length >= 478 && flowing){
+    window._mufePupilCoords = _mufeBuildPupilSignature(fl);
+    if (_mufePupilCount === 0) console.log('[MUFE] 👁 동공·홍채 478좌표 캡처됨 → 키 결합');
+    _mufePupilCount++;
+    const st = document.getElementById('bioStatus');
+    if (st && _MUFE_BioScanner.isLocked) st.textContent = '측정 중 👁';
+  }
+}
+
+function _mufeInitFaceMesh(video){
+  window._mufePupilCoords = null;   // 새 측정 시작 → 좌표 초기화
+  _mufePupilCount = 0;
+  if (typeof FaceMesh === 'undefined'){
+    console.log('[MUFE] FaceMesh 미로드 — 동공 좌표 없이 기존 rPPG로 진행(정상)');
+    return;
+  }
+  try {
+    if (!_mufeFaceMeshObj){
+      _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f });
+      _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+      _mufeFaceMeshObj.onResults(_mufeOnFaceMeshResults);
+    }
+    console.log('[MUFE] FaceMesh 478 좌표 추적 시작 (홍채 포함)');
+  } catch(e){
+    console.warn('[MUFE] FaceMesh 초기화 실패 — 기존 rPPG로 진행:', e);
+    _mufeFaceMeshObj = null;
+  }
+}
+
+function _mufeFaceMeshTick(){
+  if (!_mufeFaceMeshObj || !_MUFE_BioScanner.video || _mufeFaceBusy) return;
+  if ((_mufeFaceFrame++ % 5) !== 0) return;   // 5프레임마다 1회(부하 절감)
+  _mufeFaceBusy = true;
+  try {
+    const p = _mufeFaceMeshObj.send({ image: _MUFE_BioScanner.video });
+    if (p && p.catch) p.catch(()=>{ _mufeFaceBusy = false; });
+  } catch(e){ _mufeFaceBusy = false; }
+}
+
+function _mufeStopFaceMesh(){
+  _mufeFaceBusy = false;
+  // _mufePupilCoords 는 유지 — 직후 enroll/authenticate 가 읽음.
+  // FaceMesh 객체는 다음 측정 위해 살려둠(재초기화 비용 큼). 다음 _mufeInitFaceMesh 에서 좌표 초기화됨.
 }
 
 function getGreenChannelAverage() {
@@ -11127,6 +11222,8 @@ function mufeUpdate() {
   
   calculateMUFEBpm();
   mufeAuthLockSystem();
+  
+  _mufeFaceMeshTick();   // [C-46] 동공·홍채 좌표 캡처(혈류 있을 때만 저장)
   
   _MUFE_BioScanner.rafId = requestAnimationFrame(mufeUpdate);
 }
@@ -11626,6 +11723,8 @@ document.addEventListener('keydown', (e) => {
        진짜 C 코어(물리적 memset 휘발)로 승격됩니다.
      · 아직 .wasm 안 올렸으면 mufe_bridge.js 가 JS 폴백(시연)으로 작동 → 화면 정상.
      ════════════════════════════════════════════════════════════ -->
+<!-- [C-46] 동공·홍채 478 좌표 추적용 MediaPipe FaceMesh (CGO와 동일 CDN). 못 불러오면 기존 rPPG로 정상 작동 -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
 <script src="mufe_core.js" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
 <script src="mufe_bridge.js"></script>
 <script>
