@@ -6325,22 +6325,28 @@
             </div>
           </div>
 
-          <!-- 자연음 믹서 (위) -->
+          <!-- 자연음 믹서 (위) — 2축 합성음 선택 (동지님 원래 비전: 많은 소리 다축 믹싱) -->
           <div class="mufe-sound-mixer">
-            <div class="msm-label">🌿 자연음 선택 (탭하여 켜기 + 볼륨)</div>
-            <div class="msm-grid">
-              <div class="msm-sound" data-sound="baby" data-freq="440">
-                <div class="msm-emoji">🍼</div><div class="msm-name">아기 울음</div>
-                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="baby">
-              </div>
-              <div class="msm-sound" data-sound="rain" data-freq="220">
-                <div class="msm-emoji">🌧️</div><div class="msm-name">빗소리</div>
-                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="rain">
-              </div>
-              <div class="msm-sound" data-sound="wind" data-freq="110">
-                <div class="msm-emoji">💨</div><div class="msm-name">바람</div>
-                <input type="range" min="0" max="100" value="50" class="msm-vol" data-vol="wind">
-              </div>
+            <div class="msm-label">🌿 자연음 조합 (소리 2개 + 음높이 + 볼륨 = 나만의 카오스 음)</div>
+
+            <!-- 소리 A 축 -->
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>🎵 첫 번째 소리</span><span class="msr-val" id="soundAName">—</span></div>
+              <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundASel">
+            </div>
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>　└ 볼륨 A</span><span class="msr-val" id="volAVal">50</span></div>
+              <input type="range" min="0" max="100" value="50" class="mufe-slider" id="soundAVol">
+            </div>
+
+            <!-- 소리 B 축 -->
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>🎶 두 번째 소리</span><span class="msr-val" id="soundBName">—</span></div>
+              <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundBSel">
+            </div>
+            <div class="mufe-slider-row">
+              <div class="msr-label"><span>　└ 볼륨 B</span><span class="msr-val" id="volBVal">50</span></div>
+              <input type="range" min="0" max="100" value="50" class="mufe-slider" id="soundBVol">
             </div>
           </div>
 
@@ -6367,39 +6373,8 @@
         </div>
         <!-- ═══ [C-45 끝] ═══ -->
         
-        <div class="reg-spacing">
-          <div class="reg-spacing-label">잡은 단어와 어떻게 합치시겠어요?</div>
-          <div class="reg-radio-group reg-radio-grid-4">
-            <label class="reg-radio">
-              <input type="radio" name="regFormat" value="joined-after" checked>
-              <span class="reg-radio-text">
-                <strong>비번+단어 붙여</strong><br>
-                <small>내비번진실</small>
-              </span>
-            </label>
-            <label class="reg-radio">
-              <input type="radio" name="regFormat" value="spaced-after">
-              <span class="reg-radio-text">
-                <strong>비번 단어 띄어</strong><br>
-                <small>내비번 진실</small>
-              </span>
-            </label>
-            <label class="reg-radio">
-              <input type="radio" name="regFormat" value="joined-before">
-              <span class="reg-radio-text">
-                <strong>단어+비번 붙여</strong><br>
-                <small>진실내비번</small>
-              </span>
-            </label>
-            <label class="reg-radio">
-              <input type="radio" name="regFormat" value="spaced-before">
-              <span class="reg-radio-text">
-                <strong>단어 비번 띄어</strong><br>
-                <small>진실 내비번</small>
-              </span>
-            </label>
-          </div>
-        </div>
+        <!-- 합치기 형식: 기본(비번+단어 붙여) 고정 — 사용자 편의 위해 선택 UI 제거 -->
+        <input type="hidden" name="regFormat" id="regFormat" value="joined-after">
         
         <!-- 🫀 생체 인증 옵션 (선택) -->
         <div class="bio-option-section">
@@ -6584,6 +6559,52 @@
              autocomplete="off"
              autocapitalize="off"
              spellcheck="false" />
+
+      <!-- 🎚️ 카오스 키 (인증 시에도 — 등록 때와 같은 소리·슬라이더를 맞춰야 좌표 일치) -->
+      <div class="mufe-entropy-section" id="mufeEntropySectionAuth" style="margin-top:14px;">
+        <div class="mes-header">
+          <span class="mes-icon">🎚️</span>
+          <div class="mes-title">나만의 카오스 키 맞추기 <span class="mes-opt">(등록 시 사용했다면)</span>
+            <small>등록 때 고른 소리 2개 + 슬라이더 모양을 그대로 맞춰주세요</small>
+          </div>
+        </div>
+        <div class="mufe-sound-mixer">
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>🎵 첫 번째 소리</span><span class="msr-val" id="soundANameC">—</span></div>
+            <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundASelC">
+          </div>
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>　└ 볼륨 A</span><span class="msr-val" id="volAValC">50</span></div>
+            <input type="range" min="0" max="100" value="50" class="mufe-slider" id="soundAVolC">
+          </div>
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>🎶 두 번째 소리</span><span class="msr-val" id="soundBNameC">—</span></div>
+            <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundBSelC">
+          </div>
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>　└ 볼륨 B</span><span class="msr-val" id="volBValC">50</span></div>
+            <input type="range" min="0" max="100" value="50" class="mufe-slider" id="soundBVolC">
+          </div>
+        </div>
+        <div class="mufe-slider-block">
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBigC">
+          </div>
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmallC">
+          </div>
+          <div class="mufe-slider-row">
+            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5000</span></div>
+            <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicroC">
+          </div>
+        </div>
+        <div class="mes-result">
+          카오스 키 좌표: <b id="keyCoordC">—</b><br>
+          자연음 시드: <b id="soundSeedC">없음</b>
+        </div>
+      </div>
       
       <!-- 🫀 생체 인증 (잡힌 단어 아래) — 생체 사용자만 표시 -->
       <div class="bio-challenge-section" id="bioChallengeSection" style="display:none;">
@@ -7071,6 +7092,10 @@
     if (typeof window.showBioChallengeIfNeeded === 'function') {
       window.showBioChallengeIfNeeded();
     }
+    // 인증 화면 카오스 키 바 바인딩 (등록과 같은 MUFE_Entropy 공유)
+    if (typeof _mufeInitEntropyUI === 'function') {
+      setTimeout(_mufeInitEntropyUI, 100);
+    }
     
     await loadChallengeAndStartRotation();
   }
@@ -7200,7 +7225,7 @@
 
   async function registerPasscode() {
     const passcode = document.getElementById('regPasscode').value.trim();
-    const format = document.querySelector('input[name="regFormat"]:checked').value;
+    const format = (document.getElementById('regFormat') || {}).value || 'joined-after';
     
     if (!passcode || passcode.length < 2) {
       showRegMsg('비번은 2글자 이상이어야 합니다', 'retry');
@@ -7485,9 +7510,25 @@
   // ════════════════════════════════════════════════════════════
   const MUFE_Entropy = {
     big:500, small:500, micro:5000,
-    sounds:{ baby:{on:false,vol:50}, rain:{on:false,vol:50}, wind:{on:false,vol:50} },
-    audioCtx:null, oscillators:{}, pupilPassed:false,
+    soundA:0, soundB:0, volA:50, volB:50,
+    audioCtx:null, pupilPassed:false,
   };
+
+  // 48종 합성음 뱅크 (파일 없이 코드로 생성) — 각 소리 = {이름, 파형, 기준주파수}
+  const MUFE_SOUND_BANK = [
+    {n:'이슬',w:'sine',f:392},{n:'산들',w:'sine',f:440},{n:'시냇물',w:'triangle',f:330},{n:'풀잎',w:'sine',f:494},
+    {n:'빗방울',w:'triangle',f:587},{n:'천둥',w:'sawtooth',f:82},{n:'파도',w:'sine',f:147},{n:'바람골',w:'sine',f:110},
+    {n:'새벽새',w:'triangle',f:659},{n:'밤벌레',w:'square',f:880},{n:'대숲',w:'sawtooth',f:196},{n:'폭포',w:'sawtooth',f:165},
+    {n:'반딧불',w:'sine',f:1047},{n:'안개',w:'sine',f:262},{n:'서리',w:'triangle',f:740},{n:'노을',w:'sine',f:349},
+    {n:'달빛',w:'sine',f:523},{n:'별가루',w:'triangle',f:988},{n:'눈송이',w:'sine',f:698},{n:'화롯불',w:'sawtooth',f:131},
+    {n:'동굴',w:'sine',f:98},{n:'메아리',w:'triangle',f:294},{n:'종소리',w:'sine',f:1175},{n:'풍경',w:'triangle',f:1319},
+    {n:'대지',w:'sawtooth',f:73},{n:'협곡',w:'sine',f:123},{n:'사막바람',w:'sine',f:185},{n:'설원',w:'sine',f:622},
+    {n:'온천',w:'triangle',f:233},{n:'갈대',w:'sine',f:415},{n:'억새',w:'triangle',f:466},{n:'이끼',w:'sine',f:277},
+    {n:'산울림',w:'sawtooth',f:104},{n:'물안개',w:'sine',f:311},{n:'노송',w:'sawtooth',f:117},{n:'단풍',w:'triangle',f:370},
+    {n:'겨울숲',w:'sine',f:208},{n:'봄비',w:'triangle',f:554},{n:'여름밤',w:'square',f:784},{n:'가을들',w:'sine',f:466},
+    {n:'고요',w:'sine',f:175},{n:'잔물결',w:'triangle',f:622},{n:'솔바람',w:'sine',f:247},{n:'먼천둥',w:'sawtooth',f:65},
+    {n:'새소리',w:'triangle',f:831},{n:'풀벌레',w:'square',f:932},{n:'시린달',w:'sine',f:1397},{n:'깊은밤',w:'sine',f:87},
+  ];
 
   function _mufeSliderFill(slider){
     const min=+slider.min, max=+slider.max, val=+slider.value;
@@ -7495,18 +7536,23 @@
   }
   function _mufeRecomputeKey(){
     const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
-    const kc = document.getElementById('keyCoord'); if(kc) kc.textContent = coord;
-    const active = Object.entries(MUFE_Entropy.sounds).filter(([k,v])=>v.on);
-    const ss = document.getElementById('soundSeed');
-    if(ss) ss.textContent = active.length===0 ? '없음' : active.map(([k,v])=>`${k}:${v.vol}`).join(' + ');
+    const a = MUFE_SOUND_BANK[MUFE_Entropy.soundA] || {n:'—'};
+    const bb = MUFE_SOUND_BANK[MUFE_Entropy.soundB] || {n:'—'};
+    const seed = `${a.n}(${MUFE_Entropy.volA}) + ${bb.n}(${MUFE_Entropy.volB})`;
+    // 등록 화면 + 인증 화면 양쪽 표시 갱신
+    const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('keyCoord',coord); set('keyCoordC',coord);
+    set('soundSeed',seed); set('soundSeedC',seed);
+    set('soundAName',a.n); set('soundANameC',a.n);
+    set('soundBName',bb.n); set('soundBNameC',bb.n);
   }
-  // verify로 보낼 엔트로피 페이로드 (다른 함수에서 사용)
+  // verify로 보낼 엔트로피 페이로드 (소리 2축 + 볼륨 + 슬라이더 = 71비트+ 엔트로피)
   window.getMufeEntropyPayload = function(){
     return {
       coord: (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
       big:MUFE_Entropy.big, small:MUFE_Entropy.small, micro:MUFE_Entropy.micro,
-      soundSeed: Object.entries(MUFE_Entropy.sounds).filter(([k,v])=>v.on).map(([k,v])=>`${k}:${v.vol}`).join('+'),
-      // [C-45] 동공은 기존 생체인증(rPPG) 결과를 사용 — 별도 가짜 측정 안 함
+      // 소리 선택값(인덱스)과 볼륨을 숫자화 — 실시간 진폭 아님(재현 가능)
+      soundSeed: `${MUFE_Entropy.soundA}:${MUFE_Entropy.volA}+${MUFE_Entropy.soundB}:${MUFE_Entropy.volB}`,
       pupil: !!window._bioVerifyPassed,
     };
   };
@@ -7526,52 +7572,75 @@
       });
     });
 
-    document.querySelectorAll('.msm-sound').forEach(el=>{
-      if(el._mufeBound) return; el._mufeBound = true;
-      const key = el.dataset.sound, freq = +el.dataset.freq;
-      const volSlider = el.querySelector('.msm-vol');
-      el.addEventListener('click',(e)=>{
-        if(e.target===volSlider) return;
-        el.classList.toggle('on');
-        _mufeToggleSound(key, freq);
-      });
-      if(volSlider){
-        volSlider.style.setProperty('--vfill', volSlider.value+'%');
-        volSlider.addEventListener('input',()=>{
-          MUFE_Entropy.sounds[key].vol = +volSlider.value;
-          volSlider.style.setProperty('--vfill', volSlider.value+'%');
-          const o = MUFE_Entropy.oscillators[key];
-          if(o) o.gain.gain.value = (volSlider.value/100)*0.04;
-          _mufeRecomputeKey();
+    // 소리 A·B 선택 + 볼륨 슬라이더
+    const bind = (selId, volId, volValId, selKey, volKey) => {
+      const sel=document.getElementById(selId), vol=document.getElementById(volId), vv=document.getElementById(volValId);
+      if(sel && !sel._mufeBound){
+        sel._mufeBound=true; _mufeSliderFill(sel);
+        sel.addEventListener('input',()=>{
+          MUFE_Entropy[selKey]=+sel.value; _mufeSliderFill(sel); _mufeRecomputeKey();
         });
-        volSlider.addEventListener('click',e=>e.stopPropagation());
       }
+      if(vol && !vol._mufeBound){
+        vol._mufeBound=true; _mufeSliderFill(vol);
+        vol.addEventListener('input',()=>{
+          MUFE_Entropy[volKey]=+vol.value; if(vv) vv.textContent=vol.value; _mufeSliderFill(vol); _mufeRecomputeKey();
+        });
+      }
+    };
+    bind('soundASel','soundAVol','volAVal','soundA','volA');
+    bind('soundBSel','soundBVol','volBVal','soundB','volB');
+
+    // 인증 화면(챌린지)의 카오스 키 바 — 같은 MUFE_Entropy 공유 (C 접미사 id)
+    ['BigC','SmallC','MicroC'].forEach(name=>{
+      const base = name.replace('C','');           // Big/Small/Micro
+      const slider=document.getElementById('slider'+name);
+      const val=document.getElementById('val'+name);
+      if(!slider || slider._mufeBound) return;
+      slider._mufeBound=true; _mufeSliderFill(slider);
+      slider.addEventListener('input',()=>{
+        MUFE_Entropy[base.toLowerCase()] = +slider.value;
+        if(val) val.textContent = slider.value;
+        _mufeSliderFill(slider); _mufeRecomputeKey();
+      });
     });
+    const bindC = (selId, volId, volValId, selKey, volKey) => {
+      const sel=document.getElementById(selId), vol=document.getElementById(volId), vv=document.getElementById(volValId);
+      if(sel && !sel._mufeBound){
+        sel._mufeBound=true; _mufeSliderFill(sel);
+        sel.addEventListener('input',()=>{ MUFE_Entropy[selKey]=+sel.value; _mufeSliderFill(sel); _mufeRecomputeKey(); });
+      }
+      if(vol && !vol._mufeBound){
+        vol._mufeBound=true; _mufeSliderFill(vol);
+        vol.addEventListener('input',()=>{ MUFE_Entropy[volKey]=+vol.value; if(vv) vv.textContent=vol.value; _mufeSliderFill(vol); _mufeRecomputeKey(); });
+      }
+    };
+    bindC('soundASelC','soundAVolC','volAValC','soundA','volA');
+    bindC('soundBSelC','soundBVolC','volBValC','soundB','volB');
 
-    // [C-45] 동공 광반사는 기존 생체인증(rPPG 카메라)을 활용 — 가짜 깜빡임 버튼 제거됨
     _mufeRecomputeKey();
   }
 
-  function _mufeToggleSound(key, freq){
-    const s = MUFE_Entropy.sounds[key];
-    s.on = !s.on;
-    if(s.on){
-      try{
-        if(!MUFE_Entropy.audioCtx) MUFE_Entropy.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        const ctx = MUFE_Entropy.audioCtx;
-        const osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = key==='rain' ? 'sawtooth' : key==='wind' ? 'sine' : 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.value = (s.vol/100)*0.04;
-        osc.connect(gain); gain.connect(ctx.destination); osc.start();
-        MUFE_Entropy.oscillators[key] = {osc,gain};
-      }catch(e){ console.warn('[MUFE] audio:', e); }
-    }else{
-      const o = MUFE_Entropy.oscillators[key];
-      if(o){ try{o.osc.stop();}catch(e){} delete MUFE_Entropy.oscillators[key]; }
-    }
-    _mufeRecomputeKey();
-  }
+  // 내 소리 조합 미리듣기 (2초) — 합성음 2개 동시 재생
+  window.mufePreviewSound = function(){
+    try{
+      if(!MUFE_Entropy.audioCtx) MUFE_Entropy.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const ctx = MUFE_Entropy.audioCtx;
+      if(ctx.state==='suspended') ctx.resume();
+      [['soundA','volA'],['soundB','volB']].forEach(([sk,vk])=>{
+        const s = MUFE_SOUND_BANK[MUFE_Entropy[sk]]; if(!s) return;
+        const osc=ctx.createOscillator(), gain=ctx.createGain();
+        osc.type=s.w;
+        // 슬라이더(대·소·미세)로 음높이 미세 변조 — 같은 소리도 슬라이더 따라 달라짐
+        const bend = 1 + (MUFE_Entropy.big-500)/5000 + (MUFE_Entropy.micro-5000)/100000;
+        osc.frequency.value = s.f * bend;
+        gain.gain.value = (MUFE_Entropy[vk]/100)*0.05;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 2);
+      });
+    }catch(e){ console.warn('[MUFE] preview:', e); }
+  };
 
   // 챌린지 화면 뜰 때마다 엔트로피 UI 초기화 (DOM 준비 후)
   document.addEventListener('DOMContentLoaded', ()=> setTimeout(_mufeInitEntropyUI, 300));
@@ -10565,19 +10634,34 @@ async function startMUFESensor() {
     document.getElementById('bioStatus').className = 'bio-stat-value active';
     if (btn) btn.textContent = '⏺ 측정 중...';
     
-    // 10초 타이머 시작
+    // 10초 타이머 — [C-45] 혈류(맥파) 감지될 때만 시간이 흐른다.
+    //   얼굴/혈류 없으면(책상·딴 곳) 타이머 멈춤. CGO 건강예측과 동일 원칙.
+    _MUFE_AuthEngine._activeMs = 0;   // 혈류가 잡힌 누적 시간
+    _MUFE_AuthEngine._lastTick = Date.now();
     if (_MUFE_AuthEngine.timerInterval) clearInterval(_MUFE_AuthEngine.timerInterval);
     _MUFE_AuthEngine.timerInterval = setInterval(() => {
-      const elapsed = Date.now() - _MUFE_AuthEngine.startTime;
-      const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - elapsed);
+      const now = Date.now();
+      const dt = now - _MUFE_AuthEngine._lastTick;
+      _MUFE_AuthEngine._lastTick = now;
+
+      // 혈류(맥파)가 감지될 때만 시간 누적 — 아니면 타이머 정지
+      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
+      if (flowing) _MUFE_AuthEngine._activeMs += dt;
+
+      const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - _MUFE_AuthEngine._activeMs);
       const pct = (remaining / _MUFE_AuthEngine.timeLimit) * 100;
-      
+
       const timerText = document.getElementById('bioTimerText');
       const timerFill = document.getElementById('bioTimerFill');
-      if (timerText) timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
+      if (timerText) {
+        if (flowing) {
+          timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
+        } else {
+          timerText.textContent = '⏸ 얼굴을 비춰주세요 (혈류 없음 — 정지)';
+        }
+      }
       if (timerFill) timerFill.style.width = pct + '%';
-      
-      // 10초 초과 — 종료 판정
+
       if (remaining <= 0) {
         clearInterval(_MUFE_AuthEngine.timerInterval);
         _MUFE_AuthEngine.timerInterval = null;
