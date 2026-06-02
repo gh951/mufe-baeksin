@@ -4293,7 +4293,7 @@
     .fm-title { font-size: 18px; }
   }
   
-  /* 챌린지 stage — 대장님 이미지 + 회전 단어 통합 */
+  /* 챌린지 stage — 카오스 이미지 + 회전 단어 통합 */
   .challenge-stage-custom {
     position: relative;
     overflow: hidden;
@@ -6247,7 +6247,7 @@
     </div>
     
     <div class="challenge-stage challenge-stage-custom">
-      <!-- 대장님 카오스 이미지 (배경) -->
+      <!-- 카오스 이미지 (배경) -->
       <img id="stageChaosImage" 
            src="" 
            alt="" 
@@ -6368,28 +6368,28 @@
               <input type="radio" name="regFormat" value="joined-after" checked>
               <span class="reg-radio-text">
                 <strong>비번+단어 붙여</strong><br>
-                <small>1대장님진실</small>
+                <small>내비번진실</small>
               </span>
             </label>
             <label class="reg-radio">
               <input type="radio" name="regFormat" value="spaced-after">
               <span class="reg-radio-text">
                 <strong>비번 단어 띄어</strong><br>
-                <small>1대장님 진실</small>
+                <small>내비번 진실</small>
               </span>
             </label>
             <label class="reg-radio">
               <input type="radio" name="regFormat" value="joined-before">
               <span class="reg-radio-text">
                 <strong>단어+비번 붙여</strong><br>
-                <small>진실1대장님</small>
+                <small>진실내비번</small>
               </span>
             </label>
             <label class="reg-radio">
               <input type="radio" name="regFormat" value="spaced-before">
               <span class="reg-radio-text">
                 <strong>단어 비번 띄어</strong><br>
-                <small>진실 1대장님</small>
+                <small>진실 내비번</small>
               </span>
             </label>
           </div>
@@ -6949,7 +6949,7 @@
   const _MUFE_FORMAT_TAGS = ['ㅋ', 'ㅎ', 'ㅍ', 'ㄷ'];
   
   function synthChaos(cleanWord) {
-    // 풀에 없을 때 즉석 카오스 생성 (대장님 모토: 깨끗한 한글 절대 X)
+    // 풀에 없을 때 즉석 카오스 생성 (모토: 깨끗한 한글 노출 금지)
     if (!cleanWord || typeof cleanWord !== 'string') return '';
     const chars = [...cleanWord];
     const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -6981,7 +6981,7 @@
     modal.classList.add('show');
     
     // 항상 등록/시작 화면 먼저 — 사용자가 직접 🚀 시작하기 클릭으로 진입
-    // (자동 진입 제거 — 대장님 요청)
+    // (자동 진입 제거)
     showRegisterForm();
   }
 
@@ -7307,7 +7307,7 @@
         container.style.backgroundPosition = 'center';
         container.classList.add('has-chaos-image');
       }
-      // 챌린지 stage 이미지 완료 (대장님 카오스 이미지)
+      // 챌린지 stage 이미지 완료 (카오스 이미지)
       if (stageImg) {
         stageImg.src = imageUrl;
         stageImg.style.display = 'block';
@@ -8892,7 +8892,7 @@
     
     if (result === 'decoy') {
       attackTracker.decoys++;
-      // 누적 차단도 +1 (대장님 모토 "기만 격리")
+      // 누적 차단도 +1 (모토: 기만 격리)
       if (typeof incrementLifetimeBlocked === 'function') {
         incrementLifetimeBlocked();
       }
@@ -9588,7 +9588,7 @@
 
   // ════════════════════════════════════════════════════════════
   // CPU/Memory 게이지 + 시스템 부하 임계점
-  // 임계점 도달 시 → 역바이러스 발사 (대장님 설계)
+  // 임계점 도달 시 → 역바이러스 발사
   // ════════════════════════════════════════════════════════════
   
   const reverseVirusState = {
@@ -11018,9 +11018,9 @@ window.showBioChallengeIfNeeded = function() {
   <div class="feedback-modal-inner">
     <button class="feedback-modal-close" onclick="closeFeedbackModal()">✕</button>
     
-    <div class="fm-title">💬 의견 영역</div>
+    <div class="fm-title">💬 의견 보내기</div>
     <div class="fm-subtitle">
-      한 줄이라도 입력해주세요 — 대장님이 의견 그대로 *직접* 봄
+      한 줄이라도 좋습니다 — 보내주신 의견을 직접 읽고 반영합니다
     </div>
     
     <!-- 구글 폼 자리 완료 -->
@@ -11033,36 +11033,35 @@ window.showBioChallengeIfNeeded = function() {
       style="border-radius: 12px; background: white; display: none;">
     </iframe>
     
-    <!-- 폼 없음 시 폴백 — 이메일 완료 -->
+    <!-- 폼 없음 시 폴백 — 이메일 -->
     <div class="fm-fallback" id="feedbackFallback">
       <div class="fm-fb-icon">📧</div>
-      <div class="fm-fb-title">의견 영역</div>
+      <div class="fm-fb-title">의견 보내기</div>
       <div class="fm-fb-desc">
-        구글 폼 하는 중 — 잠깐만 입력해주세요.<br>
-        또는 *카카오톡·SNS*로 의견 공유해주세요.
+        버그·제안·후기를 자유롭게 적어주세요.<br>
+        또는 카카오톡·SNS로 공유해주셔도 됩니다.
       </div>
       
       <div class="fm-fb-quick">
         <div class="fm-fb-quick-label">간단 의견 남기기:</div>
         <textarea id="feedbackQuickText" class="fm-fb-textarea" 
-                  placeholder="버그·제안·후기 — 한 줄이라도 입력해주세요" rows="4"></textarea>
+                  placeholder="버그·제안·후기 — 한 줄이라도 좋습니다" rows="4"></textarea>
         <button class="fm-fb-submit" onclick="submitQuickFeedback()">💾 남기기 (브라우저에 저장)</button>
         <div class="fm-fb-note">
-          ※ 베타 단계 — 브라우저에 완료. 정식 출시 후 서버로 전송 가능
+          ※ 베타 단계 — 브라우저에 저장됩니다. 정식 출시 후 서버 전송 예정
         </div>
       </div>
       
       <div class="fm-fb-share">
-        <strong>또는 영역:</strong><br>
-        <a href="mailto:mufe.baeksin@gmail.com?subject=MUFE 백신 의견&body=대장님께 영역:" target="_blank">
-          📧 이메일로 기
+        <strong>또는 이메일로:</strong><br>
+        <a href="mailto:mufe.baeksin@gmail.com?subject=MUFE 백신 의견&body=의견:" target="_blank">
+          📧 이메일 보내기
         </a>
       </div>
     </div>
     
     <div class="fm-thanks">
-      <strong>💛 한 마디</strong>: 대장님 · G-7 · C-45가 봅니다. 
-      대장님이 의견 *진심으로* 받음. 정직히.
+      <strong>💛 한 마디</strong>: 보내주신 의견을 진심으로, 정직하게 받습니다.
     </div>
   </div>
 </div>
@@ -11095,7 +11094,7 @@ window.showBioChallengeIfNeeded = function() {
 <script>
 // ═══ FAQ + 의견 영역 ═══
 
-const FEEDBACK_FORM_URL = ''; // 구글 폼 URL 영역 — 대장님이 하시면 힘
+const FEEDBACK_FORM_URL = ''; // 구글 폼 URL — 운영자 설정
 
 function openFeedbackModal() {
   document.getElementById('feedbackModal').classList.add('active');
@@ -11136,11 +11135,11 @@ function submitQuickFeedback() {
   localStorage.setItem('mufe-feedback', JSON.stringify(feedbacks));
   
   document.getElementById('feedbackQuickText').value = '';
-  alert('✓ 의견 힘! 대장님이 받았어요. 정직히 ☕💛');
+  alert('✓ 의견이 저장됐어요. 감사합니다 ☕💛');
   
   // 활동 로그 음
   if (typeof addLog === 'function') {
-    addLog('info', '💬', '의견 완료 — 대장님께 전달');
+    addLog('info', '💬', '의견 저장 완료');
   }
   
   closeFeedbackModal();
