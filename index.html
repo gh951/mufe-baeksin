@@ -7213,7 +7213,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode, format }),
       });
-      
+
+      // [C-45] 입력 즉시 휘발 (특허 청구항 1·17) — 전송 직후 원본 비번 파쇄.
+      //   화면 입력칸을 비우고, 로컬 변수도 무효화. 비번은 사용자 머리에만 남는다.
+      try {
+        const rp = document.getElementById('regPasscode');
+        if (rp) rp.value = '';
+      } catch(e){}
+
       const result = await res.json();
       
       if (result.status === 'success') {
@@ -7653,6 +7660,9 @@
   
   async function verifyAuth() {
     const ans = document.getElementById('authInput').value.trim();
+    // [C-45] 입력 즉시 휘발 (특허 청구항 1) — 읽는 즉시 화면 입력칸을 비운다.
+    //   어떤 경로(실패·생체미통과 등)로 빠지든 원본이 화면·DOM에 남지 않게.
+    try { const _i = document.getElementById('authInput'); if (_i) _i.value = ''; } catch(e){}
     
     if (!ans) {
       showMsg('답을 입력해주세요', 'retry');
@@ -7710,7 +7720,14 @@
         }
       }
     } catch(wErr) { console.warn('[MUFE-WASM] 휘발 시연 스킵:', wErr); }
-    
+
+    // ════════════════════════════════════════════════════════════
+    // [C-45] 입력 즉시 휘발 (특허 청구항 1·17) — 원본 비번을 메모리·화면에서 파쇄.
+    //   마스터키는 위에서 도출·증발됐고, 이제 사용자가 친 '원본 입력'도 즉시 없앤다.
+    //   verify에 보낼 값(answerForVerify)만 잠깐 분리 보관 후, 그것도 전송 직후 파쇄.
+    // ════════════════════════════════════════════════════════════
+    const answerForVerify = ans;          // 서버 검증용 1회성 사본 (전송 후 무효화)
+
     try {
       const res = await fetch(`${API_BASE}/api/verify`, {
         method: 'POST',
@@ -7719,12 +7736,19 @@
           userToken,
           challengeId: currentChallenge.challengeId,
           caughtWord,
-          answer: ans,
+          answer: answerForVerify,
           jitter: calculateJitterScore(),         // 🛡️ 떨림 점수
           totalEvents: window._jitterEvents.length,  // 클릭 횟수
           entropy: (typeof window.getMufeEntropyPayload === 'function') ? window.getMufeEntropyPayload() : null,  // [C-45] 슬라이더+자연음+동공
         }),
       });
+
+      // [C-45] 전송 끝 — 1회성 비번 사본도 즉시 파쇄, 생체 플래그도 리셋
+      try {
+        caughtWord = null;
+        window._bioVerifyPassed = false;
+        if (window._mufePupilCoords) window._mufePupilCoords = null;
+      } catch(e){}
       
       const result = await res.json();
       
@@ -10668,16 +10692,42 @@ function getGreenChannelAverage() {
   }
   r /= n; g /= n; bl /= n;
 
-  // ═══ [C-45] 혈류 STOP 법칙 — 피부 판정 ═══
-  // CGO MESSAGE 건강예측과 동일 원칙: 살아있는 피부가 아니면 측정 거부.
-  // 사람 피부는 적색(R)이 녹색(G)·청색(B)보다 높고, 너무 어둡거나 밝지 않음.
-  //  · 책상/벽/사진(균일색·R<G 등)은 여기서 걸러져 신호로 안 쌓임.
-  const isSkin =
-        r > g && g > bl * 0.85 &&     // 피부 색비율: R > G > (B 근처)
-        r > 60 && r < 245 &&          // 너무 어둡거나(빛없음) 너무 밝지(과노출) 않음
-        (r - bl) > 12;                // 적색-청색 차이(혈색) 존재
+  // ═══ [C-45] 혈류 STOP 법칙 — 진짜 맥파(혈류 진동)가 게이트 ═══
+  // CGO 건강예측과 동일: 색이 아니라 "심장 박동에 따른 주기적 밝기 진동(rPPG 맥파)"이
+  // 실시간으로 감지될 때만 진행. 책상·벽·나무색은 맥파가 없어 멈춘다.
+  // 색비율은 '보조 조건'일 뿐, 최종 판정은 혈류.
+  const skinColorOK =
+        r > bl &&                          // 최소한 적색이 청색보다 (피부 경향)
+        r > 60 && r < 245;                 // 밝기 범위 (너무 어둡/밝지 않게)
+
+  // 최근 녹색채널 흐름을 모아 '맥파(주기적 진동)'가 있는지 실시간 분석
+  _MUFE_AuthEngine._pulseBuf = (_MUFE_AuthEngine._pulseBuf || []);
+  _MUFE_AuthEngine._pulseBuf.push(g);
+  if (_MUFE_AuthEngine._pulseBuf.length > 60) _MUFE_AuthEngine._pulseBuf.shift();
+
+  let hasBloodFlow = false;
+  const buf = _MUFE_AuthEngine._pulseBuf;
+  if (buf.length >= 45) {
+    // 평균 대비 진폭(표준편차)과 '0선 교차(주기성)'를 본다
+    const m = buf.reduce((a, b) => a + b, 0) / buf.length;
+    let v = 0, crossings = 0;
+    for (let i = 0; i < buf.length; i++) {
+      v += (buf[i] - m) * (buf[i] - m);
+      if (i > 0 && (buf[i-1] - m) * (buf[i] - m) < 0) crossings++;
+    }
+    const std = Math.sqrt(v / buf.length);
+    // 맥파 조건: (1) 적당한 진동 진폭(평탄=책상 거부, 과대=노이즈 거부)
+    //           (2) 주기적 교차가 심박 범위(분당 약 40~180 → 표본창에서 적정 횟수)
+    const amplitudeOK = std > 0.30 && std < 18;
+    const periodicityOK = crossings >= 4 && crossings <= 40;
+    hasBloodFlow = amplitudeOK && periodicityOK;
+  }
+
+  // 최종: 혈류(맥파)가 진짜 있고, 색도 피부 경향이어야 '살아있는 본인'
+  const isSkin = hasBloodFlow && skinColorOK;
 
   _MUFE_AuthEngine.skinDetected = isSkin;
+  _MUFE_AuthEngine.hasBloodFlow = hasBloodFlow;
 
   // [C-45] 난수 광원 반사 기록 — 지금 쏘는 색일 때의 얼굴 RGB 저장
   if (isSkin && _MUFE_AuthEngine.lightColor !== 'none') {
