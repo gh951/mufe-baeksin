@@ -7761,7 +7761,7 @@
     const col = _mufeColorFromCoord(MUFE_Entropy.color);
     MUFE_Entropy.soundA = MUFE_Entropy.color % 48;                 // 색→소리A 자동
     MUFE_Entropy.soundB = Math.floor(MUFE_Entropy.color/48) % 48;  // 색→소리B 자동
-    const coord = (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const a = MUFE_SOUND_BANK[MUFE_Entropy.soundA] || {n:'—'};
     const bb = MUFE_SOUND_BANK[MUFE_Entropy.soundB] || {n:'—'};
     const seed = `${a.n}(${MUFE_Entropy.volA}) + ${bb.n}(${MUFE_Entropy.volB})`;
@@ -7789,7 +7789,7 @@
   // verify로 보낼 엔트로피 페이로드 (소리 2축 + 볼륨 + 슬라이더 = 71비트+ 엔트로피)
   window.getMufeEntropyPayload = function(){
     return {
-      coord: (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
+      coord: (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3),
       big:MUFE_Entropy.big, small:MUFE_Entropy.small, micro:MUFE_Entropy.micro,
       color:MUFE_Entropy.color,
       // 소리 선택값(인덱스)과 볼륨을 숫자화 — 실시간 진폭 아님(재현 가능)
@@ -7808,7 +7808,7 @@
     const ids = ['soundASelC','soundAVolC','soundBSelC','soundBVolC','sliderBigC','sliderSmallC','sliderMicroC'];
     ids.forEach(id=>{ const s=document.getElementById(id); if(s){ s.disabled = window._chaosLocked; s.style.opacity = window._chaosLocked ? '0.55' : '1'; } });
     const st = document.getElementById('chaosConfirmStatus');
-    const coord = (MUFE_Entropy.color*100000000 + MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
+    const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const btn = document.getElementById('chaosConfirmBtn');
     if (window._chaosLocked){
       if (st) st.textContent = `🔒 바 고정됨 — 좌표 ${coord} (다시 누르면 풀림)`;
