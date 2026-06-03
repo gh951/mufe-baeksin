@@ -6330,6 +6330,18 @@
           <div id="passStrengthLabel" style="margin-top:4px;color:#9aa7c0;"></div>
         </div>
 
+        <!-- [C-48] 제2 비밀 — 나만 아는 추가 암호. 마스터키에 섞여 양자/오프라인 저항을 높임. 저장 안 됨. -->
+        <input type="text"
+               class="auth-input"
+               id="regSecret2"
+               placeholder="제2 비밀 (선택 — 나만 아는 추가 암호, 양자 대비 강력 추천)"
+               maxlength="40"
+               autocomplete="off"
+               autocapitalize="off"
+               spellcheck="false"
+               style="margin-top:8px;" />
+        <div style="font-size:11px;color:#94a3b8;margin:4px 2px 8px;">↑ 본 비번과 합쳐져 열쇠가 됩니다. 어디에도 저장 안 되니 꼭 기억하세요. (빈칸이면 기존 방식 그대로)</div>
+
         <!-- ═══ [C-45] 물리 좌표 + 자연 엔트로피 (자연음 위 → 슬라이더 아래) ═══ -->
         <div class="mufe-entropy-section" id="mufeEntropySection">
           <div class="mes-header">
@@ -6383,16 +6395,16 @@
           <!-- 대·소·미세 슬라이더 (아래) -->
           <div class="mufe-slider-block">
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">5</span></div>
-              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBig">
+              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">5</span></div>
-              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmall">
+              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5</span></div>
-              <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicro">
+              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
+              <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
             </div>
           </div>
 
@@ -6627,16 +6639,16 @@
         </div>
         <div class="mufe-slider-block">
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">5</span></div>
-            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBigC">
+            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBigC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">5</span></div>
-            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmallC">
+            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmallC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5</span></div>
-            <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicroC">
+            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5000</span></div>
+            <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicroC">
           </div>
         </div>
         <div class="mes-result">
@@ -6678,7 +6690,17 @@
              autocomplete="off"
              autocapitalize="off"
              spellcheck="false" />
-      
+
+      <!-- [C-48] 제2 비밀 — 등록 때 정한 추가 암호 (없으면 비워두기) -->
+      <input type="text"
+             class="auth-input"
+             id="authSecret2"
+             placeholder="제2 비밀 (등록 때 정한 추가 암호 — 없으면 비워두기)"
+             autocomplete="off"
+             autocapitalize="off"
+             spellcheck="false"
+             style="margin-top:8px;" />
+
       <div class="auth-buttons">
         <button class="btn btn-cancel" onclick="resetAuthModal()">처음부터</button>
         <button class="btn btn-verify" onclick="verifyAuth()">인증 검증</button>
@@ -7441,7 +7463,9 @@
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
-        const passClean = mufeCleanInput(passcode);
+        const _s2 = mufeCleanInput((document.getElementById('regSecret2')||{}).value || '');
+        const passClean = _s2 ? (mufeCleanInput(passcode) + String.fromCharCode(31) + _s2) : mufeCleanInput(passcode);
+        try { const _r2 = document.getElementById('regSecret2'); if (_r2) _r2.value = ''; } catch(e){}
         console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
@@ -7853,7 +7877,7 @@
       _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[name.toLowerCase()] = +slider.value;
-        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
+        if(val) val.textContent = slider.value;
         _mufeSliderFill(slider);
         _mufeRecomputeKey();
       });
@@ -7887,7 +7911,7 @@
       slider._mufeBound=true; _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[base.toLowerCase()] = +slider.value;
-        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
+        if(val) val.textContent = slider.value;
         _mufeSliderFill(slider); _mufeRecomputeKey();
       });
     });
@@ -8090,10 +8114,14 @@
           if (wClean && ansClean.endsWith(wClean)) passOnly = ansClean.slice(0, ansClean.length - wClean.length);
           else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
           else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
-          // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
-          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 길이=', passOnly.length);
-          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
-          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
+          // [C-48] 제2 비밀(나만 아는 추가 암호)을 본 비번과 합쳐 키 재료에 섞음 — 등록과 동일
+          const _s2 = mufeCleanInput((document.getElementById('authSecret2')||{}).value || '');
+          const passForKey = _s2 ? (passOnly + String.fromCharCode(31) + _s2) : passOnly;
+          try { const _a2 = document.getElementById('authSecret2'); if (_a2) _a2.value = ''; } catch(e){}
+          // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번+제2비밀)이 맞으면 키 복원
+          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 제2비밀길이=', _s2.length, '| 키재료길이=', passForKey.length);
+          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 키재료길이:', passForKey.length, '| 동공:', pupil.length, '| 잡은단어:', w);
+          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passForKey, helper, commit);
           keyOk = !!a.pass;
           keyChecked = true;
           if (typeof addLog === 'function') {
