@@ -6891,6 +6891,20 @@
   //   c = clean   (서버 검증용 깨끗한 한글 — 본 비번 + c = 답)
   // 본 비번 + 잡힌 단어(.c) = 답. 매 STOP마다 .c 달라짐.
   // ════════════════════════════════════════════════════════════
+  // [C-47] 보안용 난수(CSPRNG) — Math.random은 역산 가능하므로
+  //   보안에 닿는 곳(단어 회전 순서·토큰)은 crypto.getRandomValues 사용.
+  //   화면 장식(연산지옥 효과·통계 애니메이션)은 Math.random 그대로 둬도 무해.
+  function mufeSecureRandom(){   // 0~1 사이 안전 난수
+    const a = new Uint32Array(1);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return a[0] / 4294967296;
+  }
+  function mufeSecureToken(len){  // 안전한 토큰 문자열
+    const a = new Uint8Array(len);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.from(a, b => b.toString(36)).join('').slice(0, len);
+  }
+
   const MUFE_CHAOS_POOL = [
     {d:'&%대#∫$장@? ㅋ',c:'대장'}, {d:'*@무^∑&!폐! ㅎ',c:'무폐'}, {d:'$[보√!?*안* ㅋ',c:'보안'}, {d:'!#양∂$!자@ ㅎ',c:'양자'}, {d:'^&질π#%?식! ㅍ',c:'질식'},
     {d:'(%백∞*&!신? ㅋ',c:'백신'}, {d:'*!카∆#$!스* ㅎ',c:'카스'}, {d:'&#천≈@%?재! ㄷ',c:'천재'}, {d:'@$미≠!#*끼& ㅋ',c:'미끼'}, {d:'!%논≡^&*리# ㅎ',c:'논리'},
@@ -7398,7 +7412,7 @@
 
     // 서버가 토큰을 안 주면(오프라인/서버다운) — 로컬 토큰을 만들어 진행 (시작하기 막힘 방지)
     if (!userToken) {
-      userToken = 'local-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+      userToken = 'local-' + Date.now().toString(36) + mufeSecureToken(8);
     }
     userSpacing = format;
     localStorage.setItem('mufe-user-token', userToken);
@@ -7476,7 +7490,7 @@
       if (currentChallenge.rotationWords && currentChallenge.rotationWords.length > 0) {
         rotatorWords = currentChallenge.rotationWords;
       } else {
-        rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
+        rotatorWords = [...MUFE_CHAOS_POOL].sort(() => mufeSecureRandom() - 0.5);
       }
       startRotatorAnimation();
       
@@ -7486,7 +7500,7 @@
       // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 힘*)
       currentChallenge = null;
       // 서버 응답 없어도 로컬 풀 사용 (628개)
-      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => Math.random() - 0.5);
+      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => mufeSecureRandom() - 0.5);
       startRotatorAnimation();
       
       return false;
