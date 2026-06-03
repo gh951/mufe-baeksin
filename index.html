@@ -8317,25 +8317,13 @@
     if (e.key === 'Enter') verifyAuth();
   });
 
-  // [C-46] 입력 멈추면 자동 검증 — 따로 버튼 안 눌러도 됨.
-  //   디바운스: 마지막 타이핑 후 1.3초 멈추면 1회 검증. 매 글자 검증 폭주 방지.
+  // [C-47] 자동 검증 제거 — 복붙·실시간 단어 붙이는 중에 멈추면
+  //   비번만으로 검증돼 연산지옥 오발하던 문제. 이제 '인증 검증' 버튼으로만 검증.
   (function(){
     const ai = document.getElementById('authInput');
     if (!ai) return;
-    let _t = null, _lastTried = '';
-    ai.addEventListener('input', () => {
-      if (window._mufeVerifying) return;   // 검증 중이면 대기
-      const v = ai.value.trim();
-      if (_t) clearTimeout(_t);
-      if (v.length < 2) return;            // 너무 짧으면 무시
-      _t = setTimeout(() => {
-        const cur = ai.value.trim();
-        if (cur.length >= 2 && cur !== _lastTried && !window._mufeVerifying){
-          _lastTried = cur;
-          verifyAuth();
-        }
-      }, 1300);
-    });
+    // Enter 키로도 검증(편의) — 단, 입력 도중 자동 검증은 하지 않음
+    // (keypress Enter 핸들러는 위에 이미 있음)
   })();
 
   // ════ 탭 전환 → 패널 전환 ════
