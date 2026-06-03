@@ -6894,6 +6894,14 @@
   // [C-47] 보안용 난수(CSPRNG) — Math.random은 역산 가능하므로
   //   보안에 닿는 곳(단어 회전 순서·토큰)은 crypto.getRandomValues 사용.
   //   화면 장식(연산지옥 효과·통계 애니메이션)은 Math.random 그대로 둬도 무해.
+  // [C-47] 복붙 시 끼는 안보이는 문자까지 박박 제거 (공백·NBSP·제로폭·줄바꿈·탭 등)
+  //   등록·인증 양쪽에 똑같이 써서 길이 불일치 원천 차단.
+  function mufeCleanInput(s){
+    return (s||'')
+      .replace(/[\s\u00A0\u1680\u2000-\u200F\u2028\u2029\u202F\u205F\u3000\uFEFF]/g,'') // 모든 공백류+제로폭
+      .normalize('NFC');  // 한글 자모 결합 통일 (클로 ㄷ 같은 분리 방지)
+  }
+
   function mufeSecureRandom(){   // 0~1 사이 안전 난수
     const a = new Uint32Array(1);
     (window.crypto || window.msCrypto).getRandomValues(a);
@@ -7432,9 +7440,11 @@
           ? window._mufePupilCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
-        console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', (passcode||'').length, '| 동공:', pupil.length);
+        // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
+        const passClean = mufeCleanInput(passcode);
+        console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
-        const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passcode);
+        const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
         if (e && e.helper && e.commit) {
           window._mufeHelper = e.helper; window._mufeCommit = e.commit;
           localStorage.setItem('mufe-key-helper', JSON.stringify({ helper: e.helper, commit: e.commit }));
@@ -8072,11 +8082,16 @@
 
         if (helper && commit) {
           // 답(비번+단어)에서 단어를 떼어 비번만 추출 — 등록 때 enroll(passcode)와 맞춤
-          const w = (window._lastCaughtWord || caughtWord || '');
-          let passOnly = ans;
-          if (w && ans.endsWith(w)) passOnly = ans.slice(0, ans.length - w.length).trim();
-          else if (w && ans.startsWith(w)) passOnly = ans.slice(w.length).trim();
+          const w = (window._lastCaughtWord || caughtWord || '').trim();
+          let passOnly = ans.trim();
+          // [C-47] 등록과 동일한 강력 정규화 (안보이는 문자까지 제거)
+          const ansClean = mufeCleanInput(passOnly);
+          const wClean = mufeCleanInput(w);
+          if (wClean && ansClean.endsWith(wClean)) passOnly = ansClean.slice(0, ansClean.length - wClean.length);
+          else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
+          else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
+          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 길이=', passOnly.length);
           console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
           const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
           keyOk = !!a.pass;
