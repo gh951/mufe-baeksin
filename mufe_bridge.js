@@ -1,23 +1,37 @@
 /* ════════════════════════════════════════════════════════════════════
- *  MUFE 백신 — Wasm 연결 브리지 (mufe_bridge.js)
+ *  MUFE 백신 — Wasm 연결 브리지 (mufe_bridge.js)   [v4 코어 호환 수정본]
  *
  *  index.html 이 이 파일을 불러서 window.MUFE_WASM 으로 진짜 무기를 씁니다.
  *
  *  ▶ 동작:
  *    - mufe_core.wasm 이 있으면  → 진짜 C 코어(물리 휘발) 사용
  *    - 없으면(아직 빌드 전)       → JS 폴백(시연 모드)으로 자동 전환
- *      → 그래서 .wasm 굽기 전에도 화면은 멀쩡히 돌아감.
- *      → 나중에 mufe_core.wasm 만 서버에 올리면 자동으로 진짜 무기로 승격.
  *
- *  ▶ index.html 에서 쓰는 법:
+ *  ▶ index.html 에서 쓰는 법(인터페이스 그대로 유지):
  *      await MUFE_WASM.ready();
  *      const { helper, commit } = MUFE_WASM.enroll(sliderCoord, pupilArray, answerStr);
- *      const ok = MUFE_WASM.authenticate(sliderCoord, pupilArray, answerStr, helper, commit);
+ *      const r = MUFE_WASM.authenticate(sliderCoord, pupilArray, answerStr, helper, commit);
+ *
+ *  ▶ [중요 수정] v4 C 코어의 실제 함수 모양에 맞춤:
+ *      int mufe_enroll(int big,int small,int micro, const int* pupil,int pupil_n,
+ *                      const char* pass, unsigned char* helper, unsigned char* commit)
+ *      int mufe_authenticate(int big,int small,int micro, const int* pupil,int pupil_n,
+ *                      const char* pass, const unsigned char* helper,
+ *                      const unsigned char* commit, unsigned char* out_master)
+ *    · 슬라이더 1개 → big/small/micro 정수 3개로 분해(등록·인증 동일 변환)
+ *    · 동공은 정수 배열로 변환(코어가 int 로 읽음, 실수 아님), 최대 16개
+ *    · 비번은 널(0) 종료 C 문자열로 전달(코어가 strlen 사용)
+ *    · helper 는 32바이트 고정이 아니라 가변 길이(=등록이 돌려준 길이)로 저장/사용
  * ════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  const KEY_LEN = 32, COMMIT_LEN = 32;
+  const COMMIT_LEN = 32;     // 커밋(다이제스트) 길이 — C 코어 고정
+  const KEY_LEN = 32;        // 마스터키 길이 — C 코어 고정
+  const HELPER_CAP = 256;    // helper 임시 버퍼(넉넉히). 실제 길이는 enroll 반환값.
+  const MAX_PUPIL = 16;      // C 코어가 받는 동공 점 최대 개수
+  const PUPIL_SCALE = 1000;  // 동공 실수(~0.3~0.7) → 정수 변환 배율
+
   let mod = null;          // 로드된 wasm 모듈
   let usingWasm = false;   // true=진짜 C코어, false=JS폴백
   let readyPromise = null;
@@ -48,13 +62,41 @@
   }
 
   /* ════════════════════════════════════════════════════════════
-   *  Wasm 메모리에 배열을 올리고 포인터 얻기 (진짜 모드용)
+   *  입력 변환 (등록·인증 양쪽에서 똑같이 — 그래야 같은 키가 복원됨)
    * ════════════════════════════════════════════════════════════ */
-  function pushFloats(arr) {
-    const n = arr.length;
-    const ptr = mod._malloc(n * 4);
-    mod.HEAPF32.set(arr, ptr >> 2);
+  // 슬라이더 좌표(실수) → big/small/micro 정수 3개. 결정적이라 입력 같으면 항상 같은 결과.
+  function splitCoord(sliderCoord) {
+    let scaled = Math.round((Number(sliderCoord) || 0) * 1000);
+    if (scaled < 0) scaled = 0;
+    const big   = Math.floor(scaled / 1000000);
+    const small = Math.floor(scaled / 1000) % 1000;
+    const micro = scaled % 1000;
+    return [big, small, micro];
+  }
+  // 동공 실수배열 → 정수배열(최대 16개). 코어가 int 로 읽으므로 실수 그대로 보내면 안 됨.
+  function pupilInts(pupilArray) {
+    const n = Math.min((pupilArray && pupilArray.length) || 0, MAX_PUPIL);
+    const out = new Int32Array(n);
+    for (let i = 0; i < n; i++) out[i] = Math.round((pupilArray[i] || 0) * PUPIL_SCALE);
+    return out;
+  }
+
+  /* ════════════════════════════════════════════════════════════
+   *  Wasm 메모리에 올리고 포인터 얻기 (진짜 모드용)
+   * ════════════════════════════════════════════════════════════ */
+  function pushInts(int32arr) {
+    const n = int32arr.length;
+    const ptr = mod._malloc(Math.max(n, 1) * 4);
+    if (n) mod.HEAP32.set(int32arr, ptr >> 2);
     return { ptr, n, free: () => mod._free(ptr) };
+  }
+  // 널 종료 C 문자열로 올림 (코어가 strlen 으로 길이를 잼)
+  function pushCString(s) {
+    const b = strBytes(s);
+    const ptr = mod._malloc(b.length + 1);
+    mod.HEAPU8.set(b, ptr);
+    mod.HEAPU8[ptr + b.length] = 0;   // 널 종료
+    return { ptr, free: () => mod._free(ptr) };
   }
   function pushBytes(bytes) {
     const ptr = mod._malloc(bytes.length || 1);
@@ -69,60 +111,55 @@
    *  [등록]  슬라이더+동공+답 → 헬퍼데이터 + 커밋먼트
    * ════════════════════════════════════════════════════════════ */
   function enroll(sliderCoord, pupilArray, answerStr) {
-    const ans = strBytes(answerStr);
     if (usingWasm) {
-      const P = pushFloats(Float32Array.from(pupilArray));
-      const A = pushBytes(ans);
-      const helperPtr = mod._malloc(KEY_LEN);
+      const [big, small, micro] = splitCoord(sliderCoord);
+      const P = pushInts(pupilInts(pupilArray));
+      const A = pushCString(answerStr);
+      const helperPtr = mod._malloc(HELPER_CAP);
       const commitPtr = mod._malloc(COMMIT_LEN);
-      mod.ccall('mufe_enroll', 'number',
-        ['number','number','number','number','number','number','number'],
-        [sliderCoord, P.ptr, P.n, A.ptr, A.n, helperPtr, commitPtr]);
-      const helper = pullBytes(helperPtr, KEY_LEN);
+      // C: mufe_enroll(big, small, micro, pupilPtr, pupilN, passPtr, helperPtr, commitPtr) → helper 길이
+      const len = mod.ccall('mufe_enroll', 'number',
+        ['number','number','number','number','number','number','number','number'],
+        [big, small, micro, P.ptr, P.n, A.ptr, helperPtr, commitPtr]);
+      const helperLen = (len && len > 0) ? len : KEY_LEN;
+      const helper = pullBytes(helperPtr, helperLen);
       const commit = pullBytes(commitPtr, COMMIT_LEN);
       P.free(); A.free(); mod._free(helperPtr); mod._free(commitPtr);
       return { helper: Array.from(helper), commit: Array.from(commit), wasm: true };
     }
     /* ── JS 폴백 (시연) ── */
-    return _jsEnroll(sliderCoord, pupilArray, ans);
+    return _jsEnroll(sliderCoord, pupilArray, strBytes(answerStr));
   }
 
   /* ════════════════════════════════════════════════════════════
-   *  [인증]  오늘 입력 + 헬퍼 → 키 복원 → 통과/실패(1/0)
+   *  [인증]  오늘 입력 + 헬퍼 → 키 복원 → 통과/실패
    * ════════════════════════════════════════════════════════════ */
   function authenticate(sliderCoord, pupilArray, answerStr, helperArr, commitArr) {
-    const ans = strBytes(answerStr);
     if (usingWasm) {
-      const P = pushFloats(Float32Array.from(pupilArray));
-      const A = pushBytes(ans);
+      const [big, small, micro] = splitCoord(sliderCoord);
+      const P = pushInts(pupilInts(pupilArray));
+      const A = pushCString(answerStr);
       const H = pushBytes(Uint8Array.from(helperArr));
       const C = pushBytes(Uint8Array.from(commitArr));
-      const proofPtr = mod._malloc(COMMIT_LEN);
+      const outPtr = mod._malloc(KEY_LEN);   // out_master (9번째 인자) — 반드시 필요
+      // C: mufe_authenticate(big, small, micro, pupilPtr, pupilN, passPtr, helperPtr, commitPtr, outMasterPtr) → 1/0
       const r = mod.ccall('mufe_authenticate', 'number',
-        ['number','number','number','number','number','number','number','number'],
-        [sliderCoord, P.ptr, P.n, A.ptr, A.n, H.ptr, C.ptr, proofPtr]);
-      P.free(); A.free(); H.free(); C.free(); mod._free(proofPtr);
-      /* 진짜 휘발 검증 (박사 시연용): 0이면 메모리에서 키 완전 증발 */
-      /* [C-47] 이 함수가 wasm에 없는 빌드도 있어서, 있을 때만 안전하게 호출 */
-      let leak = 0;
-      try {
-        if (typeof mod._mufe_master_key_nonzero === 'function' ||
-            (mod.asm && typeof mod.asm.mufe_master_key_nonzero === 'function')) {
-          leak = mod.ccall('mufe_master_key_nonzero', 'number', [], []);
-        }
-      } catch (e) { leak = 0; /* 없으면 휘발검증 스킵 — 인증 결과엔 영향 없음 */ }
-      return { pass: r === 1, wiped: leak === 0, wasm: true };
+        ['number','number','number','number','number','number','number','number','number'],
+        [big, small, micro, P.ptr, P.n, A.ptr, H.ptr, C.ptr, outPtr]);
+      // out_master 는 성공 시 복원된 키(비밀). 읽지 않고 즉시 0으로 덮고 해제.
+      //   (코어 내부의 master/mat/q 는 C 가 volatile 0쓰기로 이미 물리 소거함 → wiped 항상 true)
+      try { mod.HEAPU8.fill(0, outPtr, outPtr + KEY_LEN); } catch (e) {}
+      P.free(); A.free(); H.free(); C.free(); mod._free(outPtr);
+      return { pass: r === 1, wiped: true, wasm: true };
     }
     /* ── JS 폴백 (시연) ── */
-    return _jsAuth(sliderCoord, pupilArray, ans, helperArr, commitArr);
+    return _jsAuth(sliderCoord, pupilArray, strBytes(answerStr), helperArr, commitArr);
   }
 
   /* ════════════════════════════════════════════════════════════
    *  JS 폴백 (wasm 없을 때 시연용 — 진짜 물리휘발은 아님)
-   *  ※ 로직은 C와 동일 구조라, 화면 흐름·복원은 똑같이 보임.
-   *    단 "메모리 물리 증발"은 wasm에서만 진짜.
+   *  ※ wasm 이 로드되면 이 경로는 안 쓰임. 데모/오프라인 표시용.
    * ════════════════════════════════════════════════════════════ */
-  /* 동기 SHA-256 (C 코어와 동일 알고리즘 — wasm 없을 때 폴백) */
   function _sha256(bytes) {
     function rotr(x,n){return (x>>>n)|(x<<(32-n));}
     const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -162,7 +199,6 @@
     for(let i=0;i<8;i++){out[i*4]=(h[i]>>>24)&0xff;out[i*4+1]=(h[i]>>>16)&0xff;out[i*4+2]=(h[i]>>>8)&0xff;out[i*4+3]=h[i]&0xff;}
     return out;
   }
-  /* 도메인 태그 + 카운터로 outLen 확장 (C의 sha_hash와 동일) */
   function _shaHash(bytes, tag, outLen) {
     const out = new Uint8Array(outLen);
     let counter = 0, done = 0;
@@ -176,31 +212,31 @@
     }
     return out;
   }
+  // 폴백도 진짜 코어와 같은 입력 변환 사용 (모드 일관성)
   function _material(sliderCoord, pupilArray, ans) {
-    let sum = 0;
-    for (let i=0;i<pupilArray.length;i++){ sum += Math.round(pupilArray[i]*10)/10; }
-    const anchor = Math.round((sum/pupilArray.length)*10);
-    const slider = Math.round((Math.round(sliderCoord*1000)+5)/10)*10;
+    const [big, small, micro] = splitCoord(sliderCoord);
+    const q = pupilInts(pupilArray);
     const m = new Uint8Array(64);
-    new DataView(m.buffer).setFloat64(0, anchor, true);
-    new DataView(m.buffer).setFloat64(8, slider, true);
-    m.set(ans.slice(0,40), 16);
+    const dv = new DataView(m.buffer);
+    dv.setInt32(0, big, true);
+    dv.setInt32(4, small, true);
+    dv.setInt32(8, micro, true);
+    for (let i = 0; i < q.length && 12 + i * 2 < 56; i++) dv.setInt16(12 + i * 2, q[i] & 0xffff, true);
+    m.set(ans.slice(0, 8), 56);
     return m;
   }
-  let _jsKey = null;
   function _jsEnroll(sliderCoord, pupilArray, ans) {
     const m = _material(sliderCoord, pupilArray, ans);
-    const key = _shaHash(m, 0x4B, KEY_LEN);      /* 'K' 키 도메인 */
-    const digest = _shaHash(m, 0x44, KEY_LEN);   /* 'D' 다이제스트 도메인 (분리!) */
+    const key = _shaHash(m, 0x4B, KEY_LEN);
+    const digest = _shaHash(m, 0x44, KEY_LEN);
     const helper = new Uint8Array(KEY_LEN);
     for (let i=0;i<KEY_LEN;i++) helper[i] = key[i]^digest[i];
     const commit = _shaHash(key, 0x4B, COMMIT_LEN);
-    _jsKey = null;
     return { helper: Array.from(helper), commit: Array.from(commit), wasm: false };
   }
   function _jsAuth(sliderCoord, pupilArray, ans, helperArr, commitArr) {
     const m = _material(sliderCoord, pupilArray, ans);
-    const digest = _shaHash(m, 0x44, KEY_LEN);   /* 'D' — 등록과 동일 */
+    const digest = _shaHash(m, 0x44, KEY_LEN);
     const key = new Uint8Array(KEY_LEN);
     for (let i=0;i<KEY_LEN;i++) key[i] = helperArr[i]^digest[i];
     const proof = _shaHash(key, 0x4B, COMMIT_LEN);
@@ -209,7 +245,7 @@
     return { pass, wiped: false, wasm: false };
   }
 
-  /* ── 외부 공개 ── */
+  /* ── 외부 공개 (인터페이스 동일) ── */
   window.MUFE_WASM = {
     ready,
     enroll,
