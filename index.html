@@ -3,7 +3,13 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">
+<script>
+  // [C-50] 클릭재킹 방어 — 내 사이트가 다른 페이지의 iframe 안에서 열리면 최상위 창으로 탈출(서버 헤더 불필요)
+  if (window.top !== window.self) {
+    try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = 'none'; }
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MUFE 백신 — 양자·AI 시대 보안</title>
 <meta name="description" content="MUFE 백신 — 양자·AI 시대 보안. 카메라·심박 + 카오스 인증.">
