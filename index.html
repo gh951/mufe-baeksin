@@ -7432,6 +7432,7 @@
           ? window._mufePupilCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
+        console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', (passcode||'').length, '| 동공:', pupil.length);
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passcode);
         if (e && e.helper && e.commit) {
@@ -8076,6 +8077,7 @@
           if (w && ans.endsWith(w)) passOnly = ans.slice(0, ans.length - w.length).trim();
           else if (w && ans.startsWith(w)) passOnly = ans.slice(w.length).trim();
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
+          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
           const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
           keyOk = !!a.pass;
           keyChecked = true;
