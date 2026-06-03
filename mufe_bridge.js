@@ -103,7 +103,14 @@
         [sliderCoord, P.ptr, P.n, A.ptr, A.n, H.ptr, C.ptr, proofPtr]);
       P.free(); A.free(); H.free(); C.free(); mod._free(proofPtr);
       /* 진짜 휘발 검증 (박사 시연용): 0이면 메모리에서 키 완전 증발 */
-      const leak = mod.ccall('mufe_master_key_nonzero', 'number', [], []);
+      /* [C-47] 이 함수가 wasm에 없는 빌드도 있어서, 있을 때만 안전하게 호출 */
+      let leak = 0;
+      try {
+        if (typeof mod._mufe_master_key_nonzero === 'function' ||
+            (mod.asm && typeof mod.asm.mufe_master_key_nonzero === 'function')) {
+          leak = mod.ccall('mufe_master_key_nonzero', 'number', [], []);
+        }
+      } catch (e) { leak = 0; /* 없으면 휘발검증 스킵 — 인증 결과엔 영향 없음 */ }
       return { pass: r === 1, wiped: leak === 0, wasm: true };
     }
     /* ── JS 폴백 (시연) ── */

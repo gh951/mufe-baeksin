@@ -6351,6 +6351,14 @@
             </div>
             <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 색 바를 내 색에 맞추면 아래 소리가 자동으로 정해집니다 (빨주노초파남보로 기억하세요)</div>
 
+            <!-- [C-47] 심연의 밀도(입력 오염도) 게이지 — 흔한 위치/색이면 경고 -->
+            <div style="margin:4px 2px 14px;">
+              <div style="height:8px;border-radius:5px;background:rgba(0,0,0,.25);overflow:hidden;box-shadow:inset 0 0 4px rgba(0,0,0,.4);">
+                <div id="densityBoxBar" style="height:100%;width:50%;transition:all .25s;background:#eab308;"></div>
+              </div>
+              <div id="densityBoxLabel" style="font-size:11px;margin-top:4px;color:#eab308;">🔮 보통 — 더 흩어보세요</div>
+            </div>
+
             <!-- 소리 A 축 -->
             <div class="mufe-slider-row">
               <div class="msr-label"><span>🎵 첫 번째 소리</span><span class="msr-val" id="soundAName">—</span></div>
@@ -7699,6 +7707,41 @@
     const min=+slider.min, max=+slider.max, val=+slider.value;
     slider.style.setProperty('--fill', ((val-min)/(max-min))*100 + '%');
   }
+  // [C-47] 입력 오염도(심연의 밀도) — 너무 흔한 위치·색이면 보안 약함 경고.
+  //   재현성 안 깨짐(사용자가 직접 고름). 흔한 입력 회피 유도 → 실측 엔트로피↑.
+  //   흔한 패턴: 정중앙(500±), 양 끝(0/1000±), 원색(빨/노/초/파 = 색상환 0·120·240·...)
+  function _mufeEntropyDensity(){
+    const E = MUFE_Entropy;
+    let penalty = 0;
+    // 슬라이더가 정중앙/양끝에 몰리면 감점 (사람이 습관적으로 누르는 곳)
+    const edgeMid = (v,max)=>{ const c=max/2; 
+      if(Math.abs(v-c)<max*0.04) return 1;        // 정중앙
+      if(v<max*0.04 || v>max*0.96) return 1;       // 양 끝
+      return 0; };
+    penalty += edgeMid(E.big,1000)+edgeMid(E.small,1000)+edgeMid(E.micro,10000);
+    // 색이 흔한 원색(빨0/주황/노랑/초록/청록/파랑/보라 = 360을 7~8등분 근처)이면 감점
+    const hue = Math.round((E.color/1000)*360)%360;
+    const primaries=[0,60,120,180,240,300,360];
+    if(primaries.some(p=>Math.abs(hue-p)<10)) penalty += 1.5;
+    // 점수화: penalty 클수록 탁함. 0=최상, 4.5+=최악
+    const score = Math.max(0, 100 - penalty*22);   // 0~100
+    let label, color;
+    if(score>=75){ label='심연의 밀도 충만 — 강력'; color='#16a34a'; }
+    else if(score>=50){ label='보통 — 더 흩어보세요'; color='#eab308'; }
+    else if(score>=25){ label='흐림 — 흔한 위치/색입니다'; color='#f59e0b'; }
+    else { label='탁함 — 인증 마법이 불완전합니다'; color='#dc2626'; }
+    return { score, label, color };
+  }
+  function _mufeShowDensity(){
+    const d=_mufeEntropyDensity();
+    ['densityBox','densityBoxC'].forEach(boxId=>{
+      const bar=document.getElementById(boxId+'Bar');
+      const lab=document.getElementById(boxId+'Label');
+      if(bar){ bar.style.width=d.score+'%'; bar.style.background=d.color; }
+      if(lab){ lab.textContent='🔮 '+d.label; lab.style.color=d.color; }
+    });
+  }
+
   function _mufeRecomputeKey(){
     // [C-47] 색이 주(主) 좌표 — 색에서 소리 A/B를 자동 결정(색 맞추면 소리 따라옴)
     const col = _mufeColorFromCoord(MUFE_Entropy.color);
@@ -7717,6 +7760,7 @@
     ['soundASel','soundASelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundA; });
     ['soundBSel','soundBSelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundB; });
     set('keyCoord',coord); set('keyCoordC',coord);
+    try { _mufeShowDensity(); } catch(e){}   // [C-47] 오염도 게이지 갱신
     set('soundSeed',seed); set('soundSeedC',seed);
     set('soundAName',a.n); set('soundANameC',a.n);
     set('soundBName',bb.n); set('soundBNameC',bb.n);
