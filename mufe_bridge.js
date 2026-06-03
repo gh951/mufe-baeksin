@@ -36,6 +36,9 @@
   let usingWasm = false;   // true=진짜 C코어, false=JS폴백
   let readyPromise = null;
 
+  // 코어 격자(칸) 폭 — 로드 후 코어에서 읽어옴(없으면 기본값). 눈금→칸 매핑에 사용.
+  let GBIG = 16, GSMALL = 16, GMICRO = 800;
+
   /* ── 문자열(답)을 UTF-8 바이트로 ── */
   function strBytes(s) { return new TextEncoder().encode(s || ''); }
 
@@ -47,6 +50,10 @@
         try {
           mod = await createMufeCore();
           usingWasm = true;
+          try {
+            const g = (fn, d) => { try { return mod.ccall(fn, 'number', [], []) || d; } catch (e) { return d; } };
+            GBIG = g('mufe_grid_big', 16); GSMALL = g('mufe_grid_small', 16); GMICRO = g('mufe_grid_micro', 800);
+          } catch (e) {}
           console.log('%c[MUFE-WASM] 진짜 C 코어 로드됨 — 물리적 휘발 가동', 'color:#16a34a;font-weight:bold');
         } catch (e) {
           console.warn('[MUFE-WASM] wasm 로드 실패 → JS 폴백', e);
@@ -64,14 +71,20 @@
   /* ════════════════════════════════════════════════════════════
    *  입력 변환 (등록·인증 양쪽에서 똑같이 — 그래야 같은 키가 복원됨)
    * ════════════════════════════════════════════════════════════ */
-  // 슬라이더 좌표(실수) → big/small/micro 정수 3개. 결정적이라 입력 같으면 항상 같은 결과.
+  // 슬라이더 좌표 → big/small/micro 정수 3개.
+  //  index.html 의 바가 '눈금'으로 스냅되면 좌표는 다음 꼴이 됩니다(B,S,M = 각 바의 눈금 0~10):
+  //    coord = (100·B)*10000 + (100·S)*10 + (1000·M)/1000 = 1,000,000·B + 1,000·S + M
+  //  → 여기서 B,S,M 을 정확히 되찾아, 각 눈금이 코어 격자 '한 칸'이 되도록 격자폭만큼 곱함.
+  //    그러면 q(=칸번호)=눈금, r(=오차)=0 → 같은 눈금이면 100% 같은 키, 세 바가 각각 독립.
+  //  ※ 등록·인증 양쪽에서 똑같이 도는 함수라, 같은 눈금이면 언제나 같은 결과.
   function splitCoord(sliderCoord) {
-    let scaled = Math.round((Number(sliderCoord) || 0) * 1000);
-    if (scaled < 0) scaled = 0;
-    const big   = Math.floor(scaled / 1000000);
-    const small = Math.floor(scaled / 1000) % 1000;
-    const micro = scaled % 1000;
-    return [big, small, micro];
+    let c = Math.round(Number(sliderCoord) || 0);
+    if (c < 0) c = 0;
+    const B = Math.floor(c / 1000000);
+    const rem = c - B * 1000000;
+    const S = Math.floor(rem / 1000);
+    const M = rem - S * 1000;
+    return [B * GBIG, S * GSMALL, M * GMICRO];
   }
   // 동공 실수배열 → 정수배열(최대 16개). 코어가 int 로 읽으므로 실수 그대로 보내면 안 됨.
   function pupilInts(pupilArray) {

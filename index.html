@@ -6383,16 +6383,16 @@
           <!-- 대·소·미세 슬라이더 (아래) -->
           <div class="mufe-slider-block">
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
-              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
+              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">5</span></div>
+              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBig">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
-              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
+              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">5</span></div>
+              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmall">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
-              <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
+              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5</span></div>
+              <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicro">
             </div>
           </div>
 
@@ -6627,16 +6627,16 @@
         </div>
         <div class="mufe-slider-block">
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">500</span></div>
-            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBigC">
+            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">5</span></div>
+            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBigC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">500</span></div>
-            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmallC">
+            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">5</span></div>
+            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmallC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5000</span></div>
-            <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicroC">
+            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5</span></div>
+            <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicroC">
           </div>
         </div>
         <div class="mes-result">
@@ -7853,7 +7853,7 @@
       _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[name.toLowerCase()] = +slider.value;
-        if(val) val.textContent = slider.value;
+        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
         _mufeSliderFill(slider);
         _mufeRecomputeKey();
       });
@@ -7887,7 +7887,7 @@
       slider._mufeBound=true; _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[base.toLowerCase()] = +slider.value;
-        if(val) val.textContent = slider.value;
+        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
         _mufeSliderFill(slider); _mufeRecomputeKey();
       });
     });
