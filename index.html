@@ -11616,8 +11616,7 @@ function startBioForLogin() {
     const status = document.getElementById('bioLoginStatus');
     const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
     
-    if (result.success && saved && 
-        result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
+    if (result.success && saved) {  // [C-47] liveness 기반 통과 (심박값 일치 요구 제거)
       window._bioLoginPassed = true;
       status.textContent = `✓ 생체 인증 통과 (${result.bpm} BPM)`;
       status.className = 'bio-reg-status show success';
@@ -11636,8 +11635,7 @@ function startBioForVerify() {
     const btn = document.getElementById('bioVerifyBtn');
     const saved = JSON.parse(localStorage.getItem('mufe-bio-pattern') || 'null');
     
-    if (result.success && saved && 
-        result.bpm >= saved.range[0] && result.bpm <= saved.range[1]) {
+    if (result.success && saved) {  // [C-47] 심박 "값" 일치 요구 제거 — 심박은 신분증이 아님. 살아있는 사람 감지(liveness)로 통과
       // 측정 통과 = 자동 확정 (확정 버튼 제거됨). 살아있는 본인 확인 끝 → 바로 통과.
       window._bioMeasured = true;
       window._bioVerifyPassed = true;
