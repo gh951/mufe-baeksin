@@ -1920,9 +1920,54 @@
   .egh-text {
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   }
+  /* 입구 PQC 배지 — NIST 양자내성 표준(ML-KEM) */
+  .entry-gate-pqc {
+    position: absolute;
+    bottom: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: rgba(2, 10, 24, 0.66);
+    border: 1px solid rgba(34, 211, 238, 0.42);
+    box-shadow: 0 0 18px rgba(124, 58, 237, 0.38), inset 0 0 12px rgba(34, 211, 238, 0.08);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #e8f4ff;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: gate-pqc-glow 2.8s ease-in-out infinite;
+  }
+  .entry-gate-pqc .egp-chip {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #020a18;
+    background: linear-gradient(135deg, #22d3ee, #7c3aed);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+  .entry-gate-pqc .egp-shield {
+    font-size: 14px;
+    filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.8));
+  }
+  @keyframes gate-pqc-glow {
+    0%, 100% { box-shadow: 0 0 16px rgba(124,58,237,0.30), inset 0 0 12px rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.36); }
+    50%      { box-shadow: 0 0 26px rgba(124,58,237,0.55), inset 0 0 16px rgba(34,211,238,0.14); border-color: rgba(34,211,238,0.6); }
+  }
   @media (max-width: 600px) {
     .entry-gate-img { max-height: 75vh; }
     .entry-gate-hint { font-size: 10px; bottom: 16px; }
+    .entry-gate-pqc { font-size: 10px; bottom: 58px; padding: 6px 13px; gap: 7px; }
+    .entry-gate-pqc .egp-chip { font-size: 9px; padding: 2px 6px; }
   }
 
   /* 공격 통계 대시보드 — 홈 화면 *우와* 자리 */
@@ -5290,6 +5335,11 @@
     <div style="font-size:80px;">🛡️</div>
     <div style="font-size:28px; font-weight:900; color:#fbbf24;">MUFE 백신</div>
     <div style="font-size:14px; color:rgba(255,255,255,0.7); font-family:monospace;">C-47</div>
+  </div>
+  <div class="entry-gate-pqc">
+    <span class="egp-shield">🛡️</span>
+    <span class="egp-chip">NIST</span>
+    <span>양자내성 표준 · ML-KEM 적용</span>
   </div>
   <div class="entry-gate-hint">
     <span class="egh-pulse">▼</span>
