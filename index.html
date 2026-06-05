@@ -11107,10 +11107,10 @@ async function startMUFESensor() {
 
 // 10초 측정 완료 — 결과 판정 + 콜백
 function finishBioMeasurement() {
-  const success = _MUFE_AuthEngine.isHuman && 
-                  _MUFE_AuthEngine.lastBPM >= 40 && 
-                  _MUFE_AuthEngine.lastBPM <= 180 &&
-                  _MUFE_AuthEngine.g_values.length >= 80; // 최소 80개 신호
+  // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
+  console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected);
+  // [C-47] liveness = 광반사(딥페이크·사진 차단). rPPG 심박값은 불안정 → 통과 게이트에서 제외(result.bpm엔 그대로 기록)
+  const success = _MUFE_AuthEngine.isHuman;
   
   const result = {
     success,
