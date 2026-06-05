@@ -3,13 +3,6 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">
-<script>
-  // [C-50] 클릭재킹 방어 — 내 사이트가 다른 페이지의 iframe 안에서 열리면 최상위 창으로 탈출(서버 헤더 불필요)
-  if (window.top !== window.self) {
-    try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = 'none'; }
-  }
-</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MUFE 백신 — 양자·AI 시대 보안</title>
 <meta name="description" content="MUFE 백신 — 양자·AI 시대 보안. 카메라·심박 + 카오스 인증.">
@@ -5218,6 +5211,56 @@
   }
 
 </style>
+<script>
+/* ===== MUFE 보안 하드닝 모듈 v1 (추가형 · 되돌리기 쉬움) =====
+   기존 로직 변경 없음. 문제 생기면 이 <script> 블록만 삭제하면 원상복구.
+   외부 파일 불필요(자립형 유지) · file:// 로컬에서도 동작. */
+(function(){
+  'use strict';
+  try {
+    /* 1) 난수 오염 방어 — 로드 즉시 '진짜' crypto 참조를 캡처·동결.
+          이후 crypto.getRandomValues를 바꿔치기(프로토타입 오염)해도 무력화. */
+    var _c = window.crypto || window.msCrypto;
+    var _real = (_c && _c.getRandomValues) ? _c.getRandomValues.bind(_c) : null;
+    /* 다중 엔트로피 혼합: HW 난수 ^ 고해상 타이머 — 단일 소스가 오염돼도 키 통제 불가 */
+    window.MUFE_SECURE_RANDOM = function(len){
+      var a = new Uint8Array(len||32);
+      if(_real){ try{ _real(a); }catch(e){} }
+      var t = ((typeof performance!=='undefined' ? performance.now()*1e6 : Date.now()*1e3))>>>0;
+      for(var i=0;i<a.length;i++){ a[i] ^= (t>>>((i%4)*8))&0xff; t=(t*1103515245+12345)>>>0; }
+      return a;
+    };
+    try{ Object.defineProperty(window,'MUFE_SECURE_RANDOM',{configurable:false,writable:false}); }catch(e){}
+
+    /* 2) 비밀 입력 위생 도구(zeroize / 입력칸 비우기) */
+    var SECRET_IDS = ['regPasscode','loginPasscode','delegateAnswerInput','authInput'];
+    window.MUFE_zeroize = function(u8){ try{ if(u8 && u8.fill) u8.fill(0); }catch(e){} };
+    window.MUFE_clearSecretInputs = function(){
+      for(var i=0;i<SECRET_IDS.length;i++){ var el=document.getElementById(SECRET_IDS[i]); if(el){ try{ el.value=''; }catch(e){} } }
+    };
+
+    /* 3) 백그라운드 전환 시 비밀 즉시 소거(어깨너머·백그라운드 캡처 완화).
+          ※ window 'blur'는 카메라/마이크 권한창에도 떠서 권한 흐름을 깰 수 있으므로 사용 안 함.
+          탭이 실제로 숨겨질 때(visibilitychange: hidden)만 소거 → 권한 흐름 무방해. */
+    document.addEventListener('visibilitychange', function(){ if(document.hidden){ try{ window.MUFE_clearSecretInputs(); }catch(e){} } });
+
+    /* 4) 비밀 입력칸 위생 속성 강제(자동완성/맞춤법저장/대문자보정 차단) */
+    function _hardenInputs(){
+      for(var i=0;i<SECRET_IDS.length;i++){ var el=document.getElementById(SECRET_IDS[i]);
+        if(el){ try{ el.setAttribute('autocomplete','off'); el.setAttribute('autocapitalize','off'); el.setAttribute('autocorrect','off'); el.setAttribute('spellcheck','false'); }catch(e){} } }
+    }
+    if(document.readyState!=='loading') _hardenInputs(); else document.addEventListener('DOMContentLoaded',_hardenInputs);
+
+    /* 5) (선택·기본 꺼짐) 프로토타입 오염 전면 차단.
+          앱/라이브러리가 Object.prototype을 확장하면 깨질 수 있어 기본 주석.
+          앱을 충분히 테스트한 뒤 문제 없으면 아래 한 줄의 주석을 푸세요(강력 권장): */
+    // try{ Object.freeze(Object.prototype); Object.freeze(Array.prototype); }catch(e){}
+
+    if(window.console&&console.log) console.log('[MUFE-HARDEN] 보안 하드닝 적용 — RNG 동결·다중엔트로피·비밀 위생·백그라운드 소거 ✓');
+  } catch(e){ if(window.console&&console.warn) console.warn('[MUFE-HARDEN] 일부 적용 실패(앱 동작에는 영향 없음):',e); }
+})();
+</script>
+
 </head>
 <body>
 
@@ -6337,18 +6380,6 @@
           <div id="passStrengthLabel" style="margin-top:4px;color:#9aa7c0;"></div>
         </div>
 
-        <!-- [C-48] 제2 비밀 — 나만 아는 추가 암호. 마스터키에 섞여 양자/오프라인 저항을 높임. 저장 안 됨. -->
-        <input type="text"
-               class="auth-input"
-               id="regSecret2"
-               placeholder="제2 비밀 (선택 — 나만 아는 추가 암호, 양자 대비 강력 추천)"
-               maxlength="40"
-               autocomplete="off"
-               autocapitalize="off"
-               spellcheck="false"
-               style="margin-top:8px;" />
-        <div style="font-size:11px;color:#94a3b8;margin:4px 2px 8px;">↑ 본 비번과 합쳐져 열쇠가 됩니다. 어디에도 저장 안 되니 꼭 기억하세요. (빈칸이면 기존 방식 그대로)</div>
-
         <!-- ═══ [C-45] 물리 좌표 + 자연 엔트로피 (자연음 위 → 슬라이더 아래) ═══ -->
         <div class="mufe-entropy-section" id="mufeEntropySection">
           <div class="mes-header">
@@ -6402,16 +6433,16 @@
           <!-- 대·소·미세 슬라이더 (아래) -->
           <div class="mufe-slider-block">
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">5</span></div>
-              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBig">
+              <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">5</span></div>
-              <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmall">
+              <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
+              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
             </div>
             <div class="mufe-slider-row">
-              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5</span></div>
-              <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicro">
+              <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
+              <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
             </div>
           </div>
 
@@ -6646,16 +6677,16 @@
         </div>
         <div class="mufe-slider-block">
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">5</span></div>
-            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderBigC">
+            <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBigC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">5</span></div>
-            <input type="range" min="0" max="1000" value="500" step="100" class="mufe-slider" id="sliderSmallC">
+            <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">500</span></div>
+            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmallC">
           </div>
           <div class="mufe-slider-row">
-            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5</span></div>
-            <input type="range" min="0" max="10000" value="5000" step="1000" class="mufe-slider" id="sliderMicroC">
+            <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5000</span></div>
+            <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicroC">
           </div>
         </div>
         <div class="mes-result">
@@ -6697,17 +6728,7 @@
              autocomplete="off"
              autocapitalize="off"
              spellcheck="false" />
-
-      <!-- [C-48] 제2 비밀 — 등록 때 정한 추가 암호 (없으면 비워두기) -->
-      <input type="text"
-             class="auth-input"
-             id="authSecret2"
-             placeholder="제2 비밀 (등록 때 정한 추가 암호 — 없으면 비워두기)"
-             autocomplete="off"
-             autocapitalize="off"
-             spellcheck="false"
-             style="margin-top:8px;" />
-
+      
       <div class="auth-buttons">
         <button class="btn btn-cancel" onclick="resetAuthModal()">처음부터</button>
         <button class="btn btn-verify" onclick="verifyAuth()">인증 검증</button>
@@ -7321,24 +7342,43 @@
       return;
     }
     
-    // [종점 수정 · C-49] 비번 전송 제거 — 진짜 검증은 인증 화면(wasm 로컬)에서.
-    try { const lp = document.getElementById('loginPasscode'); if (lp) lp.value = ''; } catch(e){}
-    userPasscode = null;
-    if (!userToken) {
-      userToken = localStorage.getItem('mufe-user-token') || ('local-' + Date.now().toString(36) + mufeSecureToken(8));
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        userToken = result.token;
+        userSpacing = result.format;
+        localStorage.setItem('mufe-user-token', userToken);
+        localStorage.setItem('mufe-user-spacing', userSpacing);
+        // [C-45] 비번 휘발: 원본 저장 안 함
+        userPasscode = null;
+        
+        // 🫀 생체 옵션 저장 — 토글 켜져있으면 챌린지 화면에 카드 자동 표시
+        const bioToggle = document.getElementById('bioEnableToggle');
+        if (bioToggle && bioToggle.checked) {
+          const bioModeEl = document.querySelector('input[name="bioMode"]:checked');
+          const mode = bioModeEl ? bioModeEl.value : 'always';
+          localStorage.setItem('mufe-bio-pattern', JSON.stringify({ mode, enabled: true }));
+        } else {
+          localStorage.removeItem('mufe-bio-pattern');
+        }
+        
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'success');
+        setTimeout(() => showChallengeForm(), 1200);
+      } else if (result.status === 'decoy') {
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
+      } else {
+        showRegMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
+      }
+    } catch (err) {
+      console.error('[MUFE] 로그인 실패:', err);
+      showRegMsg('서버 없음 — 잠시 후 다시', 'retry');
     }
-    localStorage.setItem('mufe-user-token', userToken);
-    userSpacing = localStorage.getItem('mufe-user-spacing') || userSpacing;
-    const bioToggle = document.getElementById('bioEnableToggle');
-    if (bioToggle && bioToggle.checked) {
-      const bioModeEl = document.querySelector('input[name="bioMode"]:checked');
-      const mode = bioModeEl ? bioModeEl.value : 'always';
-      localStorage.setItem('mufe-bio-pattern', JSON.stringify({ mode, enabled: true }));
-    } else {
-      localStorage.removeItem('mufe-bio-pattern');
-    }
-    showRegMsg('<strong>인증 화면으로 갑니다</strong>', 'success');
-    setTimeout(() => showChallengeForm(), 1000);
   }
 
   // [C-47] 비번 강도 계산 — 길이 + 문자 다양성(숫자/소문자/대문자/기호)
@@ -7408,10 +7448,27 @@
     // 생체 등록 여부도 함께 (생체 켰으면 인증 때 생체 필수가 됨)
     const bioReg = localStorage.getItem('mufe-bio-pattern');
     
-    // [종점 수정 · C-49] 비밀번호는 폰을 떠나지 않는다 — 서버 전송 완전 제거.
-    //   등록의 실제 본체는 아래 wasm enroll(helper/commit을 이 기기에만 저장).
-    const serverOk = false;   // 서버 미사용(온디바이스)
-    try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+    let serverOk = false;
+    try {
+      const res = await fetch(`${API_BASE}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode, format }),
+      });
+      // 전송 직후 원본 비번 파쇄
+      try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+
+      const result = await res.json();
+      if (result.status === 'success' && result.token) {
+        userToken = result.token;
+        serverOk = true;
+      }
+    } catch (err) {
+      console.warn('[MUFE] 등록 서버 응답 없음 → 로컬 토큰 생성', err);
+      try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+    }
+
+    // 서버가 토큰을 안 주면(오프라인/서버다운) — 로컬 토큰을 만들어 진행 (시작하기 막힘 방지)
     if (!userToken) {
       userToken = 'local-' + Date.now().toString(36) + mufeSecureToken(8);
     }
@@ -7426,29 +7483,22 @@
     // [C-45·46] 진짜 묶임 — 고보안 등록일 때만 슬라이더+동공 자물쇠 생성.
     //   간편 등록은 비번+실시간 단어 판정이므로 wasm 자물쇠를 만들지 않음(꼬임 방지).
     try {
-      if (window.MUFE_WASM) {
+      if (regMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+        const ep = window.getMufeEntropyPayload();
+        const sliderCoord = parseFloat(ep.coord) || 0;
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
+          : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
-        // [종점 수정 · C-49] 두 모드 모두 wasm 자물쇠 생성 — 비번 검증을 이 기기 안에서.
-        let sliderCoord, pupil;
-        if (regMode === 'high' && typeof window.getMufeEntropyPayload === 'function') {
-          const ep = window.getMufeEntropyPayload();
-          sliderCoord = parseFloat(ep.coord) || 0;
-          pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
-            ? window._mufePupilCoords
-            : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
-        } else {
-          sliderCoord = 1000000;
-          pupil = Array.from({length:64}, (_,i)=> 0.5 + (i%13)*0.01);
-        }
-        const _s2 = mufeCleanInput((document.getElementById('regSecret2')||{}).value || '');
-        const passClean = _s2 ? (mufeCleanInput(passcode) + String.fromCharCode(31) + _s2) : mufeCleanInput(passcode);
-        try { const _r2 = document.getElementById('regSecret2'); if (_r2) _r2.value = ''; } catch(e){}
-        console.log('%c[MUFE 진단] 등록 좌표 =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 모드:', regMode);
+        // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
+        const passClean = mufeCleanInput(passcode);
+        console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
+        // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
         if (e && e.helper && e.commit) {
           window._mufeHelper = e.helper; window._mufeCommit = e.commit;
           localStorage.setItem('mufe-key-helper', JSON.stringify({ helper: e.helper, commit: e.commit }));
-          console.log('[MUFE] 키 헬퍼 저장됨 (이 기기에만 — 비번 미전송)');
+          console.log('[MUFE] 키 헬퍼 저장됨 (카오스+생체+비번 묶임)');
         }
       }
     } catch(e){ console.warn('[MUFE] enroll 스킵:', e); }
@@ -7472,16 +7522,50 @@
   async function loadChallengeAndStartRotation() {
     const _wel = document.getElementById('rotatorWord'); if (_wel) _wel.textContent = '발급 중...'; const _swl = document.getElementById('stageWord'); if (_swl) _swl.textContent = '발급 중...'; const _sct = document.getElementById('stageClipText'); if (_sct) _sct.textContent = '발급 중...';
     
-    // [종점 수정 · C-49] 챌린지도 폰 안에서 생성 — 서버 호출 없음. 단어는 기기 내장 628 풀.
-    rotatorWords = [...MUFE_CHAOS_POOL].sort(() => mufeSecureRandom() - 0.5);
-    currentChallenge = {
-      challengeId: 'local-' + Date.now().toString(36) + mufeSecureToken(6),
-      rotationWords: rotatorWords,
-      chaosImage: null
-    };
-    try { applyChaosImage(currentChallenge.chaosImage); } catch(e){}
-    startRotatorAnimation();
-    return true;
+    try {
+      const res = await fetch(`${API_BASE}/api/challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      
+      if (!res.ok) {
+        throw new Error(`서버 응답 완료: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      
+      // 응답 *검증* 완료 — challengeId + rotationWords 필수
+      if (!data.challengeId || !data.rotationWords || data.rotationWords.length === 0) {
+        throw new Error('챌린지 응답 없음');
+      }
+      
+      currentChallenge = data;
+      console.log('[MUFE] 챌린지 완료:', currentChallenge.challengeId.slice(0, 20) + '...');
+      
+      // 카오스 이미지 처리 — 있으면 회전기 배경에 음
+      applyChaosImage(currentChallenge.chaosImage);
+      
+      // 서버 풀 우선 (서버가 검증 시 자기 풀로 확인하므로 일치 필수)
+      // 서버가 풀 안 주면 로컬 628 폴백
+      if (currentChallenge.rotationWords && currentChallenge.rotationWords.length > 0) {
+        rotatorWords = currentChallenge.rotationWords;
+      } else {
+        rotatorWords = [...MUFE_CHAOS_POOL].sort(() => mufeSecureRandom() - 0.5);
+      }
+      startRotatorAnimation();
+      
+      return true;
+    } catch (err) {
+      console.error('[MUFE] 챌린지 로드 실패:', err);
+      // fallback — 로컬 단어 풀 (다만 *진짜 인증 안 힘*)
+      currentChallenge = null;
+      // 서버 응답 없어도 로컬 풀 사용 (628개)
+      rotatorWords = [...MUFE_CHAOS_POOL].sort(() => mufeSecureRandom() - 0.5);
+      startRotatorAnimation();
+      
+      return false;
+    }
   }
   
   // 카오스 이미지 적용 — 이미지 풀에서 받은 이미지를 회전기 배경에 음
@@ -7819,7 +7903,7 @@
       _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[name.toLowerCase()] = +slider.value;
-        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
+        if(val) val.textContent = slider.value;
         _mufeSliderFill(slider);
         _mufeRecomputeKey();
       });
@@ -7853,7 +7937,7 @@
       slider._mufeBound=true; _mufeSliderFill(slider);
       slider.addEventListener('input',()=>{
         MUFE_Entropy[base.toLowerCase()] = +slider.value;
-        if(val) val.textContent = Math.round(+slider.value/(+slider.max/10));
+        if(val) val.textContent = slider.value;
         _mufeSliderFill(slider); _mufeRecomputeKey();
       });
     });
@@ -8028,20 +8112,14 @@
     let keyOk = true;   // Wasm 복원 결과 (기본 true = wasm 없으면 서버판정에 맡김)
     let keyChecked = false;
     try {
-      // [종점 수정 · C-49] 두 모드 모두 wasm로 비번을 기기 안에서 검증.
-      if (window.MUFE_WASM) {
+      // [C-46] 슬라이더+동공 키 복원은 고보안 모드에서만. 간편 모드는 비번+단어로만 판정.
+      if (window._authMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
+        const ep = window.getMufeEntropyPayload();
+        const sliderCoord = parseFloat(ep.coord) || 0;
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
+          : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
-        let sliderCoord, pupil;
-        if (window._authMode === 'high' && typeof window.getMufeEntropyPayload === 'function') {
-          const ep = window.getMufeEntropyPayload();
-          sliderCoord = parseFloat(ep.coord) || 0;
-          pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
-            ? window._mufePupilCoords
-            : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
-        } else {
-          sliderCoord = 1000000;
-          pupil = Array.from({length:64}, (_,i)=> 0.5 + (i%13)*0.01);
-        }
 
         // 등록 때 저장한 헬퍼/커밋 불러오기
         let helper = window._mufeHelper, commit = window._mufeCommit;
@@ -8062,14 +8140,10 @@
           if (wClean && ansClean.endsWith(wClean)) passOnly = ansClean.slice(0, ansClean.length - wClean.length);
           else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
           else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
-          // [C-48] 제2 비밀(나만 아는 추가 암호)을 본 비번과 합쳐 키 재료에 섞음 — 등록과 동일
-          const _s2 = mufeCleanInput((document.getElementById('authSecret2')||{}).value || '');
-          const passForKey = _s2 ? (passOnly + String.fromCharCode(31) + _s2) : passOnly;
-          try { const _a2 = document.getElementById('authSecret2'); if (_a2) _a2.value = ''; } catch(e){}
-          // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번+제2비밀)이 맞으면 키 복원
-          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 제2비밀길이=', _s2.length, '| 키재료길이=', passForKey.length);
-          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 키재료길이:', passForKey.length, '| 동공:', pupil.length, '| 잡은단어:', w);
-          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passForKey, helper, commit);
+          // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
+          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 길이=', passOnly.length);
+          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
+          const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
           keyOk = !!a.pass;
           keyChecked = true;
           if (typeof addLog === 'function') {
@@ -8093,22 +8167,57 @@
     }
 
     // ════════════════════════════════════════════════════════════
-    // [종점 수정 · C-49] 비밀은 폰을 떠나지 않는다 — 서버 전송 제거, 기기 안에서 판정.
-    //   · 비번 자물쇠 검증 통과(keyChecked&&keyOk) → 진짜 통과
-    //   · 자물쇠 미등록(레거시) → 실시간 단어 포함 여부로 로컬 판정
+    // [C-45] 입력 즉시 휘발 (특허 청구항 1·17) — 원본 비번을 메모리·화면에서 파쇄.
     // ════════════════════════════════════════════════════════════
-    try { caughtWord = null; window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
-    if (keyChecked && keyOk) {
-      currentMasterToken = 'master-' + Date.now().toString(36) + mufeSecureToken(8);
-      showMsg(
-        `<strong>인증 통과 — 환영합니다</strong><br>` +
-        `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
-        'success'
-      );
-      if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+    const answerForVerify = ans;          // 서버 검증용 1회성 사본 (전송 후 무효화)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userToken,
+          challengeId: currentChallenge.challengeId,
+          caughtWord,
+          answer: answerForVerify,
+          jitter: calculateJitterScore(),         // 🛡️ 떨림 점수
+          totalEvents: window._jitterEvents.length,  // 클릭 횟수
+          entropy: (typeof window.getMufeEntropyPayload === 'function') ? window.getMufeEntropyPayload() : null,  // [C-45] 슬라이더+자연음+동공
+        }),
+      });
+
+      // [C-45] 전송 끝 — 1회성 비번 사본도 즉시 파쇄, 생체 플래그도 리셋
+      try {
+        caughtWord = null;
+        window._bioVerifyPassed = false;
+        if (window._mufePupilCoords) window._mufePupilCoords = null;
+      } catch(e){}
+      
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        currentMasterToken = result.token;
+        showMsg(
+          `<strong>${result.message}</strong><br>` +
+          `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
+          'success'
+        );
+        if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+      } else if (result.status === 'decoy') {
+        // 사용자 측엔 *통과처럼* 완료 — 격리는 서버에서만 완료 (모토)
+        showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
+        if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
+        // 🛡️ 침입자(decoy)는 같은 페이지의 연산지옥(늪)으로 — 별도 파일 없음
+        setTimeout(() => { enterAbyssTrap(); }, 1500);
+      } else {
+        showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
+        if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
+      }
       _unlock();
-    } else {
+    } catch (err) {
+      console.error('[MUFE] 검증 실패:', err);
       _unlock();
+      // 서버 통신 안 되면 → 로컬 판정으로 결과를 보여줌 (시연·오프라인 대비)
       verifyAuthLocal(ans);
     }
   }
