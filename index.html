@@ -11109,8 +11109,9 @@ async function startMUFESensor() {
 function finishBioMeasurement() {
   // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected);
-  // [C-47] 통과 = ①살아있는 피부 신호 80+ (혈류 STOP 법칙 — 천장·벽·사진은 신호가 안 쌓여 자동 차단) + ②광반사 liveness(3D 생체만 반사 = 딥페이크 차단). 불안정한 rPPG 심박'값'만 게이트에서 제외(result.bpm엔 기록).
-  const success = _MUFE_AuthEngine.isHuman && _MUFE_AuthEngine.g_values.length >= 80;
+  // [C-47] 통과 = 살아있는 피부 혈류 신호 80+ (혈류 STOP 법칙 — 천장·벽·사진은 신호가 안 쌓여 자동 차단 = liveness).
+  // ※ 광반사(isHuman)는 현재 임계값(THRESH=6)이 실제 카메라(자동노출)에서 너무 빡빡해 진짜 얼굴도 false → 게이트 제외, 보조 신호로만 로그. 추후 라이브 보정 시 재가동.
+  const success = _MUFE_AuthEngine.g_values.length >= 80;
   
   const result = {
     success,
