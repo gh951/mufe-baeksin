@@ -11108,10 +11108,9 @@ async function startMUFESensor() {
 // 10초 측정 완료 — 결과 판정 + 콜백
 function finishBioMeasurement() {
   // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
-  console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected);
-  // [C-47] 통과 = 살아있는 피부 혈류 신호 80+ (혈류 STOP 법칙 — 천장·벽·사진은 신호가 안 쌓여 자동 차단 = liveness).
-  // ※ 광반사(isHuman)는 현재 임계값(THRESH=6)이 실제 카메라(자동노출)에서 너무 빡빡해 진짜 얼굴도 false → 게이트 제외, 보조 신호로만 로그. 추후 라이브 보정 시 재가동.
-  const success = _MUFE_AuthEngine.g_values.length >= 80;
+  console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
+  // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
+  const success = (window._mufeFaceSeen||0) >= 5 && (window._mufePulseSeen||0) >= 3;   // 진짜 얼굴 + 진짜 맥박 둘 다 (사진=맥박0 거부 / 책상=얼굴0 거부)
   
   const result = {
     success,
@@ -11230,6 +11229,7 @@ function _mufeOnFaceMeshResults(results){
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
   if (fl && fl.length >= 478){
+    window._mufeFaceSeen = (window._mufeFaceSeen||0) + 1;   // [C-47v2] 진짜 얼굴(478 좌표) 감지 — 책상·천장·벽은 절대 안 올라감
     if (flowing){
       window._mufePupilCoords = _mufeBuildPupilSignature(fl);
       _mufePupilCount++;
@@ -11246,6 +11246,8 @@ function _mufeOnFaceMeshResults(results){
 function _mufeInitFaceMesh(video){
   window._mufePupilCoords = null;   // 새 측정 시작 → 좌표 초기화
   _mufePupilCount = 0;
+  window._mufeFaceSeen = 0;   // [C-47v2] 진짜 얼굴 감지 프레임 카운터 리셋
+  window._mufePulseSeen = 0;   // [C-47v3] 진짜 맥박 검출 횟수 리셋
   if (typeof FaceMesh === 'undefined'){
     console.log('[MUFE] FaceMesh 미로드 — 동공 좌표 없이 기존 rPPG로 진행(정상)');
     _mufeSetPupilUI('👁 동공 추적: 미작동 — 기존 방식으로 인증돼요', '#fbbf24', 'rgba(251,191,36,.12)');
@@ -11383,6 +11385,7 @@ function calculateMUFEBpm() {
   // 피부 감지 + 적정 맥파 진폭 + BPM 범위 + 난수광원 반사 정합 — 모두 만족해야 사람
   if (_MUFE_AuthEngine.skinDetected && validPulse && estimatedBPM > 40 && estimatedBPM < 180) {
     _MUFE_AuthEngine.lastBPM = Math.round(estimatedBPM);
+    window._mufePulseSeen = (window._mufePulseSeen||0) + 1;   // [C-47v3] 진짜 맥박(40~180) 검출 횟수 — 사진은 맥박 0이라 안 올라감
     // 광반사 검증: 표본이 충분히 모이면 상관관계 확인
     _MUFE_AuthEngine.lightReflexPassed = analyzeLightReflex();
     _MUFE_AuthEngine.isHuman = _MUFE_AuthEngine.lightReflexPassed;
