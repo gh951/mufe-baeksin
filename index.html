@@ -11062,7 +11062,7 @@ async function startMUFESensor() {
       _MUFE_AuthEngine._lastTick = now;
 
       // 혈류(맥파)가 감지될 때만 시간 누적 — 아니면 타이머 정지
-      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
+      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected && _MUFE_AuthEngine.lastBPM >= 40 && _MUFE_AuthEngine.lastBPM <= 180;   // [C-47v4] 진짜 맥박(40~180)일 때만 타이머 진행 — 맥박 없으면 막대 정지(스톱). 노이즈 가짜진행 차단.
       if (flowing) _MUFE_AuthEngine._activeMs += dt;
 
       const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - _MUFE_AuthEngine._activeMs);
@@ -11110,7 +11110,8 @@ function finishBioMeasurement() {
   // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
-  const success = (window._mufeFaceSeen||0) >= 3 && (window._mufePulseSeen||0) >= 1;   // 진짜 얼굴 + 진짜 맥박 1회+ (사진=맥박0 거부 / 책상=얼굴0 거부). 살아있는 사람은 한 번에 통과되게 너그럽게.
+  // [C-47v4] 타이머가 "진짜 맥박일 때만" 진행하므로, 완료 = 맥박이 지속 검출됨. 통과 = 맥박 검출(사진·책상·천장은 맥박 0 → 막대가 안 가서 완료 자체가 안 됨). 진행과 판정이 일치 → 모순 제거.
+  const success = (window._mufePulseSeen||0) >= 1;
   
   const result = {
     success,
