@@ -11604,7 +11604,7 @@ function startBioForRegister() {
       status.textContent = `✓ 생체 등록 완료 (${result.bpm} BPM · ${mode === 'always' ? '매번 측정' : '한 번만'})`;
       status.className = 'bio-reg-status show success';
     } else {
-      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.textContent = `❌ 심박을 못 잡았어요 — 밝은 곳에서 가만히, 다시 측정해주세요`;
       status.className = 'bio-reg-status show failed';
     }
   });
@@ -11623,7 +11623,7 @@ function startBioForLogin() {
       status.className = 'bio-reg-status show success';
     } else {
       window._bioLoginPassed = false;
-      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.textContent = `❌ 심박을 못 잡았어요 — 밝은 곳에서 가만히, 다시 측정해주세요`;
       status.className = 'bio-reg-status show failed';
     }
   });
@@ -11648,7 +11648,7 @@ function startBioForVerify() {
     } else {
       window._bioMeasured = false;
       window._bioVerifyPassed = false;
-      status.textContent = `정답입니다. 통과 다음 단계로`;
+      status.textContent = `❌ 심박을 못 잡았어요 — 밝은 곳에서 가만히, 다시 측정해주세요`;
       status.className = 'bio-reg-status show failed';
     }
   });
