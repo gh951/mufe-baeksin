@@ -11110,7 +11110,7 @@ function finishBioMeasurement() {
   // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
-  const success = (window._mufeFaceSeen||0) >= 5 && (window._mufePulseSeen||0) >= 3;   // 진짜 얼굴 + 진짜 맥박 둘 다 (사진=맥박0 거부 / 책상=얼굴0 거부)
+  const success = (window._mufeFaceSeen||0) >= 3 && (window._mufePulseSeen||0) >= 1;   // 진짜 얼굴 + 진짜 맥박 1회+ (사진=맥박0 거부 / 책상=얼굴0 거부). 살아있는 사람은 한 번에 통과되게 너그럽게.
   
   const result = {
     success,
