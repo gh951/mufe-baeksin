@@ -8141,7 +8141,7 @@
           else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
           else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
-          console.log('%c[MUFE 진단2] 원본답=', 'color:#dc2626;font-weight:bold', JSON.stringify(ans), '| 잡은단어=', JSON.stringify(w), '| 뗀후비번=', JSON.stringify(passOnly), '| 길이=', passOnly.length);
+          console.log('%c[MUFE 진단2] (보안: 값 비표시) 답길이=', 'color:#dc2626;font-weight:bold', (ans||'').length, '| 단어길이=', (w||'').length, '| 뗀후비번길이=', (passOnly||'').length);
           console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
           const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
           keyOk = !!a.pass;
