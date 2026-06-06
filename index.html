@@ -5345,6 +5345,19 @@
     <span class="egh-pulse">▼</span>
     <span class="egh-text">클릭하여 들어오세요</span>
   </div>
+
+  <!-- [설정·실험용] 인증 없이 앱으로 바로 입장하는 카드.
+       ⚠ 게이트 우회 — 아무나 누르면 들어옴. 실배포 전 반드시 제거/제한. -->
+  <button id="entrySetupCard"
+    onclick="event.stopPropagation(); if(typeof window.mufeUnlockApp==='function') window.mufeUnlockApp(true);"
+    style="position:absolute; bottom:64px; left:50%; transform:translateX(-50%); z-index:3;
+           display:flex; flex-direction:column; align-items:center; gap:2px;
+           padding:12px 24px; border-radius:14px; cursor:pointer; font-family:inherit;
+           color:#e5e7eb; background:rgba(124,58,237,.22); border:1px solid rgba(168,85,247,.55);
+           box-shadow:0 4px 18px rgba(124,58,237,.28); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);">
+    <span style="font-size:15px; font-weight:800;">🔧 들어가서 설정하기</span>
+    <span style="font-size:10px; color:rgba(229,231,235,.7);">처음 설정 · 실험용 (실배포 시 제거)</span>
+  </button>
 </div>
 
 <div class="app" id="mufeApp" style="display:none;">
@@ -6446,7 +6459,7 @@
             <!-- [C-47] 색 주(主) 바 — 색을 맞추면 소리가 자동으로 따라옴 (사용자 편의·재현↑) -->
             <div class="mufe-slider-row">
               <div class="msr-label"><span>🎨 나의 색 (주 좌표)</span><span class="msr-val" id="colorName">—</span></div>
-              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderColor">
+              <input type="range" min="0" max="1000" step="10" value="500" class="mufe-slider" id="sliderColor">
               <div id="colorSwatch" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
             </div>
             <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 색 바를 내 색에 맞추면 아래 소리가 자동으로 정해집니다 (빨주노초파남보로 기억하세요)</div>
@@ -6704,7 +6717,7 @@
           <!-- [C-47] 인증 화면 색 주 바 -->
           <div class="mufe-slider-row">
             <div class="msr-label"><span>🎨 나의 색 (주 좌표)</span><span class="msr-val" id="colorNameC">—</span></div>
-            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderColorC">
+            <input type="range" min="0" max="1000" step="10" value="500" class="mufe-slider" id="sliderColorC">
             <div id="colorSwatchC" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
           </div>
           <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 등록 때 맞춘 내 색으로 (빨주노초파남보)</div>
@@ -7505,24 +7518,34 @@
     // 생체 등록 여부도 함께 (생체 켰으면 인증 때 생체 필수가 됨)
     const bioReg = localStorage.getItem('mufe-bio-pattern');
     
-    let serverOk = false;
-    try {
-      const res = await fetch(`${API_BASE}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode, format }),
-      });
-      // 전송 직후 원본 비번 파쇄
-      try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+    // [1b·온디바이스] 등록 모드를 먼저 확정 — 고보안은 비번을 서버로 보내지 않는다.
+    const regMode = (window._pendingAuthMode === 'high') ? 'high' : 'simple';
 
-      const result = await res.json();
-      if (result.status === 'success' && result.token) {
-        userToken = result.token;
-        serverOk = true;
+    let serverOk = false;
+    if (regMode === 'simple') {
+      // 간편 모드는 (아직) 서버의 비번+단어 판정에 의존하므로 등록 시 서버 등록을 유지.
+      try {
+        const res = await fetch(`${API_BASE}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode, format }),
+        });
+        // 전송 직후 원본 비번 파쇄
+        try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+
+        const result = await res.json();
+        if (result.status === 'success' && result.token) {
+          userToken = result.token;
+          serverOk = true;
+        }
+      } catch (err) {
+        console.warn('[MUFE] 등록 서버 응답 없음 → 로컬 토큰 생성', err);
+        try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
       }
-    } catch (err) {
-      console.warn('[MUFE] 등록 서버 응답 없음 → 로컬 토큰 생성', err);
+    } else {
+      // 고보안 = 온디바이스 등록. 비번을 서버로 전송하지 않고 헬퍼/커밋만 로컬 생성·저장.
       try { const rp = document.getElementById('regPasscode'); if (rp) rp.value = ''; } catch(e){}
+      console.log('[MUFE] 고보안 온디바이스 등록 — 비번 서버 미전송');
     }
 
     // 서버가 토큰을 안 주면(오프라인/서버다운) — 로컬 토큰을 만들어 진행 (시작하기 막힘 방지)
@@ -7533,8 +7556,7 @@
     localStorage.setItem('mufe-user-token', userToken);
     localStorage.setItem('mufe-user-spacing', userSpacing);
 
-    // [C-46] 등록 모드 저장 — 간편/고보안. 홈·검증이 이걸 참고.
-    const regMode = (window._pendingAuthMode === 'high') ? 'high' : 'simple';
+    // [C-46] 등록 모드 저장 — 간편/고보안. 홈·검증이 이걸 참고. (regMode 위에서 확정)
     localStorage.setItem('mufe-reg-mode', regMode);
 
     // [C-45·46] 진짜 묶임 — 고보안 등록일 때만 슬라이더+동공 자물쇠 생성.
@@ -7879,6 +7901,17 @@
     const col = _mufeColorFromCoord(MUFE_Entropy.color);
     MUFE_Entropy.soundA = MUFE_Entropy.color % 48;                 // 색→소리A 자동
     MUFE_Entropy.soundB = Math.floor(MUFE_Entropy.color/48) % 48;  // 색→소리B 자동
+    // [연동] 색(주 좌표)을 0~100 숫자로 양자화 → 대·소·미세 슬라이더를 결정적으로 파생.
+    //   하나의 숫자만 기억하면 색·소리·슬라이더가 전부 같은 값으로 재현됨.
+    //   대·소·미세는 반드시 눈금 배수(브리지 splitCoord 호환)로 유지.
+    const _N = Math.max(0, Math.min(100, Math.round(MUFE_Entropy.color/10)));
+    MUFE_Entropy.big   = Math.floor(_N/10) * 100;   // 0..1000
+    MUFE_Entropy.small = (_N % 10) * 100;           // 0..900
+    MUFE_Entropy.micro = (_N % 11) * 1000;          // 0..10000 (결정적·시각용)
+    const _setSL=(id,v,lab)=>{ const s=document.getElementById(id); if(s){ s.value=v; try{_mufeSliderFill(s);}catch(e){} } const l=lab&&document.getElementById(lab); if(l) l.textContent=v; };
+    _setSL('sliderBig',MUFE_Entropy.big,'valBig');       _setSL('sliderBigC',MUFE_Entropy.big,'valBigC');
+    _setSL('sliderSmall',MUFE_Entropy.small,'valSmall'); _setSL('sliderSmallC',MUFE_Entropy.small,'valSmallC');
+    _setSL('sliderMicro',MUFE_Entropy.micro,'valMicro'); _setSL('sliderMicroC',MUFE_Entropy.micro,'valMicroC');
     const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const a = MUFE_SOUND_BANK[MUFE_Entropy.soundA] || {n:'—'};
     const bb = MUFE_SOUND_BANK[MUFE_Entropy.soundB] || {n:'—'};
@@ -7887,7 +7920,7 @@
     const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
     // 색 스와치·이름 표시
     ['colorSwatch','colorSwatchC'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.background=col.css; });
-    set('colorName', col.name); set('colorNameC', col.name);
+    set('colorName', '카오스 ' + _N + ' · ' + col.name); set('colorNameC', '카오스 ' + _N + ' · ' + col.name);
     // 소리 슬라이더도 자동 위치로 이동(시각 동기화)
     ['soundASel','soundASelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundA; });
     ['soundBSel','soundBSelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundB; });
@@ -8220,6 +8253,23 @@
       showMsg('<strong>정답입니다. 통과 다음 단계로</strong>', 'decoy');
       if (window.trackAuthAttempt) window.trackAuthAttempt('decoy');
       setTimeout(() => { enterAbyssTrap(); }, 1500);
+      _unlock(); return;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // [핵심·온디바이스] 고보안 로컬 판정 성공 → 비밀값을 서버로 전송하지 않고
+    //   기기 내부 판정(wasm helper/commit)만으로 통과 결정.
+    //   (명세서 청구항 1(e)·[0010]·[0047] "비밀값 미전송" 부합)
+    //   ※ keyChecked=false(간편·헬퍼 없음)는 아래 기존 서버 경로로 그대로 진행.
+    // ════════════════════════════════════════════════════════════
+    if (keyChecked && keyOk) {
+      const _i3 = document.getElementById('authInput'); if (_i3) _i3.value = '';
+      // 비밀 사본·생체 플래그 즉시 파쇄 (메모리 위생)
+      try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
+      showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
+      if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+      if (typeof addLog === 'function') addLog('success','🛡️','온디바이스 검증 통과 — 비밀값 미전송');
+      setTimeout(() => { if (typeof window.mufeUnlockApp === 'function') window.mufeUnlockApp(true); }, 900);
       _unlock(); return;
     }
 
