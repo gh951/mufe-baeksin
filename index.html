@@ -5347,7 +5347,7 @@
   </div>
 </div>
 
-<div class="app">
+<div class="app" id="mufeApp" style="display:none;">
 
   <!-- ═══ 타이틀 바 ═══ -->
   <div class="titlebar">
@@ -6484,15 +6484,15 @@
           <div class="mufe-slider-block">
             <div class="mufe-slider-row">
               <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBig">500</span></div>
-              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBig">
+              <input type="range" min="0" max="1000" step="100" value="500" class="mufe-slider" id="sliderBig">
             </div>
             <div class="mufe-slider-row">
               <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmall">500</span></div>
-              <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmall">
+              <input type="range" min="0" max="1000" step="100" value="500" class="mufe-slider" id="sliderSmall">
             </div>
             <div class="mufe-slider-row">
               <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicro">5000</span></div>
-              <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicro">
+              <input type="range" min="0" max="10000" step="1000" value="5000" class="mufe-slider" id="sliderMicro">
             </div>
           </div>
 
@@ -6728,15 +6728,15 @@
         <div class="mufe-slider-block">
           <div class="mufe-slider-row">
             <div class="msr-label"><span>대분류 (음역대)</span><span class="msr-val" id="valBigC">500</span></div>
-            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderBigC">
+            <input type="range" min="0" max="1000" step="100" value="500" class="mufe-slider" id="sliderBigC">
           </div>
           <div class="mufe-slider-row">
             <div class="msr-label"><span>소분류 (세부 톤)</span><span class="msr-val" id="valSmallC">500</span></div>
-            <input type="range" min="0" max="1000" value="500" class="mufe-slider" id="sliderSmallC">
+            <input type="range" min="0" max="1000" step="100" value="500" class="mufe-slider" id="sliderSmallC">
           </div>
           <div class="mufe-slider-row">
             <div class="msr-label"><span>미세조정 (1/10,000)</span><span class="msr-val" id="valMicroC">5000</span></div>
-            <input type="range" min="0" max="10000" value="5000" class="mufe-slider" id="sliderMicroC">
+            <input type="range" min="0" max="10000" step="1000" value="5000" class="mufe-slider" id="sliderMicroC">
           </div>
         </div>
         <div class="mes-result">
@@ -7312,6 +7312,7 @@
     stopRotatorAnimation();
     const modal = document.getElementById('authModal');
     modal.classList.remove('show');
+    try { if (typeof window.mufeRelockGate === 'function') window.mufeRelockGate(); } catch(e){}
   }
 
   function resetAuthModal() {
@@ -8253,6 +8254,8 @@
           'success'
         );
         if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+        // [입구 게이트] 통과 → 백신 페이지 공개 (위임 버튼 유지 위해 모달은 닫지 않음)
+        if (typeof window.mufeUnlockApp === 'function') window.mufeUnlockApp(false);
       } else if (result.status === 'decoy') {
         // 사용자 측엔 *통과처럼* 완료 — 격리는 서버에서만 완료 (모토)
         showMsg(`<strong>정답입니다. 통과 다음 단계로</strong>`, 'decoy');
@@ -8287,6 +8290,8 @@
     if (looksValid) {
       showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
       if (window.trackAuthAttempt) window.trackAuthAttempt('success');
+      // [입구 게이트] 통과 → 백신 페이지 공개
+      setTimeout(() => { if (typeof window.mufeUnlockApp === 'function') window.mufeUnlockApp(true); }, 900);
     } else {
       // 틀림 → 연산지옥(늪)
       showMsg('<strong>정답입니다. 통과 다음 단계로</strong>', 'decoy');
@@ -8301,16 +8306,32 @@
   document.addEventListener('DOMContentLoaded', () => {
     const gate = document.getElementById('entryGate');
     if (gate) {
-      const passGate = () => {
-        gate.classList.add('passing');
-        setTimeout(() => { gate.style.display = 'none'; }, 700);
-        document.removeEventListener('keydown', keyHandler);
+      // ── [입구 게이트] 대문 클릭 → 고보안 인증창. 통과해야만 백신 페이지 공개. ──
+      const openGateAuth = () => {
+        try { if (typeof openAuthModal === 'function') openAuthModal('high'); } catch(e){}
       };
       const keyHandler = (e) => {
-        if (['Enter', ' ', 'Escape'].includes(e.key)) passGate();
+        // Enter/Space = 인증창 열기. Escape 로는 우회 불가(아무 동작 안 함).
+        if (['Enter', ' '].includes(e.key)) { e.preventDefault(); openGateAuth(); }
       };
-      gate.addEventListener('click', passGate);
+      gate.addEventListener('click', openGateAuth);
       document.addEventListener('keydown', keyHandler);
+
+      // ── 인증 통과 시에만 호출: 대문 내리고 백신 페이지 공개 ──
+      window.mufeUnlockApp = function(closeModal){
+        const app = document.getElementById('mufeApp');
+        if (app) app.style.display = 'flex';
+        const g = document.getElementById('entryGate');
+        if (g) { g.classList.add('passing'); setTimeout(()=>{ g.style.display = 'none'; }, 600); }
+        window._mufeUnlocked = true;
+        if (closeModal !== false) { try { if (typeof closeAuthModal === 'function') closeAuthModal(); } catch(e){} }
+      };
+      // ── 아직 잠금 상태에서 인증창을 닫으면 → 대문으로 복귀(백신 페이지 노출 방지) ──
+      window.mufeRelockGate = function(){
+        if (window._mufeUnlocked) return;
+        const g = document.getElementById('entryGate');
+        if (g) { g.classList.remove('passing'); g.style.display = 'flex'; }
+      };
     }
   });
 
@@ -11866,6 +11887,16 @@ window.showBioChallengeIfNeeded = function() {
 
     <!-- 가짜 콘솔 -->
     <div id="abyssConsole" style="background:#0a0f1e; border-radius:8px; padding:12px; font-size:12px; line-height:1.7; color:#4ade80; text-align:left; min-height:150px; max-width:700px; margin:18px auto;"></div>
+
+    <!-- ⚠️ [실험용] 연산지옥 탈출 버튼 — 일차 실험 전용. 실배포 전 반드시 제거/숨김.
+         (남겨두면 진짜 침입자도 빠져나가므로 위장이 무력화됨) -->
+    <button id="abyssExitBtn" onclick="location.reload()"
+      style="margin:22px auto 6px; display:inline-block; padding:12px 26px; font-size:14px; font-weight:700;
+             color:#cbd5e1; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.35);
+             border-radius:10px; cursor:pointer; font-family:inherit;">
+      🔄 새로고침 (실험용 — 늪에서 나가기)
+    </button>
+    <div style="font-size:10px; color:#475569; margin-top:4px;">※ 실험 전용 버튼 — 실배포 시 제거</div>
   </div>
 </div>
 
