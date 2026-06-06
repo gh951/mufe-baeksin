@@ -7188,10 +7188,16 @@
     window._pendingAuthMode = (mode === 'high') ? 'high' : 'simple';
     const modal = document.getElementById('authModal');
     modal.classList.add('show');
-    
-    // 항상 등록/시작 화면 먼저 — 사용자가 직접 🚀 시작하기 클릭으로 진입
-    // (자동 진입 제거)
-    showRegisterForm();
+
+    // [입구 게이트] 등록 여부로 분기:
+    //   - 비번 만든 사람(토큰 있음) → 바로 인증하기(로그인) 화면
+    //   - 처음인 사람(토큰 없음)   → 비번 만들기 화면 (인증할 대상이 아직 없으므로)
+    const registered = !!localStorage.getItem('mufe-user-token');
+    if (registered) {
+      try { showChallengeForm(); } catch(e){ showRegisterForm(); }
+    } else {
+      showRegisterForm();
+    }
   }
 
   function showRegisterForm() {
