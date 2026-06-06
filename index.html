@@ -8308,6 +8308,10 @@
     if (gate) {
       // ── [입구 게이트] 대문 클릭 → 고보안 인증창. 통과해야만 백신 페이지 공개. ──
       const openGateAuth = () => {
+        // 인증창(z:1000)이 대문(z:99999)에 가리지 않도록 대문을 내림.
+        // (.app 은 이미 숨김 상태라 백신 페이지로 새지 않음. 인증창 닫으면 mufeRelockGate 가 대문 복귀)
+        const g = document.getElementById('entryGate');
+        if (g) g.style.display = 'none';
         try { if (typeof openAuthModal === 'function') openAuthModal('high'); } catch(e){}
       };
       const keyHandler = (e) => {
