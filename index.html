@@ -7236,7 +7236,7 @@
 
     // [C-45] 비번 만들기 화면 — 슬라이더+자연음 초기화 (고보안일 때만 의미)
     if (high && typeof _mufeInitEntropyUI === 'function') setTimeout(_mufeInitEntropyUI, 120);
-    if (high) setTimeout(()=>{ window._mufeImgSeq=[]; window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildImgGrid) window._mufeBuildImgGrid('mufeEntropySection'); if(window._mufeBuildColorGrid) window._mufeBuildColorGrid('mufeEntropySection'); if(window._mufeBuildSoundGrid) window._mufeBuildSoundGrid('mufeEntropySection'); }, 160);
+    if (high) setTimeout(()=>{ window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildLock) window._mufeBuildLock('mufeEntropySection'); if(window._mufeBuildColorGrid) window._mufeBuildColorGrid('mufeEntropySection'); if(window._mufeBuildSoundGrid) window._mufeBuildSoundGrid('mufeEntropySection'); }, 160);
     setTimeout(() => document.getElementById('regPasscode').focus(), 350);
   }
   
@@ -7315,7 +7315,7 @@
     
     // [C-46] 홈 카드에서 고른 모드로 시작 (없으면 간편)
     if (typeof window.setAuthMode === 'function') window.setAuthMode(window._pendingAuthMode || 'simple');
-    setTimeout(()=>{ if((window._pendingAuthMode==='high'||window._authMode==='high')){ window._mufeImgSeq=[]; window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildImgGrid)window._mufeBuildImgGrid('mufeEntropySectionAuth'); if(window._mufeBuildColorGrid)window._mufeBuildColorGrid('mufeEntropySectionAuth'); if(window._mufeBuildSoundGrid)window._mufeBuildSoundGrid('mufeEntropySectionAuth'); } }, 170);
+    setTimeout(()=>{ if((window._pendingAuthMode==='high'||window._authMode==='high')){ window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildLock)window._mufeBuildLock('mufeEntropySectionAuth'); if(window._mufeBuildColorGrid)window._mufeBuildColorGrid('mufeEntropySectionAuth'); if(window._mufeBuildSoundGrid)window._mufeBuildSoundGrid('mufeEntropySectionAuth'); } }, 170);
     
     // 생체 인증 영역 표시 여부 결정
     if (typeof window.showBioChallengeIfNeeded === 'function') {
@@ -7572,7 +7572,7 @@
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
-        const passClean = mufeCleanInput(passcode) + '#IMG#' + (window._mufeImgSeqStr ? window._mufeImgSeqStr() : '') + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '');
+        const passClean = mufeCleanInput(passcode) + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '') + '#BAR#' + (window._mufeLockStr ? window._mufeLockStr('mufeEntropySection') : '');
         console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
@@ -8098,6 +8098,36 @@
   }
   window._mufeBuildSoundGrid=_mufeBuildSoundGrid;
 
+  // ════════════════════════════════════════════════════════════
+  // [조합 자물쇠] 색에 안 묶인 독립 다이얼 6개 × 20칸 = 20^6 ≈ 26비트.
+  //   독립이라 곱셈이 일어남(연동 바와 다름). 등록·인증에서 "같은 숫자"로 맞추면 통과.
+  //   각 다이얼에 숫자(0~19)를 또렷이 표시 — 다이얼 돌리듯. (주민번호처럼 숫자로 기억)
+  //   ※ 6개 다 기억·재현해야 함. 하나 틀리면 잠김(곱셈의 대가). 개수는 window._mufeLockN로 조절.
+  // ════════════════════════════════════════════════════════════
+  window._mufeLockN = window._mufeLockN || 6;
+  const MUFE_LOCK_NOTCH = 20;
+  window._mufeLockVals = window._mufeLockVals || {};
+  window._mufeLockStr = function(parentId){ const a=(window._mufeLockVals&&window._mufeLockVals[parentId])||[]; return a.join('.'); };
+  function _mufeBuildLock(parentId){
+    const parent=document.getElementById(parentId); if(!parent||parent.querySelector('.mufe-lockwrap'))return;
+    window._mufeLockVals[parentId]=new Array(window._mufeLockN).fill(0);
+    const wrap=document.createElement('div'); wrap.className='mufe-lockwrap';
+    wrap.style.cssText='margin:10px 2px 8px;padding:11px;border:1px solid rgba(168,85,247,.35);border-radius:10px;background:rgba(124,58,237,.06);';
+    const head=document.createElement('div'); head.style.cssText='font-size:13px;font-weight:700;color:#cbd5e1;margin-bottom:8px;';
+    head.textContent='🔢 조합 자물쇠 (다이얼 '+window._mufeLockN+'개 — 인증 때 같은 숫자로)';
+    wrap.appendChild(head);
+    for(let i=0;i<window._mufeLockN;i++){
+      const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;margin:6px 0;';
+      const tag=document.createElement('span'); tag.style.cssText='font-size:11px;color:#9aa7c0;width:30px;flex:none;'; tag.textContent='#'+(i+1);
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0'; sl.max=String(MUFE_LOCK_NOTCH-1); sl.step='1'; sl.value='0'; sl.className='mufe-slider'; sl.style.flex='1';
+      const num=document.createElement('span'); num.style.cssText='font-size:15px;font-weight:800;color:#a855f7;width:26px;text-align:right;flex:none;'; num.textContent='0';
+      sl.addEventListener('input',()=>{ const v=parseInt(sl.value,10)||0; window._mufeLockVals[parentId][i]=v; num.textContent=v; });
+      row.appendChild(tag);row.appendChild(sl);row.appendChild(num); wrap.appendChild(row);
+    }
+    parent.appendChild(wrap);
+  }
+  window._mufeBuildLock=_mufeBuildLock;
+
   function _mufeInitEntropyUI(){
     // [C-47] 색 주(主) 바 — 등록(sliderColor) + 인증(sliderColorC) 양쪽. 색→소리 자동.
     ['sliderColor','sliderColorC'].forEach(cid=>{
@@ -8359,7 +8389,7 @@
           else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
           else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
           // [이미지 암호] 등록과 동일하게 이미지 선택 순서를 비번 재료에 결합
-          passOnly = passOnly + '#IMG#' + (window._mufeImgSeqStr ? window._mufeImgSeqStr() : '') + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '');
+          passOnly = passOnly + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '') + '#BAR#' + (window._mufeLockStr ? window._mufeLockStr('mufeEntropySectionAuth') : '');
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
           console.log('%c[MUFE 진단2] (보안: 값 비표시) 답길이=', 'color:#dc2626;font-weight:bold', (ans||'').length, '| 단어길이=', (w||'').length, '| 뗀후비번길이=', (passOnly||'').length);
           console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
