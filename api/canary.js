@@ -4,24 +4,26 @@
 //
 //  이 버전의 특징
 //   · 저장 = Firebase(Firestore). 무료 Spark 플랜은 한도를 넘으면 "청구 없이 멈춤"
-//     → 해커가 디도스로 퍼부어도 과금 폭탄이 날 수 없음(돈 0원, 그날 기록만 잠시 멈춤).
-//   · 속도 제한 내장: 짧은 시간에 폭주해도 60초에 한 번만 실제 기록/알림
-//     → 평소엔 DB를 거의 안 건드림 = 비용 보호 1차벽.
+//     → 디도스로 퍼부어도 과금 폭탄이 날 수 없음(돈 0원, 그날 기록만 잠시 멈춤).
+//   · 속도 제한 내장: 폭주해도 60초에 한 번만 실제 기록/알림 → 비용 보호 1차벽.
 //   · 3일 휘발: expireAt 필드 + Firestore TTL 정책으로 자동 삭제.
 //   · 이메일: 기본 꺼짐(비용 우려로 보류). 나중에 켜도 같은 속도제한이 적용됨.
 //   · "실시간 글로벌 IP 차단벽" 같은 건 넣지 않음(효과 약하고 위험만 추가).
 //
 //  ── 환경변수 (Vercel → Settings → Environment Variables) ──
-//   FB_PROJECT_ID    = Firebase 프로젝트 ID (예: cgo-life)
-//   FB_CLIENT_EMAIL  = 서비스계정 이메일 (다운받은 키 JSON 안의 client_email)
-//   FB_PRIVATE_KEY   = 서비스계정 비공개 키 (키 JSON 안의 private_key, \n 포함 통째로)
-//   (선택) CANARY_ALLOW_ORIGIN = 앱 주소. 예: https://mufe-sin.vercel.app  (없으면 * )
+//   ⭐ 쉬운 방법(권장): 다운받은 서비스계정 JSON 파일 "전체 내용"을 아래 한 개에 통째로 붙여넣기
+//        FB_SERVICE_ACCOUNT = (JSON 파일 내용 전체)
+//
+//   (대안) 값 3개를 따로 넣고 싶으면:
+//        FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY
+//
+//   (선택) CANARY_ALLOW_ORIGIN = 앱 주소. 없으면 *
 //   (선택, 이메일 켤 때만) RESEND_API_KEY, CANARY_ALERT_EMAIL
 //
 //  ── 3일 휘발 켜기 ──
 //   Firebase 콘솔 → Firestore → TTL 정책 → 컬렉션 canary_alerts, 필드 expireAt 지정.
 //
-//  ※ 정직: 이 함수는 "신호를 받는 쪽"입니다. "누가 미끼를 실제로 열었는지"까지 잡으려면
+//  ※ 정직: 이 함수는 "신호를 받는 쪽"입니다. 누가 미끼를 실제로 열었는지까지 잡으려면
 //    미끼 파일 안에 이 주소로 핑 보내는 토큰을 심어야 합니다(다음 단계).
 //  ※ 이건 곁가지(데모) 기능입니다. 핵심 보안 아님 — 가볍게 두세요.
 // ════════════════════════════════════════════════════════════════════════
@@ -29,25 +31,34 @@
 let admin = null;
 try { admin = require('firebase-admin'); } catch (e) { /* 미설치면 저장 건너뜀 */ }
 
-// Firebase 1회 초기화 (환경변수 있을 때만)
+// Firebase 초기화 — JSON 통째(FB_SERVICE_ACCOUNT) 우선, 없으면 값 3개 방식
 let db = null;
-if (admin && process.env.FB_PROJECT_ID && process.env.FB_CLIENT_EMAIL && process.env.FB_PRIVATE_KEY) {
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
+if (admin) {
+  let creds = null;
+  try {
+    if (process.env.FB_SERVICE_ACCOUNT) {
+      const sa = JSON.parse(process.env.FB_SERVICE_ACCOUNT);
+      creds = admin.credential.cert(sa);
+    } else if (process.env.FB_PROJECT_ID && process.env.FB_CLIENT_EMAIL && process.env.FB_PRIVATE_KEY) {
+      creds = admin.credential.cert({
         projectId: process.env.FB_PROJECT_ID,
         clientEmail: process.env.FB_CLIENT_EMAIL,
         privateKey: (process.env.FB_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-      }),
-    });
+      });
+    }
+  } catch (e) { creds = null; }
+
+  if (creds) {
+    try {
+      if (!admin.apps.length) admin.initializeApp({ credential: creds });
+      db = admin.firestore();
+    } catch (e) { db = null; }
   }
-  try { db = admin.firestore(); } catch (e) { db = null; }
 }
 
 // ── 속도 제한 (1차벽) ──
 // 이 함수 인스턴스 기준 최소 간격. 웜 상태에서 폭주를 흡수해 DB·비용을 지킨다.
-// (인스턴스마다·콜드스타트마다 초기화되므로 완벽한 전역 제한은 아니지만,
-//  진짜 최종 방어는 Firebase Spark의 "한도 초과 시 청구 없이 멈춤"이다.)
+// (완벽한 전역 제한은 아니지만, 최종 방어는 Firebase Spark의 "한도 초과 시 청구 없이 멈춤"이다.)
 const THROTTLE_MS = 60 * 1000;   // 60초에 한 번만 실제 처리
 let _lastHandledTs = 0;
 
@@ -89,7 +100,6 @@ module.exports = async (req, res) => {
     }
 
     // 3) 이메일 — 기본 꺼짐. RESEND_API_KEY 와 CANARY_ALERT_EMAIL 둘 다 있을 때만 동작.
-    //    (위 속도제한을 이미 통과한 뒤라서 메일도 60초에 한 통 이하로 제한됨 = 폭탄 불가)
     if (process.env.RESEND_API_KEY && process.env.CANARY_ALERT_EMAIL) {
       try {
         await fetch('https://api.resend.com/emails', {
