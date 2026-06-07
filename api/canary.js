@@ -6,7 +6,7 @@
 //   · 저장 = Firebase(Firestore). 무료 Spark 플랜은 한도를 넘으면 "청구 없이 멈춤"
 //     → 디도스로 퍼부어도 과금 폭탄이 날 수 없음(돈 0원, 그날 기록만 잠시 멈춤).
 //   · 속도 제한 내장: 폭주해도 60초에 한 번만 실제 기록/알림 → 비용 보호 1차벽.
-//   · 3일 휘발: expireAt 필드 + Firestore TTL 정책으로 자동 삭제.
+//   · 3일 휘발: 함수가 새 기록 쓸 때마다 3일 지난 옛 기록을 스스로 삭제(결제·TTL 불필요).
 //   · 이메일: 기본 꺼짐(비용 우려로 보류). 나중에 켜도 같은 속도제한이 적용됨.
 //   · "실시간 글로벌 IP 차단벽" 같은 건 넣지 않음(효과 약하고 위험만 추가).
 //
@@ -20,8 +20,9 @@
 //   (선택) CANARY_ALLOW_ORIGIN = 앱 주소. 없으면 *
 //   (선택, 이메일 켤 때만) RESEND_API_KEY, CANARY_ALERT_EMAIL
 //
-//  ── 3일 휘발 켜기 ──
-//   Firebase 콘솔 → Firestore → TTL 정책 → 컬렉션 canary_alerts, 필드 expireAt 지정.
+//  ── 3일 휘발 ──
+//   코드가 자동 처리함(아래 2-1): 새 기록을 쓸 때마다 expireAt(생성+3일)이 지난 옛 기록을 스스로 삭제.
+//   구글 클라우드 TTL 정책·결제 전혀 불필요.
 //
 //  ※ 정직: 이 함수는 "신호를 받는 쪽"입니다. 누가 미끼를 실제로 열었는지까지 잡으려면
 //    미끼 파일 안에 이 주소로 핑 보내는 토큰을 심어야 합니다(다음 단계).
@@ -87,7 +88,7 @@ module.exports = async (req, res) => {
       iso: new Date(now).toISOString(),
     };
 
-    // 2) Firestore 저장 (설정돼 있을 때만). expireAt → TTL 정책으로 3일 후 자동 삭제.
+    // 2) Firestore 저장 (설정돼 있을 때만).
     if (db) {
       try {
         await db.collection('canary_alerts').add(Object.assign({}, record, {
@@ -95,6 +96,21 @@ module.exports = async (req, res) => {
           expireAt: admin.firestore.Timestamp.fromMillis(now + THREE_DAYS),
         }));
       } catch (e) { /* 저장 실패해도 응답은 계속 */ }
+
+      // 2-1) 3일 지난 옛 기록 자동 청소 (TTL 대체 — 구글클라우드·결제 불필요)
+      // 새 기록을 쓸 때마다 한 번씩, expireAt(=생성+3일)이 지난 것들을 스스로 삭제.
+      // 속도제한 덕에 60초에 한 번뿐이라 가볍고, 무료(Spark) 한도 안에서 동작.
+      try {
+        const expired = await db.collection('canary_alerts')
+          .where('expireAt', '<=', admin.firestore.Timestamp.fromMillis(now))
+          .limit(50)
+          .get();
+        if (!expired.empty) {
+          const batch = db.batch();
+          expired.forEach(function (doc) { batch.delete(doc.ref); });
+          await batch.commit();
+        }
+      } catch (e) { /* 청소 실패해도 무시 */ }
     } else {
       console.log('[canary] 신호 수신(저장 미설정):', record.decoyId);
     }
