@@ -6462,7 +6462,7 @@
               <input type="range" min="0" max="1000" step="10" value="500" class="mufe-slider" id="sliderColor">
               <div id="colorSwatch" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
             </div>
-            <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 색 바를 내 색에 맞추면 아래 소리가 자동으로 정해집니다 (빨주노초파남보로 기억하세요)</div>
+            <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 각 바(색·소리·음높이·볼륨·대/소/미세)를 따로 설정하세요 — 독립이라 조합 경우의 수가 곱해집니다. 인증 때 같게 맞추면 통과.</div>
 
             <!-- [C-47] 심연의 밀도(입력 오염도) 게이지 — 흔한 위치/색이면 경고 -->
             <div style="margin:4px 2px 14px;">
@@ -6720,7 +6720,7 @@
             <input type="range" min="0" max="1000" step="10" value="500" class="mufe-slider" id="sliderColorC">
             <div id="colorSwatchC" style="height:22px;border-radius:6px;margin-top:6px;border:1px solid rgba(255,255,255,.2);background:#888;transition:background .15s;"></div>
           </div>
-          <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 등록 때 맞춘 내 색으로 (빨주노초파남보)</div>
+          <div style="font-size:11px;color:#9aa7c0;margin:2px 2px 12px;">↑ 등록 때 설정한 각 바 값과 같게 맞추세요 (바들의 조합이 열쇠)</div>
           <div class="mufe-slider-row">
             <div class="msr-label"><span>🎵 첫 번째 소리</span><span class="msr-val" id="soundANameC">—</span></div>
             <input type="range" min="0" max="47" value="0" class="mufe-slider" id="soundASelC">
@@ -7188,6 +7188,34 @@
     return _MUFE_CLEAN_MAP.get(cleanWord) || synthChaos(cleanWord);
   }
 
+  // ════════════════════════════════════════════════════════════
+  // [실시간 카오스 풀 확장] 468 → 약 4,868 (로드 시 1회 자동 생성).
+  //   회전 단어 다양성 + 심연 미끼 풍부화. 하드코딩 대신 생성 → 파일 가볍게.
+  //   c = 2음절 한글(생성형, 손수 큐레이션 468개와 달리 의미 없음), d = synthChaos 동일 스타일.
+  //   정직: 보안은 로그 이득(회당 ~+3비트), 큰 도약 아님 — 다양성·미끼 목적.
+  // ════════════════════════════════════════════════════════════
+  (function _mufeExpandChaosPool(){
+    if (window._mufeChaosExpanded) return; window._mufeChaosExpanded = true;
+    try{
+      const INI=[0,2,3,5,6,7,9,11,12,14,15,16,17,18];   // 흔한 초성 14
+      const MED=[0,1,4,5,8,12,13,17,18,20];             // 흔한 중성 10
+      const seen=new Set(MUFE_CHAOS_POOL.map(x=>x.c));
+      const syl=()=>String.fromCharCode(0xAC00 + (INI[Math.floor(Math.random()*INI.length)]*21 + MED[Math.floor(Math.random()*MED.length)])*28);
+      let added=0, guard=0;
+      while(added<4400 && guard<80000){
+        guard++;
+        const c=syl()+syl();
+        if(seen.has(c)) continue;
+        seen.add(c);
+        const d=synthChaos(c);
+        MUFE_CHAOS_POOL.push({c:c, d:d});
+        _MUFE_CLEAN_MAP.set(c, d);
+        added++;
+      }
+      if(window.console) console.log('[MUFE] 카오스 풀 확장:', MUFE_CHAOS_POOL.length, '개 (+'+added+')');
+    }catch(e){ if(window.console) console.warn('[MUFE] 카오스 확장 스킵:', e); }
+  })();
+
   let rotatorTimer = null;
   let rotatorWords = [];
   let rotatorIdx = 0;
@@ -7236,7 +7264,7 @@
 
     // [C-45] 비번 만들기 화면 — 슬라이더+자연음 초기화 (고보안일 때만 의미)
     if (high && typeof _mufeInitEntropyUI === 'function') setTimeout(_mufeInitEntropyUI, 120);
-    if (high) setTimeout(()=>{ window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildLock) window._mufeBuildLock('mufeEntropySection'); if(window._mufeBuildColorGrid) window._mufeBuildColorGrid('mufeEntropySection'); if(window._mufeBuildSoundGrid) window._mufeBuildSoundGrid('mufeEntropySection'); }, 160);
+    // [병합] 기존 바들이 곧 독립 조합 — 별도 다이얼·그리드 빌드 불필요
     setTimeout(() => document.getElementById('regPasscode').focus(), 350);
   }
   
@@ -7315,7 +7343,7 @@
     
     // [C-46] 홈 카드에서 고른 모드로 시작 (없으면 간편)
     if (typeof window.setAuthMode === 'function') window.setAuthMode(window._pendingAuthMode || 'simple');
-    setTimeout(()=>{ if((window._pendingAuthMode==='high'||window._authMode==='high')){ window._mufeColorSeq=[]; window._mufeSoundSeq=[]; if(window._mufeBuildLock)window._mufeBuildLock('mufeEntropySectionAuth'); if(window._mufeBuildColorGrid)window._mufeBuildColorGrid('mufeEntropySectionAuth'); if(window._mufeBuildSoundGrid)window._mufeBuildSoundGrid('mufeEntropySectionAuth'); } }, 170);
+    // [병합] 기존 바들이 곧 독립 조합 — 별도 다이얼·그리드 빌드 불필요
     
     // 생체 인증 영역 표시 여부 결정
     if (typeof window.showBioChallengeIfNeeded === 'function') {
@@ -7572,7 +7600,7 @@
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
-        const passClean = mufeCleanInput(passcode) + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '') + '#BAR#' + (window._mufeLockStr ? window._mufeLockStr('mufeEntropySection') : '');
+        const passClean = mufeCleanInput(passcode) + '#BAR#' + (typeof MUFE_Entropy!=='undefined' ? (Math.round((MUFE_Entropy.color||0)/10)+'.'+(MUFE_Entropy.soundA||0)+'.'+(MUFE_Entropy.soundB||0)) : '');
         console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
@@ -7901,19 +7929,9 @@
   function _mufeRecomputeKey(){
     // [C-47] 색이 주(主) 좌표 — 색에서 소리 A/B를 자동 결정(색 맞추면 소리 따라옴)
     const col = _mufeColorFromCoord(MUFE_Entropy.color);
-    MUFE_Entropy.soundA = MUFE_Entropy.color % 48;                 // 색→소리A 자동
-    MUFE_Entropy.soundB = Math.floor(MUFE_Entropy.color/48) % 48;  // 색→소리B 자동
-    // [연동] 색(주 좌표)을 0~100 숫자로 양자화 → 대·소·미세 슬라이더를 결정적으로 파생.
-    //   하나의 숫자만 기억하면 색·소리·슬라이더가 전부 같은 값으로 재현됨.
-    //   대·소·미세는 반드시 눈금 배수(브리지 splitCoord 호환)로 유지.
-    const _N = Math.max(0, Math.min(100, Math.round(MUFE_Entropy.color/10)));
-    MUFE_Entropy.big   = Math.floor(_N/10) * 100;   // 0..1000
-    MUFE_Entropy.small = (_N % 10) * 100;           // 0..900
-    MUFE_Entropy.micro = (_N % 11) * 1000;          // 0..10000 (결정적·시각용)
-    const _setSL=(id,v,lab)=>{ const s=document.getElementById(id); if(s){ s.value=v; try{_mufeSliderFill(s);}catch(e){} } const l=lab&&document.getElementById(lab); if(l) l.textContent=v; };
-    _setSL('sliderBig',MUFE_Entropy.big,'valBig');       _setSL('sliderBigC',MUFE_Entropy.big,'valBigC');
-    _setSL('sliderSmall',MUFE_Entropy.small,'valSmall'); _setSL('sliderSmallC',MUFE_Entropy.small,'valSmallC');
-    _setSL('sliderMicro',MUFE_Entropy.micro,'valMicro'); _setSL('sliderMicroC',MUFE_Entropy.micro,'valMicroC');
+    // [독립화/병합] 색에서 소리·대·소·미세를 파생하지 않음 — 모든 바를 사용자가 독립 설정(곱셈 비트).
+    //   기본값 존재(big500/small500/micro5000/soundA0/soundB0). 각 바는 눈금 배수라 재현 OK(splitCoord 호환 유지).
+    const _N = Math.max(0, Math.min(100, Math.round(MUFE_Entropy.color/10)));   // 색 표시용 숫자
     const coord = (MUFE_Entropy.big*10000 + MUFE_Entropy.small*10 + MUFE_Entropy.micro/1000).toFixed(3);
     const a = MUFE_SOUND_BANK[MUFE_Entropy.soundA] || {n:'—'};
     const bb = MUFE_SOUND_BANK[MUFE_Entropy.soundB] || {n:'—'};
@@ -7924,8 +7942,7 @@
     ['colorSwatch','colorSwatchC'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.background=col.css; });
     set('colorName', '카오스 ' + _N + ' · ' + col.name); set('colorNameC', '카오스 ' + _N + ' · ' + col.name);
     // 소리 슬라이더도 자동 위치로 이동(시각 동기화)
-    ['soundASel','soundASelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundA; });
-    ['soundBSel','soundBSelC'].forEach(id=>{ const s=document.getElementById(id); if(s) s.value=MUFE_Entropy.soundB; });
+    // (소리 셀렉트 자동 덮어쓰기 제거 — 사용자 독립 설정)
     set('keyCoord',coord); set('keyCoordC',coord);
     try { _mufeShowDensity(); } catch(e){}   // [C-47] 오염도 게이지 갱신
     set('soundSeed',seed); set('soundSeedC',seed);
@@ -8062,7 +8079,7 @@
       cell.addEventListener('click',()=>{ window._mufeColorSeq=window._mufeColorSeq||[]; window._mufeColorSeq.push(i); cell.classList.add('mufe-colcell-on'); cell.style.outline='3px solid #fff'; if(cell.animate)cell.animate([{transform:'scale(0.9)'},{transform:'scale(1)'}],{duration:160}); _mufeRenderColorSeq(); });
       grid.appendChild(cell);
     }
-    wrap.appendChild(lab);wrap.appendChild(seqLab);wrap.appendChild(grid); parent.appendChild(wrap); _mufeRenderColorSeq();
+    wrap.appendChild(lab);wrap.appendChild(seqLab);wrap.appendChild(grid); (function(p,w){var mx=p.querySelector('.mufe-sound-mixer'); if(mx)p.insertBefore(w,mx); else p.appendChild(w);})(parent,wrap); _mufeRenderColorSeq();
   }
   window._mufeBuildColorGrid=_mufeBuildColorGrid;
 
@@ -8094,7 +8111,7 @@
       cell.addEventListener('click',()=>{ _mufePlayTone(i); window._mufeSoundSeq=window._mufeSoundSeq||[]; window._mufeSoundSeq.push(i); cell.classList.add('mufe-sndcell-on'); cell.style.outline='3px solid #a855f7'; if(cell.animate)cell.animate([{transform:'scale(0.9)'},{transform:'scale(1)'}],{duration:160}); _mufeRenderSoundSeq(); });
       grid.appendChild(cell);
     }
-    wrap.appendChild(lab);wrap.appendChild(seqLab);wrap.appendChild(grid); parent.appendChild(wrap); _mufeRenderSoundSeq();
+    wrap.appendChild(lab);wrap.appendChild(seqLab);wrap.appendChild(grid); (function(p,w){var mx=p.querySelector('.mufe-sound-mixer'); if(mx)p.insertBefore(w,mx); else p.appendChild(w);})(parent,wrap); _mufeRenderSoundSeq();
   }
   window._mufeBuildSoundGrid=_mufeBuildSoundGrid;
 
@@ -8124,7 +8141,7 @@
       sl.addEventListener('input',()=>{ const v=parseInt(sl.value,10)||0; window._mufeLockVals[parentId][i]=v; num.textContent=v; });
       row.appendChild(tag);row.appendChild(sl);row.appendChild(num); wrap.appendChild(row);
     }
-    parent.appendChild(wrap);
+    (function(p,w){var mx=p.querySelector('.mufe-sound-mixer'); if(mx)p.insertBefore(w,mx); else p.appendChild(w);})(parent,wrap);
   }
   window._mufeBuildLock=_mufeBuildLock;
 
@@ -8389,7 +8406,7 @@
           else if (wClean && ansClean.startsWith(wClean)) passOnly = ansClean.slice(wClean.length);
           else passOnly = ansClean;   // 단어 못 찾으면 정규화한 전체
           // [이미지 암호] 등록과 동일하게 이미지 선택 순서를 비번 재료에 결합
-          passOnly = passOnly + '#COL#' + (window._mufeColorSeqStr ? window._mufeColorSeqStr() : '') + '#SND#' + (window._mufeSoundSeqStr ? window._mufeSoundSeqStr() : '') + '#BAR#' + (window._mufeLockStr ? window._mufeLockStr('mufeEntropySectionAuth') : '');
+          passOnly = passOnly + '#BAR#' + (typeof MUFE_Entropy!=='undefined' ? (Math.round((MUFE_Entropy.color||0)/10)+'.'+(MUFE_Entropy.soundA||0)+'.'+(MUFE_Entropy.soundB||0)) : '');
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
           console.log('%c[MUFE 진단2] (보안: 값 비표시) 답길이=', 'color:#dc2626;font-weight:bold', (ans||'').length, '| 단어길이=', (w||'').length, '| 뗀후비번길이=', (passOnly||'').length);
           console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
