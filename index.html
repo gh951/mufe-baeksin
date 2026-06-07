@@ -11420,9 +11420,66 @@ function _mufeSetPupilUI(text, color, bg){
   el.style.borderColor = color;
 }
 
+// ════════════════════════════════════════════════════════════
+// [근접 노출 가드] 청구항 16(c) 소프트웨어 실시 — 거리/각도 이탈 시 화면 마스킹 + 가시 비밀 비움.
+//   ※ 외부 카메라를 "탐지"하는 게 아니라, 화면이 노출되기 쉬운 상태(너무 멀어짐)일 때
+//     노출 시간을 줄이는 "완화책"입니다. (전면 카메라가 켜져 있는 동안만 동작)
+//   ※ 잠금 사고 방지를 위해 보수적 — 넉넉한 임계 + 디바운스, 진행 중인 키는 건드리지 않음.
+//   ※ 끄려면 콘솔/코드에서 window.MUFE_PROXIMITY_GUARD = false
+// ════════════════════════════════════════════════════════════
+window.MUFE_PROXIMITY_GUARD = true;
+const MUFE_PROX_MIN = 0.085;        // 눈 간격(정규화) 이보다 작으면 "너무 멈"(작을수록 더 멀어야 발동 — 보수적)
+const MUFE_PROX_DEBOUNCE = 6;       // 연속 N프레임 이탈 시에만 발동(오발동 방지)
+let _mufeProxBad = 0, _mufeProxMasked = false;
+function _mufeProxOverlay(show){
+  let o = document.getElementById('mufeProxMask');
+  if (show){
+    if (!o){
+      o = document.createElement('div'); o.id = 'mufeProxMask';
+      o.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cbd5e1;font-size:15px;text-align:center;gap:8px;';
+      o.innerHTML = '<div style="font-size:34px">🛡️</div><div>근접 노출 보호 — 화면이 멀어졌습니다</div><div style="font-size:12px;color:#94a3b8">기기를 가까이(정면)로 가져오면 자동 복귀</div>';
+      document.body.appendChild(o);
+    }
+    o.style.display = 'flex';
+  } else if (o){ o.style.display = 'none'; }
+}
+function _mufeProximityCheck(fl){
+  if (!window.MUFE_PROXIMITY_GUARD || !fl || fl.length < 478) return;
+  const a = fl[33], b = fl[263];   // 눈 바깥 코너 = 얼굴 크기(가까울수록 큼)
+  if (!a || !b) return;
+  const span = Math.hypot(a.x - b.x, a.y - b.y);
+  if (span < MUFE_PROX_MIN){       // 너무 멀어짐
+    _mufeProxBad++;
+    if (_mufeProxBad >= MUFE_PROX_DEBOUNCE && !_mufeProxMasked){
+      _mufeProxMasked = true;
+      _mufeProxOverlay(true);
+      // 가시 비밀 입력만 비움(진행 중 키 유도는 건드리지 않음 — 잠금 사고 방지)
+      ['authInput','regPasscode'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+      try { if (window._mufeExposedKey && window.MUFE_zeroize) window.MUFE_zeroize(window._mufeExposedKey); } catch(e){}
+    }
+  } else {
+    _mufeProxBad = 0;
+    if (_mufeProxMasked){ _mufeProxMasked = false; _mufeProxOverlay(false); }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// [미래 하드웨어 연결부] 청구항 15·16(a)·17 — 지금은 비활성(하드웨어 없음).
+//   하드웨어(보안칩/동글/네이티브 브리지)가 생기면 이 인터페이스만 채우면 됩니다.
+//   ※ 현재는 보안 효과 없음. available()=false → 앱은 소프트웨어 폴백으로 정상 진행.
+//   ※ 정직성: 이 후크들은 "지금" 키로거·캡처를 막지 않습니다. 미래 하드웨어용 빈 연결부입니다.
+// ════════════════════════════════════════════════════════════
+window.MUFE_HW = window.MUFE_HW || {
+  available(){ return false; },                 // 하드웨어 연결 여부
+  secureColorBarInput(){ return null; },        // 청구항 15/[0071] 드라이버단 색상바 입력 — 하드웨어 전용
+  photonicFlicker(){ return false; },           // 청구항 16(a) 디스플레이 광전자 플리커 — 하드웨어 전용
+  inlineModule(){ return null; }                // 청구항 17 외장 인라인 모듈/동글 — 하드웨어 전용
+};
+
 function _mufeOnFaceMeshResults(results){
   _mufeFaceBusy = false;
   const fl = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
+  try { _mufeProximityCheck(fl); } catch(e){}
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
   if (fl && fl.length >= 478){
