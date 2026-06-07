@@ -5870,9 +5870,8 @@
           <span class="hn-icon">ℹ️</span>
           <div class="hn-content">
             <strong>현재 베타 PWA 단계 안내</strong>
-            아래 시각화는 <em>발명 작동 방식 시연</em>입니다. 진짜 PC 제·바이러스 사냥은
-            <strong>Microsoft Store .exe 출시 후</strong> 작동합니다 (1~2주 후 예정).<br>
-            <small>현재 진짜 작동: 75% 임계점 역바이러스 발사 · 누적 통계 영구 저장 · 인증 시도 추적</small>
+            아래 위협 지도·차단 수치·바이러스 사냥 장면은 <em>작동 개념을 보여주는 시연(시뮬레이션)</em>이며, 실제 측정값이 아닙니다.<br>
+            <small>현재 실제 작동: 온디바이스 인증(Argon2id·ML-KEM-768) · 실시간 비밀번호 단어 풀 5,028개 · 미끼 접근 신호 서버 기록. 데스크탑(.exe) 버전은 준비 중.</small>
           </div>
         </div>
 
@@ -5881,12 +5880,12 @@
           <div class="patrol-stat">
             <div class="ps-num" id="psCardCount">0</div>
             <div class="ps-label">제압된 카드</div>
-            <div class="ps-desc">시뮬 시연 (출시 후 진짜)</div>
+            <div class="ps-desc">시뮬 시연</div>
           </div>
           <div class="patrol-stat patrol-stat-honey">
             <div class="ps-num" id="psHoneyCount">0</div>
             <div class="ps-label">미끼 카드 배포</div>
-            <div class="ps-desc">시뮬 시연 (출시 후 진짜)</div>
+            <div class="ps-desc">시뮬 시연</div>
           </div>
           <div class="patrol-stat patrol-stat-trap">
             <div class="ps-num" id="psTrapped">0</div>
@@ -5895,8 +5894,8 @@
           </div>
           <div class="patrol-stat patrol-stat-lifetime">
             <div class="ps-num" id="psLifetimeBlocked">0</div>
-            <div class="ps-label">누적 격리 <span class="ps-tag-real" style="font-size:9px;padding:2px 6px;">진짜</span></div>
-            <div class="ps-desc">사용자 시도 평생 누적 (영구 저장)</div>
+            <div class="ps-label">누적 격리 <span class="ps-tag-real" style="font-size:9px;padding:2px 6px;">시연</span></div>
+            <div class="ps-desc">데모 클릭 누적 (이 기기 저장)</div>
           </div>
         </div>
 
@@ -9705,6 +9704,25 @@
     { icon: '💼', name: '재무제표.xls', type: 'finance' },
     { icon: '🗝️', name: 'API토큰.json', type: 'token' },
   ];
+
+  // [미끼 풀 확장] 시연용 가짜 파일 풀을 약 900개로 — 로드 시 1회.
+  // 정직: 이건 데모용 "풀 크기"일 뿐, 실제로 PC에 깔린 미끼가 아님. 진짜 효과는 탐지(beacon)에서 나옴.
+  (function expandHoneyTypes() {
+    if (window._mufeHoneyExpanded) return; window._mufeHoneyExpanded = true;
+    const nouns = ['비밀번호','신용카드','주소록','은행계좌','개인사진','암호키','계약서','직원DB','이메일','회의록','재무제표','API토큰','고객명단','거래내역','세금신고','급여대장','주민번호','여권사본','보안설정','로그인기록','백업데이터','매출장부','투자내역','비상연락망','내부문서','특허출원','소스코드','서버접속','VPN설정','지갑복구','인사평가','법인등기','부동산','보험증서','의료기록','채용계획','마케팅전략','공급계약','단가표','출장정산','연구노트','시제품도면','금고비번','관리자계정','루트키','액세스토큰','세션키','쿠키저장소','인증서','복구시드'];
+    const exts = ['db','csv','xlsx','dat','zip','pem','pdf','sql','pst','mp4','xls','json','txt','docx','key','bak','log','enc'];
+    const icons = ['🔑','💳','📒','🏦','📷','🔐','📄','👥','📧','🎬','💼','🗝️','📊','🧾','📁','🗂️','💾','🔒'];
+    const seen = new Set(HONEY_TYPES.map(function (h) { return h.name; }));
+    for (var n = 0; n < nouns.length; n++) {
+      for (var e = 0; e < exts.length; e++) {
+        var nm = nouns[n] + '.' + exts[e];
+        if (seen.has(nm)) continue;
+        seen.add(nm);
+        HONEY_TYPES.push({ icon: icons[(n + e) % icons.length], name: nm, type: 'decoy' });
+      }
+    }
+    if (window.console) console.log('[MUFE] 미끼 풀 확장:', HONEY_TYPES.length, '개 (시연용 풀)');
+  })();
   
   const patrolState = {
     cardsCount: 0,
@@ -9800,7 +9818,7 @@
       grid.innerHTML = '<div style="grid-column: 1/-1; padding: 28px; text-align: center; color: #9ca3af; font-size: 13px;">제압 시작 시 미끼 카드가 자동 배포됩니다</div>';
       return;
     }
-    grid.innerHTML = HONEY_TYPES.slice(0, patrolState.honeyCount).map((h, i) => `
+    grid.innerHTML = HONEY_TYPES.slice(0, Math.min(patrolState.honeyCount, 24)).map((h, i) => `
       <div class="honey-card" data-idx="${i}" data-type="${h.type}" onclick="trapClick(${i})">
         <div class="hc-icon">${h.icon}</div>
         <div class="hc-name">${h.name}</div>
