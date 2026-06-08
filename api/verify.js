@@ -237,19 +237,12 @@ module.exports = async (req, res) => {
         trapped: true,
       })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
       
-      const reversePayload = generateReversePayload();
       
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          reversePayload,
-          serverSide: {
-            actualResult: 'TRAPPED-NO-TOKEN',
-            reason: 'no-valid-token',
-            note: '공격자: 토큰 없이 시도 → 가짜 통과 + 페이로드 자기 처리',
-          },
         });
     }
     
@@ -265,19 +258,12 @@ module.exports = async (req, res) => {
         trapped: true,
       })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
       
-      const reversePayload = generateReversePayload();
       
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          reversePayload,
-          serverSide: {
-            actualResult: 'TRAPPED-NO-CHALLENGE',
-            reason: 'expired-or-invalid-challenge',
-            note: '공격자: 챌린지 박지 않고 시도 → 가짜 통과 + 페이로드',
-          },
         });
     }
     
@@ -292,18 +278,12 @@ module.exports = async (req, res) => {
         trapped: true,
       })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
       
-      const reversePayload = generateReversePayload();
       
       return res.status(200).json({
           status: 'decoy',
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          reversePayload,
-          serverSide: {
-            actualResult: 'TRAPPED-WRONG-WORD',
-            reason: 'word-not-in-pool',
-          },
         });
     }
     
@@ -343,7 +323,6 @@ module.exports = async (req, res) => {
       const fakeAnswer = buildAnswer(passcode, caughtWord, fmt);
       if (userAnswer === fakeAnswer) {
         const fakeToken = generateAuthToken('decoy', userData);
-        const reversePayload = generateReversePayload();
         
         // 통계 — 격리 자리 박음
         if (isKVAvailable()) {
@@ -358,17 +337,7 @@ module.exports = async (req, res) => {
             detail: '',
             
             // ⚔ 역피해 페이로드 — 공격자 시스템 자원 소모 유도
-            reversePayload,
             
-            serverSide: {
-              actualResult: 'TRAPPED + REVERSE-PAYLOAD-DEPLOYED',
-              sandboxId: fakeToken.split('.')[1].slice(0, 12),
-              attemptedFormat: fmt,
-              registeredFormat: userFormat,
-              reason: 'wrong-format',
-              note: '공격자: 비번 추측 성공, 형식 25% 확률, 페이로드 처리 시 자기 자원 소모',
-              reverseEffect: '연산 폭탄 + 무한 재귀 + 가짜 키 후보 12개 + 가짜 시그니처 8개',
-            },
           });
       }
     }
@@ -378,21 +347,12 @@ module.exports = async (req, res) => {
     if (isKVAvailable()) await kvIncr('stats:auth:trapped-wrong-pass');
     
     const fakeToken = generateAuthToken('decoy', userData);
-    const reversePayload = generateReversePayload();
     
     return res.status(200).json({
         status: 'decoy',
         token: fakeToken,
         message: '정답입니다. 통과 다음 단계로',
         detail: '',
-        reversePayload,
-        serverSide: {
-          actualResult: 'TRAPPED-WRONG-PASS',
-          sandboxId: fakeToken.split('.')[1].slice(0, 12),
-          reason: 'wrong-password',
-          note: '공격자: 비번 추측 → 가짜 통과 + 페이로드 자기 처리',
-          reverseEffect: '연산 폭탄 + 무한 재귀 + 가짜 키 12개 + 가짜 시그니처 8개',
-        },
       });
     
   } catch (err) {
