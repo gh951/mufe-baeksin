@@ -7492,7 +7492,8 @@
     if(/[0-9]/.test(pw)) variety++;
     if(/[a-z]/.test(pw)) variety++;
     if(/[A-Z]/.test(pw)) variety++;
-    if(/[^0-9a-zA-Z]/.test(pw)) variety++;   // 기호/한글 등
+    if(/[\uac00-\ud7a3]/.test(pw)) variety++;             // [C-48] 한글 별도 클래스
+    if(/[^0-9a-zA-Z\uac00-\ud7a3]/.test(pw)) variety++;   // 기호 등(한글 제외)
     let score=0;
     if(pw.length>=8)  score++;
     if(pw.length>=12) score++;
@@ -7500,6 +7501,16 @@
     if(variety>=3 && pw.length>=10) score++;
     // 단조로운 반복(1111, abab) 감점
     if(/^(.)\1+$/.test(pw) || /^(..)\1+$/.test(pw)) score=0;
+    // [C-48] 흔한 비번·키보드 연속·순차·저(低)고유문자 강제 감점 — 사전공격 천장 낮춤
+    var _low = pw.toLowerCase();
+    var _common = ['password','passw0rd','qwerty','iloveyou','admin','letmein','welcome','dragon','monkey','abc123','111111','000000','aaaaaa','1q2w3e','1qaz'];
+    var _seq = ['0123456789','abcdefghijklmnopqrstuvwxyz','qwertyuiop','asdfghjkl','zxcvbnm'];
+    var _weak = false;
+    for(var _i=0;_i<_common.length;_i++){ if(_low.indexOf(_common[_i])>=0){ _weak=true; break; } }
+    if(!_weak){ for(var _s=0;_s<_seq.length;_s++){ var _z=_seq[_s]; for(var _j=0;_j+4<=_z.length;_j++){ var _run=_z.slice(_j,_j+4); var _rev=_run.split('').reverse().join(''); if(_low.indexOf(_run)>=0||_low.indexOf(_rev)>=0){ _weak=true; break; } } if(_weak) break; } }
+    var _uniq = new Set(pw.split('')).size;
+    if(_uniq <= Math.max(2, Math.floor(pw.length/4))) _weak = true;
+    if(_weak) score = Math.min(score, 1);   // 흔함/연속/단조 → 최대 '약함' → 게이트가 거부
     const map=[
       {label:'매우 약함 — 더 길게',      color:'#dc2626',pct:20},
       {label:'약함 — 숫자·기호 섞기',     color:'#f59e0b',pct:40},
@@ -7528,14 +7539,14 @@
     
     // [C-47] 비번 강도 강제 — 도난 시 오프라인 대입 천장이 곧 비번 세기.
     //   Argon2id가 1회 대입을 느리게 해도, 비번이 짧으면 결국 뚫림 → 최소 8자 + 다양성.
-    if (!passcode || passcode.length < 8) {
-      showRegMsg('비번은 <strong>8글자 이상</strong>이어야 합니다 (도난 대비 — 길수록 안전)', 'retry');
+    if (!passcode || passcode.length < 10) {
+      showRegMsg('비번은 <strong>10글자 이상</strong>이어야 합니다 (도난 대비 — 길수록 안전)', 'retry');
       return;
     }
     {
-      const s = window.mufePassStrength ? window.mufePassStrength(passcode) : {score:2,label:''};
-      if (s.score < 2) {   // 너무 약함(흔한/단조로운) 차단
-        showRegMsg('비번이 너무 약합니다 — 숫자·영문·기호를 섞어 더 길게 만들어주세요', 'retry');
+      const s = window.mufePassStrength ? window.mufePassStrength(passcode) : {score:3,label:''};
+      if (s.score < 3) {   // [C-48] '강함' 미만 차단 — 짧음/흔함/연속/단조 거부
+        showRegMsg('비번이 약합니다 — <strong>10자 이상 + 숫자·영문·기호를 섞고, 흔한 단어·연속(1234·qwerty·password)은 피하세요</strong>', 'retry');
         return;
       }
     }
