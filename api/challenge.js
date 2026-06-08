@@ -75,6 +75,16 @@ function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
 
+// [C-49] 보안 닿는 곳은 crypto — Math.random 제거(예측 가능성 차단)
+function secureShuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -87,12 +97,12 @@ module.exports = async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
     const timestamp = Date.now();
     
-    const shuffled = [...WORD_POOL].sort(() => Math.random() - 0.5);
+    const shuffled = secureShuffle(WORD_POOL);
     const rotationWords = shuffled.slice(0, 30);
     
     let chaosImage = null;
     if (IMAGE_POOL.length > 0) {
-      chaosImage = IMAGE_POOL[Math.floor(Math.random() * IMAGE_POOL.length)];
+      chaosImage = IMAGE_POOL[crypto.randomInt(0, IMAGE_POOL.length)];
     }
     
     const challengeData = {
