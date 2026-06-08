@@ -7616,7 +7616,7 @@
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
         const passClean = mufeCleanInput(passcode) + '#BAR#' + (typeof MUFE_Entropy!=='undefined' ? (((window._mufeBarMode||'linked')==='linked'?'L':'I')+'.'+Math.round((MUFE_Entropy.color||0)/10)+'.'+(MUFE_Entropy.soundA||0)+'.'+(MUFE_Entropy.soundB||0)) : '');
-        console.log('%c[MUFE 진단] 등록 좌표(sliderCoord) =', 'color:#16a34a;font-weight:bold', sliderCoord, '| 비번길이:', passClean.length, '| 동공:', pupil.length);
+        /* [C-51] 인증 요소(좌표·단어·길이) 콘솔 노출 차단 — 적에게 단서 0 */
         // 키 재료 = 비번만 (단어는 매번 달라서 제외, 카오스 좌표·동공은 인자로 들어감)
         const e = window.MUFE_WASM.enroll(sliderCoord, pupil, passClean);
         if (e && e.helper && e.commit) {
@@ -8477,8 +8477,8 @@
           // [이미지 암호] 등록과 동일하게 이미지 선택 순서를 비번 재료에 결합
           passOnly = passOnly + '#BAR#' + (typeof MUFE_Entropy!=='undefined' ? (((window._mufeBarMode||'linked')==='linked'?'L':'I')+'.'+Math.round((MUFE_Entropy.color||0)/10)+'.'+(MUFE_Entropy.soundA||0)+'.'+(MUFE_Entropy.soundB||0)) : '');
           // 저장된 헬퍼로 복원 인증 — 입력(카오스+생체+비번)이 맞으면 키 복원
-          console.log('%c[MUFE 진단2] (보안: 값 비표시) 답길이=', 'color:#dc2626;font-weight:bold', (ans||'').length, '| 단어길이=', (w||'').length, '| 뗀후비번길이=', (passOnly||'').length);
-          console.log('%c[MUFE 진단] 인증 좌표(sliderCoord) =', 'color:#dc2626;font-weight:bold', sliderCoord, '| 비번길이:', (passOnly||'').length, '| 동공:', pupil.length, '| 잡은단어:', w);
+          /* [C-51] 인증 요소(좌표·단어·길이) 콘솔 노출 차단 — 적에게 단서 0 */
+          /* [C-51] 인증 요소(좌표·단어·길이) 콘솔 노출 차단 — 적에게 단서 0 */
           const a = window.MUFE_WASM.authenticate(sliderCoord, pupil, passOnly, helper, commit);
           keyOk = !!a.pass;
           keyChecked = true;
