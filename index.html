@@ -12636,5 +12636,32 @@ document.addEventListener('keydown', (e) => {
 })();
 </script>
 
+<script>
+/* [C-50] 환경 거짓말 탐지 — Object.freeze가 '진짜로' 작동하는지 앱이 직접 확인.
+   콘솔 출력 없음(적에게 단서 0). freeze가 가짜로 판명되면(=환경 변조) 조용히 미끼(연산지옥)로.
+   정상 브라우저는 스펙상 freeze가 항상 작동 → 오탐 0. 어떤 오류든 → fail-open(통과). */
+(function(){
+  function freezeWorks(){
+    try{
+      var c = Object.freeze({ x: 1 });
+      try { c.x = 2; } catch(e){}            /* strict 모드는 throw — 무시 */
+      return c.x === 1;                       /* true=정상, false=freeze가 가짜 */
+    } catch(e){ return true; }                /* 오류 → fail-open */
+  }
+  var tampered;
+  try { tampered = !freezeWorks(); } catch(e){ tampered = false; }
+  if(!tampered) return;                        /* 정상 → 아무 일도 안 함(조용) */
+  var fired = false;
+  var fire = function(){
+    if(fired) return; fired = true;
+    try { if (typeof enterAbyssTrap === 'function') enterAbyssTrap(); } catch(e){}
+  };
+  try{
+    if (document.readyState === 'complete' || document.readyState === 'interactive') fire();
+    else { window.addEventListener('DOMContentLoaded', fire); window.addEventListener('load', fire); }
+  } catch(e){}
+})();
+</script>
+
 </body>
 </html>
