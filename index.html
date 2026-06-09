@@ -11691,7 +11691,18 @@ function _mufeBuildFaceSignature(lm){
 function mufeFaceSigStabilityTest(){
   const log = window._mufeFaceSigLog || [];
   if (log.length < 3){
-    alert('얼굴 서명 샘플이 부족해요 (' + log.length + '개).\n\n생체 인증/측정 화면에서 얼굴을 몇 초 비춰 캡처를 쌓은 뒤,\n다시 이 버튼을 눌러주세요.');
+    const seen = window._mufeFaceSeen || 0;
+    const fired = window._mufeFaceMeshFired || 0;
+    const flen = window._mufeLastFlLen || 0;
+    const fmeshLoaded = (typeof FaceMesh !== 'undefined');
+    let why;
+    if (!fmeshLoaded)            why = '→ FaceMesh 라이브러리가 안 떴어요(인터넷/CDN 차단). 이러면 얼굴·동공 좌표 자체가 안 잡혀요.';
+    else if (fired === 0)        why = '→ FaceMesh는 떴는데 카메라 프레임을 한 번도 못 받았어요. 카메라 켜진 생체 측정 화면에서 해야 해요.';
+    else if (flen > 0 && flen < 478) why = '→ FaceMesh가 ' + flen + '개 좌표만 줘요(478 필요). 홍채 모델이 안 받아진 거예요 → 양자화/좌표 조정 필요.';
+    else if (seen === 0)         why = '→ 카메라엔 도는데 얼굴이 정면(478좌표)으로 안 잡혔어요. 얼굴을 정면으로 더 가까이·오래 비춰주세요.';
+    else                         why = '→ 얼굴은 ' + seen + '번 잡혔어요. 조금 더 오래 비춘 뒤 다시 눌러주세요.';
+    alert('얼굴 서명 샘플 부족 (' + log.length + '개)\n\n[진단]\n· FaceMesh 로드: ' + (fmeshLoaded ? 'O' : 'X') +
+          '\n· FaceMesh 콜백 발생: ' + fired + '회\n· 마지막 좌표 개수: ' + flen + ' (478 필요)\n· 얼굴(478) 감지: ' + seen + '회\n\n' + why);
     return;
   }
   const N = log.length, L = 64;
@@ -11780,24 +11791,26 @@ window.MUFE_HW = window.MUFE_HW || {
 function _mufeOnFaceMeshResults(results){
   _mufeFaceBusy = false;
   const fl = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
+  window._mufeFaceMeshFired = (window._mufeFaceMeshFired || 0) + 1;   // [C-52 진단] FaceMesh 콜백이 실제로 도는가
+  window._mufeLastFlLen = fl ? fl.length : 0;                          // [C-52 진단] 좌표 개수(478 필요)
   try { _mufeProximityCheck(fl); } catch(e){}
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
   if (fl && fl.length >= 478){
     window._mufeFaceSeen = (window._mufeFaceSeen||0) + 1;   // [C-47v2] 진짜 얼굴(478 좌표) 감지 — 책상·천장·벽은 절대 안 올라감
+    // [C-52 A-1] 얼굴 서명 샘플 수집 — 혈류와 무관하게 '얼굴만 보이면' 모음(안정도 측정 전용, 최대 30개, 인증·열쇠 영향 0)
+    try {
+      const fsig = _mufeBuildFaceSignature(fl);
+      if (fsig){
+        window._mufeFaceSig = fsig;
+        window._mufeFaceSigLog = window._mufeFaceSigLog || [];
+        if (window._mufeFaceSigLog.length < 30) window._mufeFaceSigLog.push(fsig);
+      }
+    } catch(e){}
     if (flowing){
       window._mufePupilCoords = _mufeBuildPupilSignature(fl);
       _mufePupilCount++;
       _mufeSetPupilUI(`👁 동공 좌표 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
-      // [C-52 A-1] 얼굴 서명 안정도 샘플 수집 (관찰 전용 — 인증·열쇠에 영향 없음, 최대 30개)
-      try {
-        const fsig = _mufeBuildFaceSignature(fl);
-        if (fsig){
-          window._mufeFaceSig = fsig;
-          window._mufeFaceSigLog = window._mufeFaceSigLog || [];
-          if (window._mufeFaceSigLog.length < 30) window._mufeFaceSigLog.push(fsig);
-        }
-      } catch(e){}
     } else {
       // 얼굴은 보이는데 혈류 아직 — 정지 원칙(혈류 없으면 캡처 X)
       _mufeSetPupilUI('👁 얼굴 감지됨 — 혈류 측정 중…', '#38bdf8', 'rgba(56,189,248,.12)');
