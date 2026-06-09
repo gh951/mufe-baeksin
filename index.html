@@ -5372,6 +5372,15 @@
       <span style="font-size:15px; font-weight:800;">🧪 실험 해킹 — 뚫어보기</span>
       <span style="font-size:10px; color:rgba(253,233,199,.75);">비번 없이 인증 시도 → 틀리면 연산지옥</span>
     </button>
+    <button id="entryHoneyTest"
+      onclick="event.stopPropagation(); event.preventDefault(); if(typeof window.__mufeMasterRecover==='function') window.__mufeMasterRecover();"
+      style="flex:1 1 210px; display:flex; flex-direction:column; align-items:center; gap:2px;
+             padding:13px 18px; border-radius:14px; cursor:pointer; font-family:inherit;
+             color:#ffe6e6; background:rgba(220,60,60,.18); border:1px solid rgba(220,60,60,.6);
+             box-shadow:0 4px 18px rgba(220,60,60,.22); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);">
+      <span style="font-size:15px; font-weight:800;">🍯 미끼 키 테스트</span>
+      <span style="font-size:10px; color:rgba(255,230,230,.78);">코드 속 가짜 키 사용 → 연산지옥 (배포 전 제거)</span>
+    </button>
   </div>
 </div>
 
@@ -12691,6 +12700,26 @@ document.addEventListener('keydown', (e) => {
     } catch(e) {
       _mufeForceChallenge();
     }
+  };
+
+  // ════════════════════════════════════════════════════════════
+  // [C-52 허니토큰] 미끼 마스터키 — '코드에만' 존재한다.
+  //   정상 사용자·정상 흐름은 이 키도, 아래 함수도 절대 호출하지 않는다.
+  //   코드를 읽은 공격자(또는 분석 도구)가 '진짜 복구 키'로 착각해 쓰는 순간
+  //   → 서버(/api/recover)가 "코드 탈취자"로 기록 + 그 세션은 연산지옥(늪)으로.
+  //   ※ 더하기 전용 — 기존 인증/대시보드 로직과 무관.
+  // ════════════════════════════════════════════════════════════
+  window.MUFE_MASTER_RECOVERY_KEY = 'mk_live_9f83c1d4e7a20b6f55adce71b4f9082d';   // ⚠️ 미끼(honeytoken)
+  window.__mufeMasterRecover = async function (key) {
+    try {
+      await fetch(window.location.origin + '/api/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: key || window.MUFE_MASTER_RECOVERY_KEY, t: Date.now() })
+      });
+    } catch (e) { /* 서버 못 가도 덫은 작동 */ }
+    // 미끼를 쓴 세션은 즉시 연산지옥으로 (정상 사용자는 여기 올 일이 없음)
+    try { if (typeof enterAbyssTrap === 'function') enterAbyssTrap(); } catch (e) {}
   };
 })();
 </script>
