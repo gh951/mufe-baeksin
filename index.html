@@ -7561,15 +7561,10 @@
       }
     }
 
-    // [C-45] 등록 = 확정. 지금 정한 카오스 키 좌표를 "정답 기준"으로 저장.
-    //   (나중에 인증 때 같은 카오스를 맞춰야 통과 — 등록이 곧 확정)
-    const chaosNow = (typeof window.getMufeEntropyPayload === 'function')
-      ? window.getMufeEntropyPayload() : null;
-    if (chaosNow) {
-      localStorage.setItem('mufe-chaos-key', JSON.stringify({
-        coord: chaosNow.coord, soundSeed: chaosNow.soundSeed
-      }));
-    }
+    // [C-52 보안수정] 카오스 키 좌표 평문 저장 제거 — 읽는 곳 없는 순수 누설이었음.
+    //   진짜 키 묶음은 wasm helper/commit(mufe-key-helper)에만 저장된다(아래).
+    //   기존 기기에 남아있을 수 있는 평문 사본도 능동 삭제.
+    try { localStorage.removeItem('mufe-chaos-key'); } catch(e) {}
     // 생체 등록 여부도 함께 (생체 켰으면 인증 때 생체 필수가 됨)
     const bioReg = localStorage.getItem('mufe-bio-pattern');
     
