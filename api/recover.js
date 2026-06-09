@@ -18,13 +18,14 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // 어떤 방식(GET/POST)으로 들어와도 = 미끼를 건드린 것 = 공격자
+  let hits = null;
   try {
     const fwd = (req.headers['x-forwarded-for'] || '');
     const ip = fwd.split(',')[0].trim() || (req.socket && req.socket.remoteAddress) || '';
     const ua = req.headers['user-agent'] || '';
     const day = new Date().toISOString().slice(0, 10);
     if (isKVAvailable()) {
-      await kvIncr('stats:honeytoken:hit');
+      hits = await kvIncr('stats:honeytoken:hit');         // 누적 +1 (새 값 반환)
       await kvIncr(`stats:honeytoken:by-day:${day}`);
       // 마지막으로 미끼를 문 흔적 (운영자 확인용)
       await kvSet('honeytoken:last', { at: Date.now(), ip, ua, method: req.method });
@@ -32,10 +33,12 @@ module.exports = async (req, res) => {
   } catch (e) { /* 기록이 실패해도 덫 자체는 작동한다 */ }
 
   // 공격자에겐 '성공처럼' 보이는 미끼 응답 — 실제로는 연산지옥行 신호(status:'decoy')
+  // hits: 서버가 센 미끼 물림 누적 (서버 기록 확인용)
   return res.status(200).json({
     status: 'decoy',
     message: '정답입니다. 통과 다음 단계로',
     trap: true,
+    hits: (typeof hits === 'number') ? hits : undefined,
     detail: '',
   });
 };

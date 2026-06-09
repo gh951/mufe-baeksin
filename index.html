@@ -12712,13 +12712,19 @@ document.addEventListener('keydown', (e) => {
   window.MUFE_MASTER_RECOVERY_KEY = 'mk_live_9f83c1d4e7a20b6f55adce71b4f9082d';   // ⚠️ 미끼(honeytoken)
   window.__mufeMasterRecover = async function (key) {
     try {
-      await fetch(window.location.origin + '/api/recover', {
+      const r = await fetch(window.location.origin + '/api/recover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: key || window.MUFE_MASTER_RECOVERY_KEY, t: Date.now() })
       });
+      const d = await r.json().catch(function () { return {}; });
+      if (d && typeof d.hits === 'number') {
+        window.__honeytokenServerHits = d.hits;   // 서버가 센 누적 — 서버 기록 확인용
+        console.log('[MUFE 허니토큰] 서버 기록 — 미끼 물림 누적 ' + d.hits + '회');
+      }
     } catch (e) { /* 서버 못 가도 덫은 작동 */ }
-    // 미끼를 쓴 세션은 즉시 연산지옥으로 (정상 사용자는 여기 올 일이 없음)
+    // 미끼를 쓴 세션 = 침입자 → 화면 통계(미끼 격리)에 +1, 그리고 연산지옥으로
+    try { if (window.trackAuthAttempt) window.trackAuthAttempt('decoy'); } catch (e) {}
     try { if (typeof enterAbyssTrap === 'function') enterAbyssTrap(); } catch (e) {}
   };
 })();
