@@ -12692,14 +12692,14 @@ document.addEventListener('keydown', (e) => {
       if (g) g.style.display = 'none';
       var modal = document.getElementById('authModal');
       if (modal) modal.classList.add('show');
-      // 간편 모드 = 생체/wasm 게이트 없이 비번+단어로만 판정 → 공격자가 틀리면 곧장 미끼
-      window._pendingAuthMode = 'simple';
-      window._authMode = 'simple';
+      // 고보안 모드 = 슬라이더 카오스·동공·생체 전부 표시(MUFE 핵심 검증 수단).
+      //   미등록 공격자는 헬퍼 없음 → 키검증 건너뛰고 서버/로컬 판정 → 틀리면 미끼.
+      window._pendingAuthMode = 'high';
       window._hackDemo = true;
-      if (typeof showChallengeForm === 'function') showChallengeForm(); // 인증 화면으로 직행
+      if (typeof showChallengeForm === 'function') showChallengeForm(); // 인증 화면(고보안)으로 직행
       _mufeForceChallenge();
       // 대문 기본 인증열기 등 다른 흐름이 '비번만들기'로 덮어써도 인증으로 되돌림
-      setTimeout(function(){ window._pendingAuthMode='simple';
+      setTimeout(function(){ window._pendingAuthMode='high';
         if (typeof showChallengeForm === 'function') showChallengeForm(); _mufeForceChallenge(); }, 180);
       setTimeout(_mufeForceChallenge, 450);
     } catch(e) {
