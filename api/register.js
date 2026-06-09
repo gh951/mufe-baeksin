@@ -1,13 +1,16 @@
 /**
- * MUFE 백신 — 사용자 등록 (해시 박는 자리)
- * - 비번 원본은 서버 박힘 X (모토 그대로)
- * - 해시만 KV에 박음
- * - 같은 비번 = 어떤 기기·PC에서도 통과
+ * MUFE 백신 — 사용자 등록 (해시 저장)
+ *
+ * [C-52 보안수정]
+ *  - 토큰에 비번 원본을 절대 넣지 않음 (userId/format 만)
+ *  - 비번은 해시(passHash)만 KV(창고)에 저장
+ *  - MUFE_SECRET 없으면 동작 거부 (공개 기본값 서명 금지)
+ *  - 신규/재인증 응답을 동일하게 (어떤 비번이 이미 쓰이는지 못 엿보게)
  */
 const crypto = require('crypto');
 const { kvSet, kvGet, kvIncr, isKVAvailable } = require('./_kv');
 
-const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const SECRET = process.env.MUFE_SECRET;   // 기본값 fallback 제거
 const VALID_FORMATS = ['joined-after', 'spaced-after', 'joined-before', 'spaced-before'];
 
 function sign(data) {
@@ -20,6 +23,19 @@ function getUserId(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`uid:${passcode}`).digest('hex').slice(0, 16);
 }
 
+// 인증 토큰 — 비번은 절대 담지 않음
+function makeUserToken(userId, format) {
+  const payload = {
+    type: 'user-registration',
+    issuedAt: Date.now(),
+    sessionId: crypto.randomBytes(8).toString('hex'),
+    userId,
+    format,
+  };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+  return `mufe-u.${payloadB64}.${sign(payloadB64)}`;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -27,10 +43,13 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // [보안] 비밀 도장 없으면 거부
+  if (!SECRET) return res.status(500).json({ error: 'server-misconfigured' });
+
   try {
     const { passcode, format } = req.body || {};
-    if (!passcode || passcode.length < 1) return res.status(400).json({ error: '비번을 박아주세요' });
-    if (!VALID_FORMATS.includes(format)) return res.status(400).json({ error: '유효한 형식을 박아주세요' });
+    if (!passcode || passcode.length < 1) return res.status(400).json({ error: '비번을 입력해주세요' });
+    if (!VALID_FORMATS.includes(format)) return res.status(400).json({ error: '유효한 형식을 입력해주세요' });
 
     const passHash = hashPasscode(passcode);
     const userId = getUserId(passcode);
@@ -39,19 +58,16 @@ module.exports = async (req, res) => {
     if (isKVAvailable()) existingUser = await kvGet(`user:${userId}`);
 
     if (existingUser) {
-      if (existingUser.passHash !== passHash) {
-        return res.status(409).json({ error: '이 비번은 다른 자리에서 박혀있어요. 다른 비번을 박아주세요.' });
+      // 같은 비번 = 같은 userId/해시. 재인증으로 통과.
+      const fmt = format || existingUser.format;
+      if (isKVAvailable() && fmt !== existingUser.format) {
+        await kvSet(`user:${userId}`, { ...existingUser, format: fmt, updatedAt: Date.now() });
       }
-      const payload = {
-        type: 'user-registration', issuedAt: Date.now(),
-        sessionId: crypto.randomBytes(8).toString('hex'),
-        userId, passcode, format: format || existingUser.format,
-      };
-      const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
-      const token = `mufe-u.${payloadB64}.${sign(payloadB64)}`;
       if (isKVAvailable()) await kvIncr('stats:user:reauth');
       return res.status(200).json({
-        status: 'success', token,
+        status: 'success',
+        token: makeUserToken(userId, fmt),
+        format: fmt,
         message: '정답입니다. 통과 다음 단계로',
         detail: '',
       });
@@ -61,20 +77,15 @@ module.exports = async (req, res) => {
       await kvSet(`user:${userId}`, { passHash, format, createdAt: Date.now() });
       await kvIncr('stats:user:registered');
     }
-    const payload = {
-      type: 'user-registration', issuedAt: Date.now(),
-      sessionId: crypto.randomBytes(8).toString('hex'),
-      userId, passcode, format,
-    };
-    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const token = `mufe-u.${payloadB64}.${sign(payloadB64)}`;
+
     return res.status(200).json({
-      status: 'success', token,
+      status: 'success',
+      token: makeUserToken(userId, format),
+      format,
       message: '정답입니다. 통과 다음 단계로',
-      detail: isKVAvailable() ? '비번 박힘 (해시) — 어떤 기기·PC에서도 같은 비번으로 박힘'
-                              : '비번 박힘 (이 브라우저만) — KV 박혀있지 않음',
+      detail: '',
     });
   } catch (err) {
-    return res.status(500).json({ error: '등록 박힘 X', detail: err.message });
+    return res.status(500).json({ error: '등록 실패', detail: err.message });
   }
 };

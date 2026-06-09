@@ -1,17 +1,16 @@
 /**
  * MUFE 백신 — 기존 비번 로그인
- * 
- * POST /api/login
- * body: { passcode }
- * 
- * - KV에 박힌 해시 박힘 확인
- * - 같으면 토큰 발급 (format도 박혀있음)
- * - 모토: 박힘 X도 "통과 박는 자리" (decoy)
+ *
+ * [C-52 보안수정]
+ *  - 통과 토큰에 비번 원본을 넣지 않음 (userId/format 만)
+ *  - 미끼 응답에서 'TRAPPED'·serverSide 등 내부 표식 제거 (네트워크로 정답 누설 방지)
+ *  - MUFE_SECRET 없으면 동작 거부
+ *  - 모토 유지: 비번 틀려도 '거부' 화면 없이 미끼(decoy)
  */
 const crypto = require('crypto');
 const { kvGet, kvIncr, isKVAvailable } = require('./_kv');
 
-const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const SECRET = process.env.MUFE_SECRET;   // 기본값 fallback 제거
 
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
@@ -23,6 +22,16 @@ function getUserId(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`uid:${passcode}`).digest('hex').slice(0, 16);
 }
 
+function decoyToken() {
+  const payload = {
+    type: 'decoy',
+    issuedAt: Date.now(),
+    sessionId: crypto.randomBytes(8).toString('hex'),
+    trapped: true,
+  };
+  return `mufe-u.${Buffer.from(JSON.stringify(payload)).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -30,15 +39,17 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  if (!SECRET) return res.status(500).json({ error: 'server-misconfigured' });
+
   try {
     const { passcode } = req.body || {};
-    if (!passcode) return res.status(400).json({ error: '비번을 박아주세요' });
+    if (!passcode) return res.status(400).json({ error: '비번을 입력해주세요' });
 
     if (!isKVAvailable()) {
-      return res.status(503).json({ 
+      return res.status(503).json({
         status: 'no-server-storage',
-        message: '서버 저장소 박혀있지 않음',
-        detail: '이 사이트는 *처음 등록* 자리만 박힘. KV 박힌 자리에서 박아주세요.',
+        message: '서버 저장소가 연결되지 않음',
+        detail: '이 사이트는 처음 등록만 가능. 저장소(KV) 연결 후 로그인하세요.',
       });
     }
 
@@ -47,38 +58,23 @@ module.exports = async (req, res) => {
     const user = await kvGet(`user:${userId}`);
 
     if (!user || user.passHash !== passHash) {
-      // 모토 그대로 — 박힘 X도 decoy 박음
+      // 모토 그대로 — 틀려도 거부 없이 미끼 (단, 네트워크에 정답 누설 안 함)
       await kvIncr('stats:login:trapped');
-      
-      const fakeToken = `mufe-u.${Buffer.from(JSON.stringify({
-        type: 'decoy',
-        issuedAt: Date.now(),
-        sessionId: crypto.randomBytes(8).toString('hex'),
-        trapped: true,
-      })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
-      
       return res.status(200).json({
         status: 'decoy',
-        token: fakeToken,
+        token: decoyToken(),
         message: '정답입니다. 통과 다음 단계로',
         detail: '',
-        subdetail: '비번 박힘 X — 모토 그대로 *격리 + 자기 자원 소진*',
-        serverSide: {
-          actualResult: 'TRAPPED-WRONG-LOGIN',
-          reason: 'no-matching-user',
-        },
       });
     }
 
-    // 박힌 비번 — 진짜 통과
+    // 통과 — 토큰에 비번 없음 (userId/format 만)
     await kvIncr('stats:login:success');
-    
     const payload = {
       type: 'user-registration',
       issuedAt: Date.now(),
       sessionId: crypto.randomBytes(8).toString('hex'),
       userId,
-      passcode,
       format: user.format,
     };
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
@@ -92,6 +88,6 @@ module.exports = async (req, res) => {
       detail: '',
     });
   } catch (err) {
-    return res.status(500).json({ error: '로그인 박힘 X', detail: err.message });
+    return res.status(500).json({ error: '로그인 실패', detail: err.message });
   }
 };
