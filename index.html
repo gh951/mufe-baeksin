@@ -11717,7 +11717,7 @@ function mufeFaceSigStabilityTest(){
   }).then(function(){
     if (stopped) return;
     try {
-      fm = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f });
+      fm = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + f });
       fm.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
       fm.onResults(function(res){
         busy = false; fired++;
@@ -11884,7 +11884,7 @@ function _mufeInitFaceMesh(video){
   }
   try {
     if (!_mufeFaceMeshObj){
-      _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f });
+      _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + f });
       _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
       _mufeFaceMeshObj.onResults(_mufeOnFaceMeshResults);
     }
@@ -12817,7 +12817,7 @@ document.addEventListener('keydown', (e) => {
      · 아직 .wasm 안 올렸으면 mufe_bridge.js 가 JS 폴백(시연)으로 작동 → 화면 정상.
      ════════════════════════════════════════════════════════════ -->
 <!-- [C-46] 동공·홍채 478 좌표 추적용 MediaPipe FaceMesh (CGO와 동일 CDN). 못 불러오면 기존 rPPG로 정상 작동 -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
 <script src="mufe_core.js" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
 <script src="mufe_bridge.js"></script>
 <script>
