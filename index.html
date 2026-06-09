@@ -12765,5 +12765,38 @@ document.addEventListener('keydown', (e) => {
   setTimeout(function () { try { window.loadHoneytokenStatus(); } catch (e) {} }, 400);
 })();
 </script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   [C-52 캡쳐 방지 · PC]  대표님 설계 — 우클릭·드래그선택·개발자도구 단축키 차단.
+     캐주얼 복사·들여다보기 억제용 '속도방지턱'. (정직: 결심한 공격자는 저장/프록시로 우회 가능 →
+     진짜 방어는 서버 금고·칩. 여기는 일반 복사·캡쳐 시도를 귀찮게 만드는 층.)
+     ※ 비번 입력칸 등은 정상 동작하도록 예외 처리. 더하기 전용.
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  function isEditable(el) {
+    if (!el) return false;
+    var t = (el.tagName || '').toUpperCase();
+    return t === 'INPUT' || t === 'TEXTAREA' || el.isContentEditable === true;
+  }
+  // 우클릭 메뉴 차단 (입력칸은 허용 — 붙여넣기 위해)
+  document.addEventListener('contextmenu', function (e) {
+    if (isEditable(e.target)) return;
+    e.preventDefault();
+  }, true);
+  // 드래그 선택 차단 (입력칸은 허용 — 비번 선택/수정 위해)
+  document.addEventListener('selectstart', function (e) {
+    if (isEditable(e.target)) return;
+    e.preventDefault();
+  }, true);
+  // 개발자도구·소스보기 단축키 차단 (F12, Ctrl/Cmd+Shift+I/J/C, Ctrl/Cmd+U)
+  document.addEventListener('keydown', function (e) {
+    var k = (e.key || '').toLowerCase();
+    var ctrl = e.ctrlKey || e.metaKey;
+    if (k === 'f12') { e.preventDefault(); return; }
+    if (ctrl && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) { e.preventDefault(); return; }
+    if (ctrl && k === 'u') { e.preventDefault(); return; }
+  }, true);
+})();
+</script>
 </body>
 </html>
