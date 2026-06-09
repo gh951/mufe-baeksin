@@ -5790,9 +5790,86 @@
     <!-- ═══ /패널 2 ═══ -->
 
 
-    <!-- ═══ 패널 3: 보안 정책 — [C-52] 서버 금고로 이동: 인증 후 서버가 채움(우회 시 빈 칸) ═══ -->
-    <div id="vaultSlot-security" data-vault="security"></div>
-    <!-- ═══ /패널 3 (서버 금고) ═══ -->
+    <!-- ═══ 패널 3: 보안 ═══ -->
+    <div class="panel panel-security" data-panel="security">
+      <div class="panel-content">
+        <div class="panel-header">
+          <h2>보안 정책</h2>
+          <p>현재 시스템에 적용된 보안 원칙을 확인하세요.</p>
+        </div>
+
+        <div class="policy-grid">
+          <div class="policy-card" data-policy="decoy">
+            <div class="policy-icon">🛡️</div>
+            <div class="policy-title">미끼 트랩 (Decoy)</div>
+            <div class="policy-desc">표면에 보이는 답은 가짜입니다. 시도하면 샌드스로 격리됩니다.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="decoy" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+
+          <div class="policy-card" data-policy="dynamic">
+            <div class="policy-icon">🔄</div>
+            <div class="policy-title">시도자별 동적 답</div>
+            <div class="policy-desc">매 시도마다 다른 답이 생성됩니다. 답을 외워둘 수 없습니다.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="dynamic" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+
+          <div class="policy-card" data-policy="cognitive">
+            <div class="policy-icon">🧠</div>
+            <div class="policy-title">인지 비대칭</div>
+            <div class="policy-desc">사람은 즉시 인지하나, AI/봇은 분석할수록 더 깊이 빠집니다.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="cognitive" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+
+          <div class="policy-card" data-policy="quantum">
+            <div class="policy-icon">⚛️</div>
+            <div class="policy-title">양자 내성</div>
+            <div class="policy-desc">RSA·ECC·PQC가 모두 깨져도 작동 — 양자·AI 시대 카오스 인증.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="quantum" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+
+          <div class="policy-card" data-policy="delegate">
+            <div class="policy-icon">🎭</div>
+            <div class="policy-title">위임 인증</div>
+            <div class="policy-desc">사용자가 별도 암호로 다른 사람에게 인증을 위임할 수 있습니다.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="delegate" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+
+          <div class="policy-card" data-policy="autorenew">
+            <div class="policy-icon">♾️</div>
+            <div class="policy-title">자가 갱신</div>
+            <div class="policy-desc">카오스 시드와 미끼 파일이 자동으로 회전·갱신됩니다.</div>
+            <label class="policy-toggle">
+              <input type="checkbox" data-policy-key="autorenew" checked onchange="togglePolicy(this)">
+              <span class="policy-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-info">
+          <div class="info-icon">🔐</div>
+          <div class="info-text">
+            <strong>"보이는 게 진실이 아니다"</strong>
+            모든 보안 정책은 위 명제 위에서 설계되었습니다.
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ═══ /패널 3 ═══ -->
 
 
     <!-- ═══ 패널 6: 제 & 순찰 ═══ -->
@@ -8326,29 +8403,6 @@
     return Math.sqrt(variance);  // 낮을수록 봇 의심
   }
   
-  // [C-52] 서버 금고 — 인증(진짜 토큰)된 경우에만 서버에서 보호 구역 HTML을 받아 끼워넣는다.
-  //   토큰 없음(우회·온디바이스) → 그냥 비워둠. 보호 구역은 DOM에 없으므로 우회해도 텅 빔.
-  async function loadVaultSections() {
-    try {
-      if (!currentMasterToken) return;
-      const res = await fetch(`${API_BASE}/api/vault`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: currentMasterToken }),
-      });
-      const data = await res.json();
-      if (data && data.sections) {
-        for (const key of Object.keys(data.sections)) {
-          const slot = document.getElementById('vaultSlot-' + key);
-          if (slot && data.sections[key]) slot.innerHTML = data.sections[key];
-        }
-        // 주입된 구역의 초기화 재실행(예: 정책 토글 저장상태 복원). 구역 늘면 여기에 추가.
-        if (typeof loadPolicies === 'function') loadPolicies();
-      }
-    } catch (e) { /* 실패 시 조용히 — 슬롯은 빈 채로 */ }
-  }
-  window.loadVaultSections = loadVaultSections;
-
   async function verifyAuth() {
     if (window._mufeVerifying) return;   // [C-46] 중복 검증 방지(자동+수동 동시 호출)
     window._mufeVerifying = true;
@@ -8501,7 +8555,6 @@
       
       if (result.status === 'success') {
         currentMasterToken = result.token;
-        loadVaultSections();   // [C-52] 서버 금고: 인증 성공 시 보호 구역을 서버에서 받아 끼워넣기
         showMsg(
           `<strong>${result.message}</strong><br>` +
           `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
