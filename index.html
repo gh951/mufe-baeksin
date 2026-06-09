@@ -5381,6 +5381,15 @@
       <span style="font-size:15px; font-weight:800;">🍯 미끼 키 테스트</span>
       <span style="font-size:10px; color:rgba(255,230,230,.78);">코드 속 가짜 키 사용 → 연산지옥 (배포 전 제거)</span>
     </button>
+    <button id="entryFaceSigTest"
+      onclick="event.stopPropagation(); event.preventDefault(); if(typeof window.mufeFaceSigStabilityTest==='function') window.mufeFaceSigStabilityTest();"
+      style="flex:1 1 210px; display:flex; flex-direction:column; align-items:center; gap:2px;
+             padding:13px 18px; border-radius:14px; cursor:pointer; font-family:inherit;
+             color:#e0e7ff; background:rgba(99,102,241,.18); border:1px solid rgba(99,102,241,.6);
+             box-shadow:0 4px 18px rgba(99,102,241,.22); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);">
+      <span style="font-size:15px; font-weight:800;">🙂 얼굴 서명 안정도 (A-1)</span>
+      <span style="font-size:10px; color:rgba(224,231,255,.8);">생체 측정 후 누르면 안정도% (열쇠 영향 없음)</span>
+    </button>
   </div>
 </div>
 
@@ -11645,6 +11654,64 @@ function _mufeBuildPupilSignature(lm){
   return out.slice(0, 64);
 }
 
+// ════════════════════════════════════════════════════════════
+// [C-52 A-1] 얼굴 모양 서명 — 동공 서명과 똑같은 방식(위치·크기 불변 + 코어스 스냅).
+//   홍채 대신 '얼굴 뼈대 지점'(눈코·광대·턱·이마)을 정규화·양자화해 재현 가능한 64벡터로.
+//   ※ A-1은 '안정도 측정' 전용 — 아직 열쇠엔 안 넣음(잠김 위험 0). 안정적이어야 A-2(열쇠 결합) 진행.
+//   ※ Q를 키우면 더 안정(여유↑)·덜 고유, 줄이면 더 고유·덜 안정. 안정도 보고 조정.
+// ════════════════════════════════════════════════════════════
+const MUFE_FACE_QUANTIZE = 0.04;
+function _mufeBuildFaceSignature(lm){
+  if (!lm || lm.length < 468) return null;
+  if (!lm[234] || !lm[454] || !lm[10] || !lm[152]) return null;
+  const cx = (lm[234].x + lm[454].x) / 2;
+  const cy = (lm[10].y  + lm[152].y) / 2;
+  const faceW = Math.abs(lm[454].x - lm[234].x) || 1e-6;
+  const faceH = Math.abs(lm[152].y - lm[10].y)  || 1e-6;
+  const Q = MUFE_FACE_QUANTIZE;
+  // 얼굴 뼈대 지점(표정 변화에 비교적 둔감한 곳 위주): 눈코·광대·턱선·이마
+  const faceIdx = [33,133,362,263, 1,6,168,98,327, 61,291, 234,454,152,10, 132,361,58,288, 50,280];
+  const out = [];
+  for (const i of faceIdx){
+    const p = lm[i]; if (!p) continue;
+    let nx = (p.x - cx) / faceW;
+    let ny = (p.y - cy) / faceH;
+    nx = Math.round(nx / Q) * Q;
+    ny = Math.round(ny / Q) * Q;
+    out.push(+(0.5 + nx).toFixed(4));
+    out.push(+(0.5 + ny).toFixed(4));
+  }
+  let k = 0;
+  while (out.length < 64) { out.push(out[k % (faceIdx.length * 2)] ?? 0.5); k++; }
+  return out.slice(0, 64);
+}
+
+// [C-52 A-1] 얼굴 서명 안정도 테스트 — 같은 얼굴이 매번 같은 서명 나오는 비율(%)을 본다.
+//   생체 측정 중 쌓인 샘플(window._mufeFaceSigLog)을 짝지어 비교. 열쇠/인증엔 전혀 영향 없음.
+function mufeFaceSigStabilityTest(){
+  const log = window._mufeFaceSigLog || [];
+  if (log.length < 3){
+    alert('얼굴 서명 샘플이 부족해요 (' + log.length + '개).\n\n생체 인증/측정 화면에서 얼굴을 몇 초 비춰 캡처를 쌓은 뒤,\n다시 이 버튼을 눌러주세요.');
+    return;
+  }
+  const N = log.length, L = 64;
+  let agreeSum = 0, pairs = 0;
+  for (let a = 0; a < N; a++){
+    for (let b = a + 1; b < N; b++){
+      let same = 0;
+      for (let i = 0; i < L; i++){ if (Math.abs(log[a][i] - log[b][i]) < 1e-9) same++; }
+      agreeSum += same / L; pairs++;
+    }
+  }
+  const stability = pairs ? (agreeSum / pairs * 100) : 0;
+  const verdict = stability >= 90 ? '✅ 안정적 — 열쇠에 넣어도 될 만함 (A-2 진행 가능)'
+                : stability >= 75 ? '⚠️ 보통 — 양자화(Q) 더 키우면 가능 (조정 필요)'
+                :                    '❌ 불안정 — 지금 그대로는 잠김 위험 (A-2 보류)';
+  alert('얼굴 서명 안정도 테스트 (A-1)\n\n캡처 샘플: ' + N + '개\n안정도: ' + stability.toFixed(1) + '%\n\n' + verdict +
+        '\n\n(같은 얼굴이 매번 같은 서명을 내는 비율. 높을수록 본인은 잘 열림.)');
+}
+window.mufeFaceSigStabilityTest = mufeFaceSigStabilityTest;
+
 function _mufeSetPupilUI(text, color, bg){
   const el = document.getElementById('bioPupilStatus');
   if (!el) return;
@@ -11722,6 +11789,15 @@ function _mufeOnFaceMeshResults(results){
       window._mufePupilCoords = _mufeBuildPupilSignature(fl);
       _mufePupilCount++;
       _mufeSetPupilUI(`👁 동공 좌표 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
+      // [C-52 A-1] 얼굴 서명 안정도 샘플 수집 (관찰 전용 — 인증·열쇠에 영향 없음, 최대 30개)
+      try {
+        const fsig = _mufeBuildFaceSignature(fl);
+        if (fsig){
+          window._mufeFaceSig = fsig;
+          window._mufeFaceSigLog = window._mufeFaceSigLog || [];
+          if (window._mufeFaceSigLog.length < 30) window._mufeFaceSigLog.push(fsig);
+        }
+      } catch(e){}
     } else {
       // 얼굴은 보이는데 혈류 아직 — 정지 원칙(혈류 없으면 캡처 X)
       _mufeSetPupilUI('👁 얼굴 감지됨 — 혈류 측정 중…', '#38bdf8', 'rgba(56,189,248,.12)');
@@ -12468,19 +12544,125 @@ function closeAdminModal() {
   clearInterval(_admConsoleTimer);
 }
 
+/* ═══ [C-52] 가짜 앱(=연산지옥) ═══
+   진짜 #mufeApp을 그대로 복제한 '가짜 앱'. 외형은 진짜와 100% 동일.
+   그 자체가 함정: 침입자가 무엇을 누르든 → 까만 화면 없이, 대시보드 모양 그대로
+   "처리 중…"이 99%에서 영원히 헛돌아(연산지옥) 빠져나가지 못한다.
+   본 앱 / 가짜 앱 = 이중 구조. id 전부 제거(진짜와 충돌 방지).
+   정직한 한계: 화면에 빠진 자는 속지만, 소스코드를 직접 읽는 적은 가짜인 줄 안다(→ 서버 '주소 두 개' 버전에서 해결). */
+function showFakeDashboardLayer() {
+  try {
+    const app = document.getElementById('mufeApp');
+    if (!app) return false;
+    const fake = document.createElement('div');
+    fake.className = app.className || 'app';
+    fake.style.display = 'flex';
+    ['.titlebar', '.tabs', '.main-wrapper'].forEach(function(sel){
+      const part = app.querySelector(sel);
+      if (part) fake.appendChild(part.cloneNode(true));
+    });
+    // id 제거(진짜와 충돌 방지) + 진짜 동작(onclick/href) 제거 → 진짜로는 아무 일도 안 함
+    fake.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+    fake.querySelectorAll('[onclick]').forEach(function(el){ el.removeAttribute('onclick'); });
+    fake.querySelectorAll('a[href]').forEach(function(el){ el.removeAttribute('href'); });
+    // 통계 숫자만 그럴듯한 가짜로
+    const r = function(a,b){ return Math.floor(a + Math.random()*(b-a)); };
+    const fakeStats = [r(7,34), r(3,18), r(12000,48000)];
+    fake.querySelectorAll('.asb-num').forEach(function(el,i){
+      if (i < fakeStats.length) el.textContent = fakeStats[i].toLocaleString();
+    });
+    // 맨 위 히어로 → 「마스터 인증」 카드 (가장 먹음직한 미끼)
+    const hero = fake.querySelector('.protection-hero');
+    if (hero) {
+      const card = document.createElement('div');
+      card.className = 'protection-hero abyss-master';
+      card.style.cssText = 'cursor:pointer; border:1px solid rgba(212,168,67,.55); box-shadow:0 0 22px rgba(212,168,67,.18);';
+      card.innerHTML =
+        '<div class="check-icon" style="background:linear-gradient(135deg,#d4a843,#b8860b);">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2 L4 6 V12 C4 17 7 21 12 22 C17 21 20 17 20 12 V6 Z"/><path d="M9 12 L11 14 L15 10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+        + '<div class="protection-text">'
+        + '<div class="protection-title">마스터 인증 — 최고 권한 전환</div>'
+        + '<div class="protection-desc">모든 노드·키·로그에 접근하려면 마스터 권한이 필요합니다.<br>아래를 눌러 마스터 인증을 시작하십시오.</div>'
+        + '<div style="margin-top:12px; display:inline-block; background:#d4a843; color:#1a1205; font-weight:800; padding:9px 20px; border-radius:10px;">🔓 마스터 권한 활성화</div>'
+        + '</div>';
+      hero.replaceWith(card);
+    }
+    // 레이어로 띄우기
+    const layer = document.createElement('div');
+    layer.id = 'abyssFakeLayer';
+    layer.style.cssText = 'position:fixed; inset:0; z-index:100000; overflow-y:auto; background:#0b1f3a;';
+    layer.appendChild(fake);
+    document.body.appendChild(layer);
+    document.body.style.overflow = 'hidden';
+    // ★ 무엇을 누르든 → 대시보드 모양 그대로 무한 '처리 중'(연산지옥). 까만 화면 없음.
+    fake.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      let label = '요청 처리';
+      try { if (e.target.closest && e.target.closest('.abyss-master')) label = '마스터 권한 발급'; } catch(_){}
+      showFakeProcessingTrap(label);
+    }, true);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* 대시보드 모양 그대로의 무한 '처리 중' 함정 — 99%에서 영원히 헛돔, 닫기 없음(연산지옥) */
+function showFakeProcessingTrap(label) {
+  try {
+    const layer = document.getElementById('abyssFakeLayer');
+    if (!layer || layer.querySelector('.abyss-proc-modal')) return;   // 이미 떠 있으면 무시
+    const modal = document.createElement('div');
+    modal.className = 'abyss-proc-modal';
+    modal.style.cssText = 'position:fixed; inset:0; z-index:100001; background:rgba(8,18,38,.74); display:flex; align-items:center; justify-content:center;';
+    modal.innerHTML =
+      '<div style="width:min(440px,86vw); background:#0f2747; border:1px solid rgba(212,168,67,.4); border-radius:16px; padding:28px 26px; text-align:center; color:#e8eef7; box-shadow:0 20px 60px rgba(0,0,0,.5);">'
+      + '<div style="font-size:40px; margin-bottom:8px;">🔐</div>'
+      + '<div style="font-size:18px; font-weight:800; color:#fff; margin-bottom:4px;">' + label + ' 중…</div>'
+      + '<div style="font-size:12px; color:#9fb3d1; margin-bottom:16px;">MUFE Master Authentication</div>'
+      + '<div style="background:rgba(255,255,255,.08); border-radius:20px; height:12px; overflow:hidden; margin-bottom:8px;"><div class="abyss-proc-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#d4a843,#f0c969); transition:width .5s;"></div></div>'
+      + '<div class="abyss-proc-pct" style="font-size:12px; color:#9fb3d1; margin-bottom:14px;">검증 0%</div>'
+      + '<div class="abyss-proc-msg" style="font-size:12px; color:#7fd6a3; min-height:18px;">초기화 중…</div>'
+      + '</div>';
+    layer.appendChild(modal);
+    let prog = 0;
+    const msgs = ['양자 키 청크 검증 중…','노드 동기화 중…','마스터 토큰 부분 매칭 87%…','카오스 시드 대조 중…','rPPG 무결성 확인 중…','잠시만 기다려 주세요…'];
+    const tBar = setInterval(function(){
+      prog = prog + (99 - prog) * 0.045;   // 99%에서 영원히 헛돔(완료 안 됨)
+      const bar = modal.querySelector('.abyss-proc-bar');
+      const pct = modal.querySelector('.abyss-proc-pct');
+      if (bar) bar.style.width = prog.toFixed(1) + '%';
+      if (pct) pct.textContent = '검증 ' + prog.toFixed(1) + '% (예상 ' + Math.floor((100-prog)*14) + '초)';
+    }, 500);
+    const tMsg = setInterval(function(){
+      const m = modal.querySelector('.abyss-proc-msg');
+      if (m) m.textContent = msgs[Math.floor(Math.random()*msgs.length)];
+    }, 1100);
+    try { if (_abyssTimers && _abyssTimers.push) _abyssTimers.push(tBar, tMsg); } catch(_){}
+  } catch (e) {}
+}
+
 /* ═══ 연산지옥(늪) — 같은 페이지, 우리 연산 0 ═══ */
 let _abyssTimers = [];
 function enterAbyssTrap() {
-  const wrap = document.getElementById('abyssTrap');
-  if (!wrap) return;
-  wrap.style.display = 'block';
-  document.body.style.overflow = 'hidden';
-
   // 누적 격리 카운트 +1 (관리자 현황판에서 보는 진짜 통계)
   try {
     const n = parseInt(localStorage.getItem('mufe-lifetime-blocked') || '0') + 1;
     localStorage.setItem('mufe-lifetime-blocked', n);
   } catch(e){}
+
+  // [C-52] 먼저 가짜 대시보드 레이어를 띄운다. "마스터 인증" 카드를 누르면 startAbyssAnimation() 호출.
+  //   복제 실패(앱 못 찾음) 시엔 곧장 연산지옥으로 폴백 → 절대 안 깨짐.
+  if (showFakeDashboardLayer()) return;
+  startAbyssAnimation();
+}
+
+/* 연산지옥(분석 중) 애니메이션 — 가짜 대시보드의 '마스터 인증' 클릭 시, 또는 복제 실패 폴백 시 */
+function startAbyssAnimation() {
+  const wrap = document.getElementById('abyssTrap');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  document.body.style.overflow = 'hidden';
 
   // 1) 진행바 — 99%에서 영원히 헛돔 (계산 없음, 단순 수렴식)
   let prog = 0;
