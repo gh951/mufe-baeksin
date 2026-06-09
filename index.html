@@ -12276,32 +12276,37 @@ window.showBioChallengeIfNeeded = function() {
 
 <!-- ═══ 연산지옥(늪) — 침입자 가두는 같은-페이지 모달 ═══ -->
 <div id="abyssTrap" style="display:none; position:fixed; inset:0; z-index:99999; background:#05080f; color:#cbd5e1; font-family:'Courier New',monospace; overflow-y:auto;">
-  <div style="width:100%; max-width:1000px; margin:0 auto; padding:34px 24px; text-align:center; box-sizing:border-box;">
-    <div style="font-size:42px; margin-bottom:10px;">✓</div>
-    <h1 style="font-size:22px; color:#4ade80; margin:0 0 6px;" id="abyssTitle">인증 통과! 마스터 권한 발급 중...</h1>
+  <div style="width:100%; max-width:100%; margin:0 auto; padding:34px 24px; text-align:center; box-sizing:border-box;">
+    <div style="display:inline-block; font-family:'Courier New',monospace; font-size:13px; letter-spacing:6px; color:#fbbf24; border:1px solid rgba(251,191,36,.45); border-radius:22px; padding:6px 20px; margin-bottom:18px; font-weight:800; background:rgba(251,191,36,.07); text-shadow:0 0 14px rgba(251,191,36,.4);">C-51</div>
+    <div style="font-size:54px; margin-bottom:10px;">✓</div>
+    <h1 style="font-size:30px; color:#4ade80; margin:0 0 8px;" id="abyssTitle">인증 통과! 마스터 권한 발급 중...</h1>
     <div style="font-size:12px; color:#64748b; margin-bottom:20px;">MUFE Master Authentication — verifying chunks</div>
 
     <!-- 진행바: 99%에서 영원히 헛돔 -->
-    <div style="background:#0f172a; border-radius:20px; height:14px; overflow:hidden; margin:18px auto; max-width:700px;">
+    <div style="background:#0f172a; border-radius:20px; height:16px; overflow:hidden; margin:18px auto; max-width:1300px;">
       <div id="abyssBar" style="height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#4ade80); transition:width .5s;"></div>
     </div>
     <div id="abyssPct" style="font-size:12px; color:#94a3b8; margin-bottom:18px;">검증 0%</div>
 
-    <!-- 수학문제 이미지 + 그 위에 카오스 문자(단어 잡기 구조) -->
-    <div style="position:relative; width:320px; max-width:80vw; margin:14px auto; border-radius:10px; overflow:hidden;">
-      <img id="abyssImg" src="" alt="" style="width:100%; display:block; opacity:.85;">
-      <!-- 이미지 위에 겹치는 카오스 문자 -->
-      <div id="abyssChaos" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-           font-size:30px; font-weight:800; letter-spacing:3px; color:#fbbf24;
-           text-shadow:0 2px 12px #000, 0 0 20px rgba(0,0,0,.9); min-height:34px; white-space:nowrap;"></div>
+    <!-- 이미지 + 콘솔 — PC선 나란히 크게, 모바일선 세로로 쌓임(반응형) -->
+    <div style="display:flex; flex-wrap:wrap; gap:22px; align-items:stretch; justify-content:center; max-width:1300px; margin:14px auto;">
+      <!-- 수학문제 이미지 + 그 위에 카오스 문자(단어 잡기 구조) -->
+      <div style="flex:1 1 420px; min-width:280px; max-width:660px; text-align:center;">
+        <div style="position:relative; width:100%; border-radius:10px; overflow:hidden;">
+          <img id="abyssImg" src="" alt="" style="width:100%; display:block; opacity:.85;">
+          <!-- 이미지 위에 겹치는 카오스 문자 -->
+          <div id="abyssChaos" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+               font-size:36px; font-weight:800; letter-spacing:3px; color:#fbbf24;
+               text-shadow:0 2px 12px #000, 0 0 20px rgba(0,0,0,.9); min-height:36px; white-space:nowrap;"></div>
+        </div>
+        <div style="font-size:11px; color:#475569; margin-top:8px;">↑ 카오스 토큰 분석 중 — 잡으려면 연산하시오</div>
+      </div>
+      <!-- 가짜 콘솔 -->
+      <div id="abyssConsole" style="flex:1 1 420px; min-width:280px; max-width:660px; background:#0a0f1e; border-radius:8px; padding:14px; font-size:13px; line-height:1.8; color:#4ade80; text-align:left; min-height:240px; box-sizing:border-box;"></div>
     </div>
-    <div style="font-size:11px; color:#475569; margin-bottom:8px;">↑ 카오스 토큰 분석 중 — 잡으려면 연산하시오</div>
 
-    <!-- 가짜 행렬 (표시만) -->
-    <div id="abyssMatrix" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; max-width:360px; margin:18px auto; font-size:12px; color:#475569;"></div>
-
-    <!-- 가짜 콘솔 -->
-    <div id="abyssConsole" style="background:#0a0f1e; border-radius:8px; padding:12px; font-size:12px; line-height:1.7; color:#4ade80; text-align:left; min-height:150px; max-width:700px; margin:18px auto;"></div>
+    <!-- 가짜 행렬 — 가로로 넓게 깔기 -->
+    <div id="abyssMatrix" style="display:grid; grid-template-columns:repeat(8,1fr); gap:8px; max-width:1300px; margin:18px auto; font-size:12px; color:#475569;"></div>
 
     <!-- ⚠️ [실험용] 연산지옥 탈출 버튼 — 일차 실험 전용. 실배포 전 반드시 제거/숨김.
          (남겨두면 진짜 침입자도 빠져나가므로 위장이 무력화됨) -->
