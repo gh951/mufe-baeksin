@@ -5614,6 +5614,14 @@
           <span class="stat-label">카오스 인증</span>
           <span class="stat-value full">활성</span>
         </div>
+        <div class="stat-row">
+          <span class="stat-label">미끼 물림 (서버)</span>
+          <span class="stat-value zero" id="honeytokenServerCount">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">마지막 물림</span>
+          <span class="stat-value" id="honeytokenLastTime">—</span>
+        </div>
       </div>
 
       <!-- 양자 시대 안내 -->
@@ -12724,6 +12732,13 @@ document.addEventListener('keydown', (e) => {
       if (d && typeof d.hits === 'number') {
         window.__honeytokenServerHits = d.hits;   // 서버가 센 누적 — 서버 기록 확인용
         console.log('[MUFE 허니토큰] 서버 기록 — 미끼 물림 누적 ' + d.hits + '회');
+        // 보안 현황 패널 즉시 갱신
+        try {
+          var _hc = document.getElementById('honeytokenServerCount');
+          if (_hc) { _hc.textContent = d.hits.toLocaleString(); _hc.className = 'stat-value full'; }
+          var _ht = document.getElementById('honeytokenLastTime');
+          if (_ht) _ht.textContent = new Date().toLocaleString('ko-KR');
+        } catch (e2) {}
       }
     } catch (e) { /* 서버 못 가도 덫은 작동 */ }
     // 미끼를 쓴 세션 = 침입자 → 홈 통계 카드(미끼 격리 등) +1, 보안 로그 기록, 그리고 연산지옥으로
@@ -12731,6 +12746,23 @@ document.addEventListener('keydown', (e) => {
     try { if (window.trackAuthAttempt) window.trackAuthAttempt('decoy'); } catch (e) {}          // 보안 로그 패널
     try { if (typeof enterAbyssTrap === 'function') enterAbyssTrap(); } catch (e) {}
   };
+
+  // [C-52] 보안 현황의 '미끼 물림(서버)' 값을 서버에서 읽어와 채움 (읽기 전용 — 카운트 안 올림)
+  window.loadHoneytokenStatus = async function () {
+    try {
+      const r = await fetch(window.location.origin + '/api/honeytoken-status', { cache: 'no-store' });
+      const d = await r.json();
+      var cEl = document.getElementById('honeytokenServerCount');
+      var tEl = document.getElementById('honeytokenLastTime');
+      var n = (d && typeof d.hits === 'number') ? d.hits : 0;
+      if (cEl) { cEl.textContent = n.toLocaleString(); cEl.className = 'stat-value ' + (n > 0 ? 'full' : 'zero'); }
+      if (tEl) { tEl.textContent = (d && d.lastAt) ? new Date(d.lastAt).toLocaleString('ko-KR') : (n > 0 ? '—' : '없음'); }
+    } catch (e) {
+      var c = document.getElementById('honeytokenServerCount');
+      if (c) c.textContent = '—';
+    }
+  };
+  setTimeout(function () { try { window.loadHoneytokenStatus(); } catch (e) {} }, 400);
 })();
 </script>
 </body>
