@@ -5388,7 +5388,7 @@
              color:#e0e7ff; background:rgba(99,102,241,.18); border:1px solid rgba(99,102,241,.6);
              box-shadow:0 4px 18px rgba(99,102,241,.22); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);">
       <span style="font-size:15px; font-weight:800;">🙂 얼굴 서명 안정도 (A-1)</span>
-      <span style="font-size:10px; color:rgba(224,231,255,.8);">생체 측정 후 누르면 안정도% (열쇠 영향 없음)</span>
+      <span style="font-size:10px; color:rgba(224,231,255,.8);">누르면 카메라 6초 측정 → 안정도% (열쇠 영향 없음)</span>
     </button>
   </div>
 </div>
@@ -11686,40 +11686,92 @@ function _mufeBuildFaceSignature(lm){
   return out.slice(0, 64);
 }
 
-// [C-52 A-1] 얼굴 서명 안정도 테스트 — 같은 얼굴이 매번 같은 서명 나오는 비율(%)을 본다.
-//   생체 측정 중 쌓인 샘플(window._mufeFaceSigLog)을 짝지어 비교. 열쇠/인증엔 전혀 영향 없음.
+// [C-52 A-1] 얼굴 서명 안정도 테스트 (자가완결형) — 버튼이 직접 카메라+FaceMesh를 켜서
+//   약 6초간 얼굴 서명을 모아 즉시 안정도(%)를 계산한다. 측정 흐름·혈류·화면이동·홍채(478)와 무관.
+//   ※ 얼굴 서명은 홍채가 필요 없어 468 좌표로 충분(refineLandmarks:false → 모델 가볍고 로드 잘 됨).
+//   ※ 열쇠/인증엔 전혀 영향 없음(순수 측정).
 function mufeFaceSigStabilityTest(){
-  const log = window._mufeFaceSigLog || [];
-  if (log.length < 3){
-    const seen = window._mufeFaceSeen || 0;
-    const fired = window._mufeFaceMeshFired || 0;
-    const flen = window._mufeLastFlLen || 0;
-    const fmeshLoaded = (typeof FaceMesh !== 'undefined');
-    let why;
-    if (!fmeshLoaded)            why = '→ FaceMesh 라이브러리가 안 떴어요(인터넷/CDN 차단). 이러면 얼굴·동공 좌표 자체가 안 잡혀요.';
-    else if (fired === 0)        why = '→ FaceMesh는 떴는데 카메라 프레임을 한 번도 못 받았어요. 카메라 켜진 생체 측정 화면에서 해야 해요.';
-    else if (flen > 0 && flen < 478) why = '→ FaceMesh가 ' + flen + '개 좌표만 줘요(478 필요). 홍채 모델이 안 받아진 거예요 → 양자화/좌표 조정 필요.';
-    else if (seen === 0)         why = '→ 카메라엔 도는데 얼굴이 정면(478좌표)으로 안 잡혔어요. 얼굴을 정면으로 더 가까이·오래 비춰주세요.';
-    else                         why = '→ 얼굴은 ' + seen + '번 잡혔어요. 조금 더 오래 비춘 뒤 다시 눌러주세요.';
-    alert('얼굴 서명 샘플 부족 (' + log.length + '개)\n\n[진단]\n· FaceMesh 로드: ' + (fmeshLoaded ? 'O' : 'X') +
-          '\n· FaceMesh 콜백 발생: ' + fired + '회\n· 마지막 좌표 개수: ' + flen + ' (478 필요)\n· 얼굴(478) 감지: ' + seen + '회\n\n' + why);
+  if (typeof FaceMesh === 'undefined'){
+    alert('FaceMesh 라이브러리가 안 떴어요 (인터넷/CDN 문제).\n얼굴 추적이 안 되면 얼굴 서명도 못 만들어요.\n인터넷 확인 후 다시 시도해주세요.');
     return;
   }
-  const N = log.length, L = 64;
-  let agreeSum = 0, pairs = 0;
-  for (let a = 0; a < N; a++){
-    for (let b = a + 1; b < N; b++){
-      let same = 0;
-      for (let i = 0; i < L; i++){ if (Math.abs(log[a][i] - log[b][i]) < 1e-9) same++; }
-      agreeSum += same / L; pairs++;
+  const ov = document.createElement('div');
+  ov.id = 'faceSigTestOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(8,14,30,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#e6eef9;font-family:inherit;padding:20px;text-align:center;';
+  ov.innerHTML =
+    '<div style="font-size:18px;font-weight:800;">🙂 얼굴 서명 안정도 테스트 (A-1)</div>'
+    + '<video id="faceSigVid" autoplay playsinline muted style="width:240px;height:180px;border-radius:12px;object-fit:cover;transform:scaleX(-1);background:#000;"></video>'
+    + '<div id="faceSigStat" style="font-size:14px;color:#9fc7ff;min-height:20px;">카메라 켜는 중…</div>'
+    + '<div style="font-size:12px;color:#7f93b3;">얼굴을 정면으로 비춰주세요 (약 6초). 열쇠·인증과 무관해요.</div>'
+    + '<button id="faceSigCancel" style="margin-top:6px;padding:8px 20px;border-radius:10px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;font-family:inherit;">취소</button>';
+  document.body.appendChild(ov);
+  const vid = ov.querySelector('#faceSigVid');
+  const stat = ov.querySelector('#faceSigStat');
+  let stream = null, fm = null, samples = [], busy = false, frame = 0, fired = 0, sawFace = false, stopped = false;
+  function cleanup(){ stopped = true; try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ ov.remove(); }catch(e){} }
+  ov.querySelector('#faceSigCancel').onclick = cleanup;
+
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' } }).then(function(s){
+    if (stopped){ try{ s.getTracks().forEach(t=>t.stop()); }catch(e){} return; }
+    stream = s; vid.srcObject = s; return vid.play();
+  }).then(function(){
+    if (stopped) return;
+    try {
+      fm = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f });
+      fm.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+      fm.onResults(function(res){
+        busy = false; fired++;
+        const fl = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
+        if (fl && fl.length >= 468){
+          sawFace = true;
+          const sig = _mufeBuildFaceSignature(fl);
+          if (sig){ samples.push(sig); stat.textContent = '얼굴 캡처 중… (' + samples.length + '/20)'; }
+        } else {
+          stat.textContent = '얼굴 찾는 중… (정면으로 가까이)';
+        }
+      });
+    } catch(e){ stat.textContent = 'FaceMesh 초기화 실패'; setTimeout(cleanup, 2500); return; }
+    const t0 = Date.now();
+    (function loop(){
+      if (stopped) return;
+      if (samples.length >= 20 || Date.now() - t0 > 12000){ finish(); return; }
+      if (fm && !busy && vid.readyState >= 2 && (frame++ % 3 === 0)){
+        busy = true;
+        try { const p = fm.send({ image: vid }); if (p && p.catch) p.catch(function(){ busy = false; }); }
+        catch(e){ busy = false; }
+      }
+      requestAnimationFrame(loop);
+    })();
+  }).catch(function(e){
+    stat.textContent = '카메라 권한이 필요해요 (허용 후 다시).';
+    setTimeout(cleanup, 3000);
+  });
+
+  function finish(){
+    const N = samples.length;
+    if (N < 3){
+      cleanup();
+      const reason = (fired === 0) ? 'FaceMesh가 결과를 한 번도 못 냈어요 (모델 로드 실패 가능 — 인터넷/CDN).'
+                   : !sawFace      ? '얼굴이 정면으로 안 잡혔어요 (각도·거리·조명 확인).'
+                   :                 '샘플이 너무 적어요.';
+      alert('얼굴 서명 안정도 — 측정 실패\n\n캡처: ' + N + '개\nFaceMesh 결과 수신: ' + fired + '회\n\n' + reason + '\n다시 시도해주세요.');
+      return;
     }
+    const L = 64; let s = 0, pairs = 0;
+    for (let a = 0; a < N; a++){
+      for (let b = a + 1; b < N; b++){
+        let same = 0; for (let i = 0; i < L; i++){ if (Math.abs(samples[a][i] - samples[b][i]) < 1e-9) same++; }
+        s += same / L; pairs++;
+      }
+    }
+    const stability = pairs ? (s / pairs * 100) : 0;
+    const verdict = stability >= 90 ? '✅ 안정적 — 열쇠에 넣어도 될 만함 (A-2 진행 가능)'
+                  : stability >= 75 ? '⚠️ 보통 — 양자화(Q) 키우면 가능 (조정)'
+                  :                    '❌ 불안정 — Q 조정 필요 (지금 그대로는 잠김 위험)';
+    cleanup();
+    alert('얼굴 서명 안정도 (A-1)\n\n캡처: ' + N + '개\n안정도: ' + stability.toFixed(1) + '%\n\n' + verdict +
+          '\n\n(같은 얼굴이 매번 같은 서명을 내는 비율. 높을수록 본인 잘 열림.)');
   }
-  const stability = pairs ? (agreeSum / pairs * 100) : 0;
-  const verdict = stability >= 90 ? '✅ 안정적 — 열쇠에 넣어도 될 만함 (A-2 진행 가능)'
-                : stability >= 75 ? '⚠️ 보통 — 양자화(Q) 더 키우면 가능 (조정 필요)'
-                :                    '❌ 불안정 — 지금 그대로는 잠김 위험 (A-2 보류)';
-  alert('얼굴 서명 안정도 테스트 (A-1)\n\n캡처 샘플: ' + N + '개\n안정도: ' + stability.toFixed(1) + '%\n\n' + verdict +
-        '\n\n(같은 얼굴이 매번 같은 서명을 내는 비율. 높을수록 본인은 잘 열림.)');
 }
 window.mufeFaceSigStabilityTest = mufeFaceSigStabilityTest;
 
