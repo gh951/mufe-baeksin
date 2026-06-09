@@ -76,6 +76,24 @@ function sendDecoy(res, token) {
   });
 }
 
+// [C-52 rate-limit] 무차별 대입 속도 제한.
+//   같은 IP가 1분에 RL_MAX번 넘게 시도하면 → 미끼(연산지옥)로. 거부 벽 없음(MUFE 철학).
+//   정상 사용자는 1분에 몇 번 안 하므로 안 걸림. 시간(분) 버킷 키라 매 분 자동 초기화.
+//   KV 없거나 에러면 제한하지 않음(안전 쪽 = 정상 로그인 안 깨지게).
+const RL_MAX = 20;
+async function rateLimited(req) {
+  if (!isKVAvailable()) return false;
+  try {
+    const fwd = (req.headers['x-forwarded-for'] || '');
+    const ip = fwd.split(',')[0].trim() || (req.socket && req.socket.remoteAddress) || 'unknown';
+    const bucket = Math.floor(Date.now() / 60000);   // 1분 버킷
+    const n = await kvIncr(`rl:verify:${ip}:${bucket}`);
+    return (typeof n === 'number' && n > RL_MAX);
+  } catch (e) {
+    return false;   // 에러나면 막지 않음(가용성 우선)
+  }
+}
+
 const ALL_FORMATS = ['joined-after', 'spaced-after', 'joined-before', 'spaced-before'];
 
 // 답에서 단어를 떼어 비번 후보 복원 (등록 형식의 역연산)
@@ -98,6 +116,12 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!SECRET) return res.status(500).json({ error: 'server-misconfigured' });
+
+  // [C-52 rate-limit] 너무 빠른 무차별 시도 → 거부 벽 없이 미끼(연산지옥)로
+  if (await rateLimited(req)) {
+    if (isKVAvailable()) { try { await kvIncr('stats:auth:rate-limited'); } catch (e) {} }
+    return sendDecoy(res);
+  }
 
   try {
     const { userToken, challengeId, caughtWord, answer } = req.body || {};
