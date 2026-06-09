@@ -9825,6 +9825,9 @@
   
   // 전역 노출
   window.trackAuthAttempt = trackAuthAttempt;
+  // [C-52] 홈 통계 카드(오늘 침입·미끼 격리·평생 차단) 갱신용 — 나중에 trackAuthAttempt가
+  //   보안 로그 패널용으로 덮여도, 이 핸들은 '홈 카드 갱신' 버전을 그대로 가리킨다.
+  window.__mufeBumpHomeStats = trackAuthAttempt;
   
   // 미끼 카드 그리드 렌더
   function renderHoneyGrid() {
@@ -12723,8 +12726,9 @@ document.addEventListener('keydown', (e) => {
         console.log('[MUFE 허니토큰] 서버 기록 — 미끼 물림 누적 ' + d.hits + '회');
       }
     } catch (e) { /* 서버 못 가도 덫은 작동 */ }
-    // 미끼를 쓴 세션 = 침입자 → 화면 통계(미끼 격리)에 +1, 그리고 연산지옥으로
-    try { if (window.trackAuthAttempt) window.trackAuthAttempt('decoy'); } catch (e) {}
+    // 미끼를 쓴 세션 = 침입자 → 홈 통계 카드(미끼 격리 등) +1, 보안 로그 기록, 그리고 연산지옥으로
+    try { if (window.__mufeBumpHomeStats) window.__mufeBumpHomeStats('decoy'); } catch (e) {}   // 홈 카드 갱신(진짜)
+    try { if (window.trackAuthAttempt) window.trackAuthAttempt('decoy'); } catch (e) {}          // 보안 로그 패널
     try { if (typeof enterAbyssTrap === 'function') enterAbyssTrap(); } catch (e) {}
   };
 })();
