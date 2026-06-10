@@ -12919,11 +12919,16 @@ document.addEventListener('keydown', (e) => {
   function _mufeProofToast(text, ok){
     try {
       var d = document.createElement('div');
-      d.textContent = text;
-      d.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;max-width:90%;text-align:center;color:#fff;font-weight:700;font-size:14px;line-height:1.4;padding:12px 18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .25s;background:' + (ok ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#b91c1c,#ef4444)') + ';';
+      d.textContent = text + (ok ? '' : '      ⬅ 다 읽으면 여기를 누르세요');
+      d.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;max-width:92%;text-align:center;color:#fff;font-weight:700;font-size:15px;line-height:1.5;padding:16px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transition:opacity .25s;cursor:pointer;background:' + (ok ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#b91c1c,#ef4444)') + ';';
       document.body.appendChild(d);
       requestAnimationFrame(function(){ d.style.opacity = '1'; });
-      setTimeout(function(){ d.style.opacity = '0'; setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 300); }, 4500);
+      if (ok) {
+        setTimeout(function(){ d.style.opacity = '0'; setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 300); }, 4500);
+      } else {
+        // [수정] 실패 메시지는 자동으로 안 사라짐 — 읽고 캡처할 때까지 화면에 남고, 누르면 닫힘
+        d.onclick = function(){ if (d.parentNode) d.parentNode.removeChild(d); };
+      }
     } catch(e){}
   }
   window.mufeHighModeServerProof = async function(userToken, passOnly, sliderCoord){
@@ -12939,7 +12944,7 @@ document.addEventListener('keydown', (e) => {
       // 2) 1회용 숫자
       var nr = await (await fetch(origin+'/api/proof', { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ action:'nonce', userToken: userToken }) })).json();
-      if (!nr || nr.status !== 'nonce') { _mufeProofToast('🔐 서버에서 1회용 숫자를 못 받았어요 (KV 미연결 의심)', false); return; }
+      if (!nr || nr.status !== 'nonce') { _mufeProofToast('🔐 도장 실패 — 서버가 보낸 정확한 이유: [' + ((nr && nr.status) || '응답없음') + '] ' + ((nr && nr.message) || ''), false); return; }
       // 3) 그 숫자에 양자내성 도장
       var sig = mldsa.sign(fromB64(nr.nonce), keys.secretKey);
       // 4) 서버 검증 → 금고 토큰
