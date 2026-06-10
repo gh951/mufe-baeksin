@@ -5381,15 +5381,6 @@
       <span style="font-size:15px; font-weight:800;">🍯 미끼 키 테스트</span>
       <span style="font-size:10px; color:rgba(255,230,230,.78);">코드 속 가짜 키 사용 → 연산지옥 (배포 전 제거)</span>
     </button>
-    <button id="entryFaceSigTest"
-      onclick="event.stopPropagation(); event.preventDefault(); if(typeof window.mufeFaceSigStabilityTest==='function') window.mufeFaceSigStabilityTest();"
-      style="flex:1 1 210px; display:flex; flex-direction:column; align-items:center; gap:2px;
-             padding:13px 18px; border-radius:14px; cursor:pointer; font-family:inherit;
-             color:#e0e7ff; background:rgba(99,102,241,.18); border:1px solid rgba(99,102,241,.6);
-             box-shadow:0 4px 18px rgba(99,102,241,.22); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);">
-      <span style="font-size:15px; font-weight:800;">🙂 얼굴 서명 안정도 (A-1)</span>
-      <span style="font-size:10px; color:rgba(224,231,255,.8);">누르면 카메라 6초 측정 → 안정도% (열쇠 영향 없음)</span>
-    </button>
   </div>
 </div>
 
@@ -5497,25 +5488,6 @@
             선과 곡선, 색채의 숫자화와 카오스 문장, 그리고 철학적 보안 로직을 결합했습니다.<br>
             양자 컴퓨터든 국가급 해커든 — 뚫어보십시오.
           </div>
-        </div>
-      </div>
-
-      <!-- ═══ 서버 금고 (금고 A) — 인증 후 서버가 내려주는 내용 ═══ -->
-      <div id="mufe-vault-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="font-size:18px;">🔒</span>
-          <span style="font-weight:800;color:#d4a843;">서버 금고</span>
-          <span id="mufe-vault-status" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">잠김</span>
-        </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:10px;line-height:1.5;">
-          여기 적은 내용은 <b>폰에 저장되지 않고 서버 금고</b>에 들어가요. 인증을 통과해야만 서버가 내려줍니다.
-        </div>
-        <textarea id="mufe-vault-text" placeholder="인증 후 금고가 열립니다…" disabled
-          style="width:100%;box-sizing:border-box;min-height:80px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#eee;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
-          <button id="mufe-vault-save" onclick="mufeVaultSave()" disabled
-            style="padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;">금고에 저장</button>
-          <span id="mufe-vault-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
         </div>
       </div>
 
@@ -7660,8 +7632,8 @@
       if (regMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
-        const pupil = (window._mufeFaceKeyCoords && window._mufeFaceKeyCoords.length)   // [C-54] 동공→얼굴 구조
-          ? window._mufeFaceKeyCoords
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
@@ -8500,8 +8472,8 @@
       if (window._authMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
-        const pupil = (window._mufeFaceKeyCoords && window._mufeFaceKeyCoords.length)   // [C-54] 동공→얼굴 구조
-          ? window._mufeFaceKeyCoords
+        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
+          ? window._mufePupilCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
 
@@ -8561,7 +8533,7 @@
     if (keyChecked && keyOk) {
       const _i3 = document.getElementById('authInput'); if (_i3) _i3.value = '';
       // 비밀 사본·생체 플래그 즉시 파쇄 (메모리 위생)
-      try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; if (window._mufeFaceKeyCoords) window._mufeFaceKeyCoords = null; } catch(e){}
+      try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
       showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
       if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       if (typeof addLog === 'function') addLog('success','🛡️','온디바이스 검증 통과 — 비밀값 미전송');
@@ -8594,15 +8566,12 @@
         caughtWord = null;
         window._bioVerifyPassed = false;
         if (window._mufePupilCoords) window._mufePupilCoords = null;
-        if (window._mufeFaceKeyCoords) window._mufeFaceKeyCoords = null;
       } catch(e){}
       
       const result = await res.json();
       
       if (result.status === 'success') {
         currentMasterToken = result.token;
-        // [서버 금고] 진짜 토큰 + 신원 토큰 보관 → 금고 자동 열기
-        try { window._mufeVaultAuth = { token: result.token, userToken: userToken }; if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad(); } catch (e) {}
         showMsg(
           `<strong>${result.message}</strong><br>` +
           `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
@@ -10808,38 +10777,7 @@
 
   // ════ PWA 설치 시스템 — 데스크탑·안드로이드·iOS 모두 ════
   let deferredInstallPrompt = null;
-
-  /* [C-53] 인앱 브라우저(카톡 등) → 외부 브라우저(크롬) 자동 전환
-     카톡 인앱 웹뷰에서는 MediaPipe(얼굴 인식) 등이 안 돌아가서,
-     앱이 열리자마자 사용자 조작 없이 외부 브라우저로 자동으로 빠져나감. */
-  (function mufeEscapeInAppBrowser(){
-    try {
-      var ua = navigator.userAgent || '';
-      var url = location.href;
-      var isKakao = /KAKAOTALK/i.test(ua);
-      var isOtherInApp = /FBAN|FBAV|Instagram|Line\/|NAVER|DaumApps|; wv\)/i.test(ua);
-      if (!isKakao && !isOtherInApp) return;            // 인앱 브라우저 아니면 통과
-
-      // 같은 웹뷰에서 무한 반복 방지 (한 번만 시도)
-      try {
-        if (sessionStorage.getItem('mufe-escaped') === '1') return;
-        sessionStorage.setItem('mufe-escaped', '1');
-      } catch (e) {}
-
-      if (isKakao) {
-        // 카톡 전용 (안드로이드·iOS 공통): 기본 브라우저로 열기
-        location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
-        return;
-      }
-      if (/Android/i.test(ua)) {
-        // 기타 안드로이드 인앱 → 크롬으로 강제
-        location.href = 'intent://' + url.replace(/^https?:\/\//, '')
-          + '#Intent;scheme=https;package=com.android.chrome;end';
-      }
-      // iOS의 카톡 외 인앱(인스타 등)은 강제 전환 수단이 없어 그대로 둠
-    } catch (e) {}
-  })();
-
+  
   // 이미 PWA로 실행 중인지 감지
   function isRunningStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches ||
@@ -11553,8 +11491,8 @@ async function startMUFESensor() {
       const dt = now - _MUFE_AuthEngine._lastTick;
       _MUFE_AuthEngine._lastTick = now;
 
-      // [C-55] 메신저 방식 — 피부(얼굴)가 보이면 타이머 진행. 맥박은 끝에서 종합 판정.
-      const flowing = _MUFE_AuthEngine.skinDetected;
+      // 혈류(맥파)가 감지될 때만 시간 누적 — 아니면 타이머 정지
+      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected && _MUFE_AuthEngine.lastBPM >= 40 && _MUFE_AuthEngine.lastBPM <= 180;   // [C-47v4] 진짜 맥박(40~180)일 때만 타이머 진행 — 맥박 없으면 막대 정지(스톱). 노이즈 가짜진행 차단.
       if (flowing) _MUFE_AuthEngine._activeMs += dt;
 
       const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - _MUFE_AuthEngine._activeMs);
@@ -11566,7 +11504,7 @@ async function startMUFESensor() {
         if (flowing) {
           timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
         } else {
-          timerText.textContent = '⏸ 얼굴을 비춰주세요 (얼굴 안 보임 — 정지)';
+          timerText.textContent = '⏸ 얼굴을 비춰주세요 (혈류 없음 — 정지)';
         }
       }
       if (timerFill) timerFill.style.width = pct + '%';
@@ -11603,19 +11541,7 @@ function finishBioMeasurement() {
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
   // [C-47v4] 타이머가 "진짜 맥박일 때만" 진행하므로, 완료 = 맥박이 지속 검출됨. 통과 = 맥박 검출(사진·책상·천장은 맥박 0 → 막대가 안 가서 완료 자체가 안 됨). 진행과 판정이 일치 → 모순 제거.
-  // [C-55] 메신저 방식 — 끝에 모은 녹색신호로 맥파를 한 번 더 계산해서도 판정(실시간 OR 종합).
-  let endPulseOK = false;
-  try {
-    const sig = (_MUFE_AuthEngine.g_values||[]);
-    if (sig.length >= 60) {
-      const m = sig.reduce((a,b)=>a+b,0)/sig.length;
-      let v=0, cross=0;
-      for (let i=0;i<sig.length;i++){ v+=(sig[i]-m)*(sig[i]-m); if(i>0 && (sig[i-1]-m)*(sig[i]-m)<0) cross++; }
-      const std = Math.sqrt(v/sig.length);
-      endPulseOK = (std > 0.25 && std < 25) && (cross >= 6);   // 적정 진폭 + 주기적 맥파 = 살아있는 사람(사진은 평탄→탈락)
-    }
-  } catch(e){}
-  const success = ((window._mufePulseSeen||0) >= 1) || endPulseOK;
+  const success = (window._mufePulseSeen||0) >= 1;
   
   const result = {
     success,
@@ -11719,127 +11645,6 @@ function _mufeBuildPupilSignature(lm){
   return out.slice(0, 64);
 }
 
-// ════════════════════════════════════════════════════════════
-// [C-52 A-1] 얼굴 모양 서명 — 동공 서명과 똑같은 방식(위치·크기 불변 + 코어스 스냅).
-//   홍채 대신 '얼굴 뼈대 지점'(눈코·광대·턱·이마)을 정규화·양자화해 재현 가능한 64벡터로.
-//   ※ A-1은 '안정도 측정' 전용 — 아직 열쇠엔 안 넣음(잠김 위험 0). 안정적이어야 A-2(열쇠 결합) 진행.
-//   ※ Q를 키우면 더 안정(여유↑)·덜 고유, 줄이면 더 고유·덜 안정. 안정도 보고 조정.
-// ════════════════════════════════════════════════════════════
-const MUFE_FACE_QUANTIZE = 0.04;
-function _mufeBuildFaceSignature(lm){
-  if (!lm || lm.length < 468) return null;
-  if (!lm[234] || !lm[454] || !lm[10] || !lm[152]) return null;
-  const cx = (lm[234].x + lm[454].x) / 2;
-  const cy = (lm[10].y  + lm[152].y) / 2;
-  const faceW = Math.abs(lm[454].x - lm[234].x) || 1e-6;
-  const faceH = Math.abs(lm[152].y - lm[10].y)  || 1e-6;
-  const Q = MUFE_FACE_QUANTIZE;
-  // 얼굴 뼈대 지점(표정 변화에 비교적 둔감한 곳 위주): 눈코·광대·턱선·이마
-  const faceIdx = [33,133,362,263, 1,6,168,98,327, 61,291, 234,454,152,10, 132,361,58,288, 50,280];
-  const out = [];
-  for (const i of faceIdx){
-    const p = lm[i]; if (!p) continue;
-    let nx = (p.x - cx) / faceW;
-    let ny = (p.y - cy) / faceH;
-    nx = Math.round(nx / Q) * Q;
-    ny = Math.round(ny / Q) * Q;
-    out.push(+(0.5 + nx).toFixed(4));
-    out.push(+(0.5 + ny).toFixed(4));
-  }
-  let k = 0;
-  while (out.length < 64) { out.push(out[k % (faceIdx.length * 2)] ?? 0.5); k++; }
-  return out.slice(0, 64);
-}
-
-// [C-52 A-1] 얼굴 서명 안정도 테스트 (자가완결형) — 버튼이 직접 카메라+FaceMesh를 켜서
-//   약 6초간 얼굴 서명을 모아 즉시 안정도(%)를 계산한다. 측정 흐름·혈류·화면이동·홍채(478)와 무관.
-//   ※ 얼굴 서명은 홍채가 필요 없어 468 좌표로 충분(refineLandmarks:false → 모델 가볍고 로드 잘 됨).
-//   ※ 열쇠/인증엔 전혀 영향 없음(순수 측정).
-function mufeFaceSigStabilityTest(){
-  if (typeof FaceMesh === 'undefined'){
-    alert('FaceMesh 라이브러리가 안 떴어요 (인터넷/CDN 문제).\n얼굴 추적이 안 되면 얼굴 서명도 못 만들어요.\n인터넷 확인 후 다시 시도해주세요.');
-    return;
-  }
-  const ov = document.createElement('div');
-  ov.id = 'faceSigTestOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(8,14,30,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#e6eef9;font-family:inherit;padding:20px;text-align:center;';
-  ov.innerHTML =
-    '<div style="font-size:18px;font-weight:800;">🙂 얼굴 서명 안정도 테스트 (A-1)</div>'
-    + '<video id="faceSigVid" autoplay playsinline muted style="width:240px;height:180px;border-radius:12px;object-fit:cover;transform:scaleX(-1);background:#000;"></video>'
-    + '<div id="faceSigStat" style="font-size:14px;color:#9fc7ff;min-height:20px;">카메라 켜는 중…</div>'
-    + '<div style="font-size:12px;color:#7f93b3;">얼굴을 정면으로 비춰주세요 (약 6초). 열쇠·인증과 무관해요.</div>'
-    + '<button id="faceSigCancel" style="margin-top:6px;padding:8px 20px;border-radius:10px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;font-family:inherit;">취소</button>';
-  document.body.appendChild(ov);
-  const vid = ov.querySelector('#faceSigVid');
-  const stat = ov.querySelector('#faceSigStat');
-  let stream = null, fm = null, samples = [], busy = false, frame = 0, fired = 0, sawFace = false, stopped = false;
-  function cleanup(){ stopped = true; try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ ov.remove(); }catch(e){} }
-  ov.querySelector('#faceSigCancel').onclick = cleanup;
-
-  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' } }).then(function(s){
-    if (stopped){ try{ s.getTracks().forEach(t=>t.stop()); }catch(e){} return; }
-    stream = s; vid.srcObject = s; return vid.play();
-  }).then(function(){
-    if (stopped) return;
-    try {
-      fm = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + f });
-      fm.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-      fm.onResults(function(res){
-        busy = false; fired++;
-        const fl = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
-        if (fl && fl.length >= 468){
-          sawFace = true;
-          const sig = _mufeBuildFaceSignature(fl);
-          if (sig){ samples.push(sig); stat.textContent = '얼굴 캡처 중… (' + samples.length + '/20)'; }
-        } else {
-          stat.textContent = '얼굴 찾는 중… (정면으로 가까이)';
-        }
-      });
-    } catch(e){ stat.textContent = 'FaceMesh 초기화 실패'; setTimeout(cleanup, 2500); return; }
-    const t0 = Date.now();
-    (function loop(){
-      if (stopped) return;
-      if (samples.length >= 20 || Date.now() - t0 > 12000){ finish(); return; }
-      if (fm && !busy && vid.readyState >= 2 && (frame++ % 3 === 0)){
-        busy = true;
-        try { const p = fm.send({ image: vid }); if (p && p.catch) p.catch(function(){ busy = false; }); }
-        catch(e){ busy = false; }
-      }
-      requestAnimationFrame(loop);
-    })();
-  }).catch(function(e){
-    stat.textContent = '카메라 권한이 필요해요 (허용 후 다시).';
-    setTimeout(cleanup, 3000);
-  });
-
-  function finish(){
-    const N = samples.length;
-    if (N < 3){
-      cleanup();
-      const reason = (fired === 0) ? 'FaceMesh가 결과를 한 번도 못 냈어요 (모델 로드 실패 가능 — 인터넷/CDN).'
-                   : !sawFace      ? '얼굴이 정면으로 안 잡혔어요 (각도·거리·조명 확인).'
-                   :                 '샘플이 너무 적어요.';
-      alert('얼굴 서명 안정도 — 측정 실패\n\n캡처: ' + N + '개\nFaceMesh 결과 수신: ' + fired + '회\n\n' + reason + '\n다시 시도해주세요.');
-      return;
-    }
-    const L = 64; let s = 0, pairs = 0;
-    for (let a = 0; a < N; a++){
-      for (let b = a + 1; b < N; b++){
-        let same = 0; for (let i = 0; i < L; i++){ if (Math.abs(samples[a][i] - samples[b][i]) < 1e-9) same++; }
-        s += same / L; pairs++;
-      }
-    }
-    const stability = pairs ? (s / pairs * 100) : 0;
-    const verdict = stability >= 90 ? '✅ 안정적 — 열쇠에 넣어도 될 만함 (A-2 진행 가능)'
-                  : stability >= 75 ? '⚠️ 보통 — 양자화(Q) 키우면 가능 (조정)'
-                  :                    '❌ 불안정 — Q 조정 필요 (지금 그대로는 잠김 위험)';
-    cleanup();
-    alert('얼굴 서명 안정도 (A-1)\n\n캡처: ' + N + '개\n안정도: ' + stability.toFixed(1) + '%\n\n' + verdict +
-          '\n\n(같은 얼굴이 매번 같은 서명을 내는 비율. 높을수록 본인 잘 열림.)');
-  }
-}
-window.mufeFaceSigStabilityTest = mufeFaceSigStabilityTest;
-
 function _mufeSetPupilUI(text, color, bg){
   const el = document.getElementById('bioPupilStatus');
   if (!el) return;
@@ -11908,28 +11713,15 @@ window.MUFE_HW = window.MUFE_HW || {
 function _mufeOnFaceMeshResults(results){
   _mufeFaceBusy = false;
   const fl = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
-  window._mufeFaceMeshFired = (window._mufeFaceMeshFired || 0) + 1;   // [C-52 진단] FaceMesh 콜백이 실제로 도는가
-  window._mufeLastFlLen = fl ? fl.length : 0;                          // [C-52 진단] 좌표 개수(478 필요)
   try { _mufeProximityCheck(fl); } catch(e){}
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
-  if (fl && fl.length >= 468){   // [C-54] 468(얼굴 구조)면 충분 — 홍채 불필요
+  if (fl && fl.length >= 478){
     window._mufeFaceSeen = (window._mufeFaceSeen||0) + 1;   // [C-47v2] 진짜 얼굴(478 좌표) 감지 — 책상·천장·벽은 절대 안 올라감
-    // [C-52 A-1] 얼굴 서명 샘플 수집 — 혈류와 무관하게 '얼굴만 보이면' 모음(안정도 측정 전용, 최대 30개, 인증·열쇠 영향 0)
-    try {
-      const fsig = _mufeBuildFaceSignature(fl);
-      if (fsig){
-        window._mufeFaceSig = fsig;
-        window._mufeFaceSigLog = window._mufeFaceSigLog || [];
-        if (window._mufeFaceSigLog.length < 30) window._mufeFaceSigLog.push(fsig);
-      }
-    } catch(e){}
     if (flowing){
-      // [C-54] 혈류+피부 확인된 순간의 '얼굴 구조 서명'을 열쇠 재료로 저장 (동공 대신)
-      const _fk = _mufeBuildFaceSignature(fl);
-      if (_fk) window._mufeFaceKeyCoords = _fk;
+      window._mufePupilCoords = _mufeBuildPupilSignature(fl);
       _mufePupilCount++;
-      _mufeSetPupilUI(`🙂 얼굴 구조 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
+      _mufeSetPupilUI(`👁 동공 좌표 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
     } else {
       // 얼굴은 보이는데 혈류 아직 — 정지 원칙(혈류 없으면 캡처 X)
       _mufeSetPupilUI('👁 얼굴 감지됨 — 혈류 측정 중…', '#38bdf8', 'rgba(56,189,248,.12)');
@@ -11941,7 +11733,6 @@ function _mufeOnFaceMeshResults(results){
 
 function _mufeInitFaceMesh(video){
   window._mufePupilCoords = null;   // 새 측정 시작 → 좌표 초기화
-  window._mufeFaceKeyCoords = null; // [C-54] 얼굴 열쇠 좌표도 초기화
   _mufePupilCount = 0;
   window._mufeFaceSeen = 0;   // [C-47v2] 진짜 얼굴 감지 프레임 카운터 리셋
   window._mufePulseSeen = 0;   // [C-47v3] 진짜 맥박 검출 횟수 리셋
@@ -11952,8 +11743,8 @@ function _mufeInitFaceMesh(video){
   }
   try {
     if (!_mufeFaceMeshObj){
-      _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + f });
-      _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });   // [C-54] 홍채(478) 끔 → 468 가벼움·로드 잘됨
+      _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f });
+      _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
       _mufeFaceMeshObj.onResults(_mufeOnFaceMeshResults);
     }
     console.log('[MUFE] FaceMesh 478 좌표 추적 시작 (홍채 포함)');
@@ -12036,9 +11827,8 @@ function getGreenChannelAverage() {
     hasBloodFlow = amplitudeOK && periodicityOK;
   }
 
-  // [C-55] 메신저 건강예측 방식 — '피부색'만으로 얼굴 감지(진행). 맥파는 끝(통과) 판정에만 사용.
-  //   실시간 혈류로 진행을 막으면 막대가 갔다 섰다 → 99%서 멈춤. 메신저처럼 색으로 진행시킨다.
-  const isSkin = skinColorOK;
+  // 최종: 혈류(맥파)가 진짜 있고, 색도 피부 경향이어야 '살아있는 본인'
+  const isSkin = hasBloodFlow && skinColorOK;
 
   _MUFE_AuthEngine.skinDetected = isSkin;
   _MUFE_AuthEngine.hasBloodFlow = hasBloodFlow;
@@ -12678,125 +12468,19 @@ function closeAdminModal() {
   clearInterval(_admConsoleTimer);
 }
 
-/* ═══ [C-52] 가짜 앱(=연산지옥) ═══
-   진짜 #mufeApp을 그대로 복제한 '가짜 앱'. 외형은 진짜와 100% 동일.
-   그 자체가 함정: 침입자가 무엇을 누르든 → 까만 화면 없이, 대시보드 모양 그대로
-   "처리 중…"이 99%에서 영원히 헛돌아(연산지옥) 빠져나가지 못한다.
-   본 앱 / 가짜 앱 = 이중 구조. id 전부 제거(진짜와 충돌 방지).
-   정직한 한계: 화면에 빠진 자는 속지만, 소스코드를 직접 읽는 적은 가짜인 줄 안다(→ 서버 '주소 두 개' 버전에서 해결). */
-function showFakeDashboardLayer() {
-  try {
-    const app = document.getElementById('mufeApp');
-    if (!app) return false;
-    const fake = document.createElement('div');
-    fake.className = app.className || 'app';
-    fake.style.display = 'flex';
-    ['.titlebar', '.tabs', '.main-wrapper'].forEach(function(sel){
-      const part = app.querySelector(sel);
-      if (part) fake.appendChild(part.cloneNode(true));
-    });
-    // id 제거(진짜와 충돌 방지) + 진짜 동작(onclick/href) 제거 → 진짜로는 아무 일도 안 함
-    fake.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
-    fake.querySelectorAll('[onclick]').forEach(function(el){ el.removeAttribute('onclick'); });
-    fake.querySelectorAll('a[href]').forEach(function(el){ el.removeAttribute('href'); });
-    // 통계 숫자만 그럴듯한 가짜로
-    const r = function(a,b){ return Math.floor(a + Math.random()*(b-a)); };
-    const fakeStats = [r(7,34), r(3,18), r(12000,48000)];
-    fake.querySelectorAll('.asb-num').forEach(function(el,i){
-      if (i < fakeStats.length) el.textContent = fakeStats[i].toLocaleString();
-    });
-    // 맨 위 히어로 → 「마스터 인증」 카드 (가장 먹음직한 미끼)
-    const hero = fake.querySelector('.protection-hero');
-    if (hero) {
-      const card = document.createElement('div');
-      card.className = 'protection-hero abyss-master';
-      card.style.cssText = 'cursor:pointer; border:1px solid rgba(212,168,67,.55); box-shadow:0 0 22px rgba(212,168,67,.18);';
-      card.innerHTML =
-        '<div class="check-icon" style="background:linear-gradient(135deg,#d4a843,#b8860b);">'
-        + '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2 L4 6 V12 C4 17 7 21 12 22 C17 21 20 17 20 12 V6 Z"/><path d="M9 12 L11 14 L15 10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
-        + '<div class="protection-text">'
-        + '<div class="protection-title">마스터 인증 — 최고 권한 전환</div>'
-        + '<div class="protection-desc">모든 노드·키·로그에 접근하려면 마스터 권한이 필요합니다.<br>아래를 눌러 마스터 인증을 시작하십시오.</div>'
-        + '<div style="margin-top:12px; display:inline-block; background:#d4a843; color:#1a1205; font-weight:800; padding:9px 20px; border-radius:10px;">🔓 마스터 권한 활성화</div>'
-        + '</div>';
-      hero.replaceWith(card);
-    }
-    // 레이어로 띄우기
-    const layer = document.createElement('div');
-    layer.id = 'abyssFakeLayer';
-    layer.style.cssText = 'position:fixed; inset:0; z-index:100000; overflow-y:auto; background:#0b1f3a;';
-    layer.appendChild(fake);
-    document.body.appendChild(layer);
-    document.body.style.overflow = 'hidden';
-    // ★ 무엇을 누르든 → 대시보드 모양 그대로 무한 '처리 중'(연산지옥). 까만 화면 없음.
-    fake.addEventListener('click', function(e){
-      e.preventDefault(); e.stopPropagation();
-      let label = '요청 처리';
-      try { if (e.target.closest && e.target.closest('.abyss-master')) label = '마스터 권한 발급'; } catch(_){}
-      showFakeProcessingTrap(label);
-    }, true);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/* 대시보드 모양 그대로의 무한 '처리 중' 함정 — 99%에서 영원히 헛돔, 닫기 없음(연산지옥) */
-function showFakeProcessingTrap(label) {
-  try {
-    const layer = document.getElementById('abyssFakeLayer');
-    if (!layer || layer.querySelector('.abyss-proc-modal')) return;   // 이미 떠 있으면 무시
-    const modal = document.createElement('div');
-    modal.className = 'abyss-proc-modal';
-    modal.style.cssText = 'position:fixed; inset:0; z-index:100001; background:rgba(8,18,38,.74); display:flex; align-items:center; justify-content:center;';
-    modal.innerHTML =
-      '<div style="width:min(440px,86vw); background:#0f2747; border:1px solid rgba(212,168,67,.4); border-radius:16px; padding:28px 26px; text-align:center; color:#e8eef7; box-shadow:0 20px 60px rgba(0,0,0,.5);">'
-      + '<div style="font-size:40px; margin-bottom:8px;">🔐</div>'
-      + '<div style="font-size:18px; font-weight:800; color:#fff; margin-bottom:4px;">' + label + ' 중…</div>'
-      + '<div style="font-size:12px; color:#9fb3d1; margin-bottom:16px;">MUFE Master Authentication</div>'
-      + '<div style="background:rgba(255,255,255,.08); border-radius:20px; height:12px; overflow:hidden; margin-bottom:8px;"><div class="abyss-proc-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#d4a843,#f0c969); transition:width .5s;"></div></div>'
-      + '<div class="abyss-proc-pct" style="font-size:12px; color:#9fb3d1; margin-bottom:14px;">검증 0%</div>'
-      + '<div class="abyss-proc-msg" style="font-size:12px; color:#7fd6a3; min-height:18px;">초기화 중…</div>'
-      + '</div>';
-    layer.appendChild(modal);
-    let prog = 0;
-    const msgs = ['양자 키 청크 검증 중…','노드 동기화 중…','마스터 토큰 부분 매칭 87%…','카오스 시드 대조 중…','rPPG 무결성 확인 중…','잠시만 기다려 주세요…'];
-    const tBar = setInterval(function(){
-      prog = prog + (99 - prog) * 0.045;   // 99%에서 영원히 헛돔(완료 안 됨)
-      const bar = modal.querySelector('.abyss-proc-bar');
-      const pct = modal.querySelector('.abyss-proc-pct');
-      if (bar) bar.style.width = prog.toFixed(1) + '%';
-      if (pct) pct.textContent = '검증 ' + prog.toFixed(1) + '% (예상 ' + Math.floor((100-prog)*14) + '초)';
-    }, 500);
-    const tMsg = setInterval(function(){
-      const m = modal.querySelector('.abyss-proc-msg');
-      if (m) m.textContent = msgs[Math.floor(Math.random()*msgs.length)];
-    }, 1100);
-    try { if (_abyssTimers && _abyssTimers.push) _abyssTimers.push(tBar, tMsg); } catch(_){}
-  } catch (e) {}
-}
-
 /* ═══ 연산지옥(늪) — 같은 페이지, 우리 연산 0 ═══ */
 let _abyssTimers = [];
 function enterAbyssTrap() {
+  const wrap = document.getElementById('abyssTrap');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
   // 누적 격리 카운트 +1 (관리자 현황판에서 보는 진짜 통계)
   try {
     const n = parseInt(localStorage.getItem('mufe-lifetime-blocked') || '0') + 1;
     localStorage.setItem('mufe-lifetime-blocked', n);
   } catch(e){}
-
-  // [C-52] 먼저 가짜 대시보드 레이어를 띄운다. "마스터 인증" 카드를 누르면 startAbyssAnimation() 호출.
-  //   복제 실패(앱 못 찾음) 시엔 곧장 연산지옥으로 폴백 → 절대 안 깨짐.
-  if (showFakeDashboardLayer()) return;
-  startAbyssAnimation();
-}
-
-/* 연산지옥(분석 중) 애니메이션 — 가짜 대시보드의 '마스터 인증' 클릭 시, 또는 복제 실패 폴백 시 */
-function startAbyssAnimation() {
-  const wrap = document.getElementById('abyssTrap');
-  if (!wrap) return;
-  wrap.style.display = 'block';
-  document.body.style.overflow = 'hidden';
 
   // 1) 진행바 — 99%에서 영원히 헛돔 (계산 없음, 단순 수렴식)
   let prog = 0;
@@ -12886,7 +12570,7 @@ document.addEventListener('keydown', (e) => {
      · 아직 .wasm 안 올렸으면 mufe_bridge.js 가 JS 폴백(시연)으로 작동 → 화면 정상.
      ════════════════════════════════════════════════════════════ -->
 <!-- [C-46] 동공·홍채 478 좌표 추적용 MediaPipe FaceMesh (CGO와 동일 CDN). 못 불러오면 기존 rPPG로 정상 작동 -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
 <script src="mufe_core.js" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
 <script src="mufe_bridge.js"></script>
 <script>
@@ -13028,65 +12712,6 @@ document.addEventListener('keydown', (e) => {
       _mufeForceChallenge();
     }
   };
-
-  // ════════════════════════════════════════════════════════════
-  // [서버 금고] 인증(진짜 토큰) 후에만 서버가 내용을 내려줌 / 저장 받음
-  //   window._mufeVaultAuth = { token(진짜), userToken(신원) } 이 채워지면 동작.
-  //   ※ 더하기 전용 — 기존 인증/대시보드 로직과 무관.
-  // ════════════════════════════════════════════════════════════
-  (function () {
-    function el(id) { return document.getElementById(id); }
-    function setStatus(s, locked) {
-      var st = el('mufe-vault-status');
-      if (st) { st.textContent = s; st.style.color = locked ? 'rgba(255,255,255,.5)' : '#34d399'; }
-    }
-    function enable(on) {
-      var t = el('mufe-vault-text'), b = el('mufe-vault-save');
-      if (t) { t.disabled = !on; t.placeholder = on ? '금고 내용을 적으세요…' : '인증 후 금고가 열립니다…'; }
-      if (b) b.disabled = !on;
-    }
-    window.mufeVaultLoad = async function () {
-      var auth = window._mufeVaultAuth;
-      if (!auth || !auth.token) { setStatus('잠김', true); enable(false); return; }
-      try {
-        var res = await fetch(window.location.origin + '/api/vault', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: auth.token, userToken: auth.userToken, action: 'get' })
-        });
-        var d = await res.json();
-        var m = el('mufe-vault-msg');
-        if (d.status === 'unlocked') {
-          setStatus('🔓 열림', false); enable(true);
-          var t = el('mufe-vault-text'); if (t && d.vault) t.value = d.vault.content || '';
-          if (m) m.textContent = (d.vault && d.vault.updatedAt) ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '';
-        } else if (d.status === 'locked') {
-          setStatus('잠김', true); enable(false);
-          if (m) m.textContent = d.message || '';
-        } else {
-          setStatus(d.status || '오류', true);
-          if (m) m.textContent = d.message || '';
-        }
-      } catch (e) { setStatus('서버 연결 안 됨', true); }
-    };
-    window.mufeVaultSave = async function () {
-      var auth = window._mufeVaultAuth;
-      var m = el('mufe-vault-msg');
-      if (!auth || !auth.token) { if (m) m.textContent = '먼저 인증하세요'; return; }
-      var t = el('mufe-vault-text'); var content = t ? t.value : '';
-      if (m) m.textContent = '저장 중…';
-      try {
-        var res = await fetch(window.location.origin + '/api/vault', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: auth.token, userToken: auth.userToken, action: 'set', content: content })
-        });
-        var d = await res.json();
-        if (d.status === 'saved') { if (m) m.textContent = '✅ 서버 금고에 저장됨 ' + new Date(d.updatedAt).toLocaleTimeString(); }
-        else if (d.status === 'no-storage') { if (m) m.textContent = '⚠ 서버 저장소(KV) 미연결 — 저장 안 됨'; }
-        else if (d.status === 'locked') { if (m) m.textContent = '금고 잠김 — 다시 인증하세요'; }
-        else { if (m) m.textContent = '저장 실패: ' + (d.message || d.status); }
-      } catch (e) { if (m) m.textContent = '서버 연결 안 됨'; }
-    };
-  })();
 
   // ════════════════════════════════════════════════════════════
   // [C-52 허니토큰] 미끼 마스터키 — '코드에만' 존재한다.
