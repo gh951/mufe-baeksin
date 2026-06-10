@@ -11532,8 +11532,8 @@ async function startMUFESensor() {
       const dt = now - _MUFE_AuthEngine._lastTick;
       _MUFE_AuthEngine._lastTick = now;
 
-      // 혈류(맥파)가 감지될 때만 시간 누적 — 아니면 타이머 정지
-      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected && _MUFE_AuthEngine.lastBPM >= 40 && _MUFE_AuthEngine.lastBPM <= 180;   // [C-47v4] 진짜 맥박(40~180)일 때만 타이머 진행 — 맥박 없으면 막대 정지(스톱). 노이즈 가짜진행 차단.
+      // [C-55] 메신저 방식 — 피부(얼굴)가 보이면 타이머 진행. 맥박은 끝에서 종합 판정.
+      const flowing = _MUFE_AuthEngine.skinDetected;
       if (flowing) _MUFE_AuthEngine._activeMs += dt;
 
       const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - _MUFE_AuthEngine._activeMs);
@@ -11545,7 +11545,7 @@ async function startMUFESensor() {
         if (flowing) {
           timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
         } else {
-          timerText.textContent = '⏸ 얼굴을 비춰주세요 (혈류 없음 — 정지)';
+          timerText.textContent = '⏸ 얼굴을 비춰주세요 (얼굴 안 보임 — 정지)';
         }
       }
       if (timerFill) timerFill.style.width = pct + '%';
@@ -11582,7 +11582,19 @@ function finishBioMeasurement() {
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
   // [C-47v4] 타이머가 "진짜 맥박일 때만" 진행하므로, 완료 = 맥박이 지속 검출됨. 통과 = 맥박 검출(사진·책상·천장은 맥박 0 → 막대가 안 가서 완료 자체가 안 됨). 진행과 판정이 일치 → 모순 제거.
-  const success = (window._mufePulseSeen||0) >= 1;
+  // [C-55] 메신저 방식 — 끝에 모은 녹색신호로 맥파를 한 번 더 계산해서도 판정(실시간 OR 종합).
+  let endPulseOK = false;
+  try {
+    const sig = (_MUFE_AuthEngine.g_values||[]);
+    if (sig.length >= 60) {
+      const m = sig.reduce((a,b)=>a+b,0)/sig.length;
+      let v=0, cross=0;
+      for (let i=0;i<sig.length;i++){ v+=(sig[i]-m)*(sig[i]-m); if(i>0 && (sig[i-1]-m)*(sig[i]-m)<0) cross++; }
+      const std = Math.sqrt(v/sig.length);
+      endPulseOK = (std > 0.25 && std < 25) && (cross >= 6);   // 적정 진폭 + 주기적 맥파 = 살아있는 사람(사진은 평탄→탈락)
+    }
+  } catch(e){}
+  const success = ((window._mufePulseSeen||0) >= 1) || endPulseOK;
   
   const result = {
     success,
@@ -12003,8 +12015,9 @@ function getGreenChannelAverage() {
     hasBloodFlow = amplitudeOK && periodicityOK;
   }
 
-  // 최종: 혈류(맥파)가 진짜 있고, 색도 피부 경향이어야 '살아있는 본인'
-  const isSkin = hasBloodFlow && skinColorOK;
+  // [C-55] 메신저 건강예측 방식 — '피부색'만으로 얼굴 감지(진행). 맥파는 끝(통과) 판정에만 사용.
+  //   실시간 혈류로 진행을 막으면 막대가 갔다 섰다 → 99%서 멈춤. 메신저처럼 색으로 진행시킨다.
+  const isSkin = skinColorOK;
 
   _MUFE_AuthEngine.skinDetected = isSkin;
   _MUFE_AuthEngine.hasBloodFlow = hasBloodFlow;
