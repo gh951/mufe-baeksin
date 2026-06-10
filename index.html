@@ -7641,8 +7641,8 @@
       if (regMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
-        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
-          ? window._mufePupilCoords
+        const pupil = (window._mufeFaceKeyCoords && window._mufeFaceKeyCoords.length)   // [C-54] 동공→얼굴 구조
+          ? window._mufeFaceKeyCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
         // [C-47] 인증 때 공백 제거(replace \s)와 동일하게 맞춤 — 등록도 공백 제거
@@ -8481,8 +8481,8 @@
       if (window._authMode === 'high' && window.MUFE_WASM && typeof window.getMufeEntropyPayload === 'function') {
         const ep = window.getMufeEntropyPayload();
         const sliderCoord = parseFloat(ep.coord) || 0;
-        const pupil = (window._mufePupilCoords && window._mufePupilCoords.length)
-          ? window._mufePupilCoords
+        const pupil = (window._mufeFaceKeyCoords && window._mufeFaceKeyCoords.length)   // [C-54] 동공→얼굴 구조
+          ? window._mufeFaceKeyCoords
           : Array.from({length:64}, (_,i)=> 0.5 + ((i*7+sliderCoord)%13)*0.01);
         await window.MUFE_WASM.ready();
 
@@ -8542,7 +8542,7 @@
     if (keyChecked && keyOk) {
       const _i3 = document.getElementById('authInput'); if (_i3) _i3.value = '';
       // 비밀 사본·생체 플래그 즉시 파쇄 (메모리 위생)
-      try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
+      try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; if (window._mufeFaceKeyCoords) window._mufeFaceKeyCoords = null; } catch(e){}
       showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
       if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       if (typeof addLog === 'function') addLog('success','🛡️','온디바이스 검증 통과 — 비밀값 미전송');
@@ -8575,6 +8575,7 @@
         caughtWord = null;
         window._bioVerifyPassed = false;
         if (window._mufePupilCoords) window._mufePupilCoords = null;
+        if (window._mufeFaceKeyCoords) window._mufeFaceKeyCoords = null;
       } catch(e){}
       
       const result = await res.json();
@@ -11879,7 +11880,7 @@ function _mufeOnFaceMeshResults(results){
   try { _mufeProximityCheck(fl); } catch(e){}
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
-  if (fl && fl.length >= 478){
+  if (fl && fl.length >= 468){   // [C-54] 468(얼굴 구조)면 충분 — 홍채 불필요
     window._mufeFaceSeen = (window._mufeFaceSeen||0) + 1;   // [C-47v2] 진짜 얼굴(478 좌표) 감지 — 책상·천장·벽은 절대 안 올라감
     // [C-52 A-1] 얼굴 서명 샘플 수집 — 혈류와 무관하게 '얼굴만 보이면' 모음(안정도 측정 전용, 최대 30개, 인증·열쇠 영향 0)
     try {
@@ -11891,9 +11892,11 @@ function _mufeOnFaceMeshResults(results){
       }
     } catch(e){}
     if (flowing){
-      window._mufePupilCoords = _mufeBuildPupilSignature(fl);
+      // [C-54] 혈류+피부 확인된 순간의 '얼굴 구조 서명'을 열쇠 재료로 저장 (동공 대신)
+      const _fk = _mufeBuildFaceSignature(fl);
+      if (_fk) window._mufeFaceKeyCoords = _fk;
       _mufePupilCount++;
-      _mufeSetPupilUI(`👁 동공 좌표 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
+      _mufeSetPupilUI(`🙂 얼굴 구조 잡힘 ✓ (${_mufePupilCount}회 캡처)`, '#4ade80', 'rgba(74,222,128,.14)');
     } else {
       // 얼굴은 보이는데 혈류 아직 — 정지 원칙(혈류 없으면 캡처 X)
       _mufeSetPupilUI('👁 얼굴 감지됨 — 혈류 측정 중…', '#38bdf8', 'rgba(56,189,248,.12)');
@@ -11905,6 +11908,7 @@ function _mufeOnFaceMeshResults(results){
 
 function _mufeInitFaceMesh(video){
   window._mufePupilCoords = null;   // 새 측정 시작 → 좌표 초기화
+  window._mufeFaceKeyCoords = null; // [C-54] 얼굴 열쇠 좌표도 초기화
   _mufePupilCount = 0;
   window._mufeFaceSeen = 0;   // [C-47v2] 진짜 얼굴 감지 프레임 카운터 리셋
   window._mufePulseSeen = 0;   // [C-47v3] 진짜 맥박 검출 횟수 리셋
@@ -11916,7 +11920,7 @@ function _mufeInitFaceMesh(video){
   try {
     if (!_mufeFaceMeshObj){
       _mufeFaceMeshObj = new FaceMesh({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + f });
-      _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+      _mufeFaceMeshObj.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });   // [C-54] 홍채(478) 끔 → 468 가벼움·로드 잘됨
       _mufeFaceMeshObj.onResults(_mufeOnFaceMeshResults);
     }
     console.log('[MUFE] FaceMesh 478 좌표 추적 시작 (홍채 포함)');
