@@ -5494,9 +5494,9 @@
       <!-- ═══ 서버 금고 (금고 A) — 인증 후 서버가 내려주는 내용 ═══ -->
       <div id="mufe-vault-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span id="mufe-vault-lockicon" style="font-size:18px;">🔒</span>
+          <span id="mufe-vault-lockicon" style="font-size:22px;">🔒</span>
           <span style="font-weight:800;color:#d4a843;">서버 금고</span>
-          <span id="mufe-vault-status" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">잠김</span>
+          <span id="mufe-vault-status" style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);">잠김</span>
         </div>
         <div style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:10px;line-height:1.5;">
           여기 적은 내용은 <b>폰에 저장되지 않고 서버 금고</b>에 들어가요. 인증을 통과해야만 서버가 내려줍니다.
@@ -12847,7 +12847,11 @@ document.addEventListener('keydown', (e) => {
   function el(id) { return document.getElementById(id); }
   function setStatus(s, locked) {
     var st = el('mufe-vault-status');
-    if (st) { st.textContent = s; st.style.color = locked ? 'rgba(255,255,255,.5)' : '#34d399'; }
+    if (st) {
+      st.textContent = s;
+      st.style.color = locked ? 'rgba(255,255,255,.6)' : '#053b2a';
+      st.style.background = locked ? 'rgba(255,255,255,.1)' : '#34d399';
+    }
     var ic = el('mufe-vault-lockicon');
     if (ic) ic.textContent = locked ? '🔒' : '🔓';
   }
@@ -12867,7 +12871,7 @@ document.addEventListener('keydown', (e) => {
       var d = await res.json();
       var m = el('mufe-vault-msg');
       if (d.status === 'unlocked') {
-        setStatus('🔓 열림', false); enable(true);
+        setStatus('열림', false); enable(true);
         var t = el('mufe-vault-text'); if (t && d.vault) t.value = d.vault.content || '';
         if (m) m.textContent = (d.vault && d.vault.updatedAt) ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '';
       } else if (d.status === 'locked') {
@@ -12921,16 +12925,12 @@ document.addEventListener('keydown', (e) => {
   function _mufeProofToast(text, ok){
     try {
       var d = document.createElement('div');
-      d.textContent = text + (ok ? '' : '      ⬅ 다 읽으면 여기를 누르세요');
+      d.textContent = text + '      ⬅ 확인했으면 여기를 누르세요';
       d.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;max-width:92%;text-align:center;color:#fff;font-weight:700;font-size:15px;line-height:1.5;padding:16px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transition:opacity .25s;cursor:pointer;background:' + (ok ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#b91c1c,#ef4444)') + ';';
       document.body.appendChild(d);
       requestAnimationFrame(function(){ d.style.opacity = '1'; });
-      if (ok) {
-        setTimeout(function(){ d.style.opacity = '0'; setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 300); }, 4500);
-      } else {
-        // [수정] 실패 메시지는 자동으로 안 사라짐 — 읽고 캡처할 때까지 화면에 남고, 누르면 닫힘
-        d.onclick = function(){ if (d.parentNode) d.parentNode.removeChild(d); };
-      }
+      // [수정] 성공·실패 모두 자동으로 안 사라짐 — 사용자가 직접 눌러 닫음 (공신력 ↑)
+      d.onclick = function(){ if (d.parentNode) d.parentNode.removeChild(d); };
     } catch(e){}
   }
   window.mufeHighModeServerProof = async function(userToken, passOnly, sliderCoord){
@@ -12959,15 +12959,8 @@ document.addEventListener('keydown', (e) => {
         window._mufeVaultAuth = { token: vr.token, userToken: userToken };
         if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad();
         if (typeof addLog === 'function') addLog('success','🔏','고보안 통과를 서버가 양자내성 도장으로 확인 — 금고 열림');
-        // [추가] 화면에 '양자 도장 통과'를 잠깐 띄움 — 눈으로 확인용 (2.8초 뒤 자동 사라짐)
-        try {
-          var _pt = document.createElement('div');
-          _pt.textContent = '🔐 양자 도장 통과';
-          _pt.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .25s;';
-          document.body.appendChild(_pt);
-          requestAnimationFrame(function(){ _pt.style.opacity = '1'; });
-          setTimeout(function(){ _pt.style.opacity = '0'; setTimeout(function(){ if (_pt.parentNode) _pt.parentNode.removeChild(_pt); }, 300); }, 2800);
-        } catch(e){}
+        // [수정] 성공 알림 — 문구를 '방어'로 분명하게, 그리고 사용자가 직접 닫음(공신력 ↑)
+        _mufeProofToast('🔐 서버 양자 도장으로 방어됨', true);
       } else {
         _mufeProofToast('🔐 서버 도장 검증 실패: ' + ((vr && vr.error) || '알 수 없음'), false);
       }
@@ -12980,7 +12973,7 @@ document.addEventListener('keydown', (e) => {
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0610-K';
+    s.textContent = 'BUILD 0611-B';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
