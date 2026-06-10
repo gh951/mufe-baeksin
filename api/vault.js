@@ -1,130 +1,123 @@
 /**
- * MUFE 백신 — 서버 금고 (Stage 1)
+ * ════════════════════════════════════════════════════════════════
+ *  MUFE 백신 — 서버 금고 (금고 A / 로드맵 적용순서 3번)
  *
- * [C-52] 인증(서버 검증)된 사용자에게만 보호 구역 HTML을 내려준다.
- *   - 진짜(real) 마스터 토큰만 통과. 미끼/없음/위조 → 빈 응답(거부 신호 없음).
- *   - 보호 구역은 index.html DOM에 없음 → 게이트를 우회해도 텅 빈 슬롯만 남는다.
- *   - 토큰은 /api/verify 성공 시 발급된 'real' 마스터 토큰(mufe.<payload>.<sig>).
+ *  원리: "민감 내용은 폰에 두지 않는다. 서버가 인증 확인 후에만 내려준다."
+ *
+ *   - verify.js 가 인증 성공 시 내주는 *서버 HMAC 서명 토큰*(mufe.<...>.<sig>,
+ *     type:'real') 을 그대로 증표로 씀. 위조 불가(서버 SECRET 없이는 서명 못 함).
+ *   - 진짜 토큰  → 진짜 금고 내용 내려줌 / 저장 받음
+ *   - 미끼 토큰  → *가짜 금고* 내려줌 (차단 X, 기만 격리 — 모토 그대로)
+ *   - 토큰 없음/위조/만료 → 잠김 (아무것도 안 내려줌)
+ *
+ *   ⚠ 절대 안전이 아니라 "서버가 인증 전에는 내용을 주지 않는다" 한 겹.
+ *     하드웨어급 봉인은 Phase 2(네이티브·TEE).
+ * ════════════════════════════════════════════════════════════════
  */
-const crypto = require('crypto');
-const SECRET = process.env.MUFE_SECRET;
 
+const crypto = require('crypto');
+const { kvGet, kvSet, kvIncr, isKVAvailable } = require('./_kv');
+
+const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;   // 세션 토큰 신선도 24시간
+const MAX_CONTENT  = 4096;                   // 금고 내용 최대 4KB
+
+// verify.js 와 *완전히 동일한* 서명 (절대 바꾸면 안 됨 — 토큰 호환)
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
 
-// 진짜(real) 마스터 토큰만 통과 — 미끼/등록만 한 토큰은 거절
-function verifyRealToken(token) {
-  if (!token || !token.startsWith('mufe.')) return null;   // mufe-u./mufe-r. 는 startsWith('mufe.')=false
+// verify.js 의 verifyToken 과 동일 — 서명/형식 검증 후 페이로드 반환
+function verifyToken(token, prefix) {
+  if (!token || typeof token !== 'string' || !token.startsWith(prefix + '.')) return null;
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   const [, payloadB64, signature] = parts;
   if (sign(payloadB64) !== signature) return null;
   try {
-    const p = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
-    return p.type === 'real' ? p : null;
-  } catch { return null; }
+    return JSON.parse(Buffer.from(payloadB64, 'base64').toString());
+  } catch {
+    return null;
+  }
 }
 
-// 보호 구역들 — 인증된 사용자에게만 내려간다. (구역을 늘리면 여기에 추가)
-const VAULT_SECTIONS = {
-  security: `    <div class="panel panel-security" data-panel="security">
-      <div class="panel-content">
-        <div class="panel-header">
-          <h2>보안 정책</h2>
-          <p>현재 시스템에 적용된 보안 원칙을 확인하세요.</p>
-        </div>
+// 사용자별 *안정* 금고 키 — 비번을 그대로 키에 쓰지 않고 HMAC 으로 가림
+function vaultKeyFor(userData) {
+  const basis = (userData.passcode || '') + '|' + (userData.format || userData.spacing || '');
+  return 'vault:' + sign('vault-user|' + basis);
+}
 
-        <div class="policy-grid">
-          <div class="policy-card" data-policy="decoy">
-            <div class="policy-icon">🛡️</div>
-            <div class="policy-title">미끼 트랩 (Decoy)</div>
-            <div class="policy-desc">표면에 보이는 답은 가짜입니다. 시도하면 샌드스로 격리됩니다.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="decoy" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-
-          <div class="policy-card" data-policy="dynamic">
-            <div class="policy-icon">🔄</div>
-            <div class="policy-title">시도자별 동적 답</div>
-            <div class="policy-desc">매 시도마다 다른 답이 생성됩니다. 답을 외워둘 수 없습니다.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="dynamic" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-
-          <div class="policy-card" data-policy="cognitive">
-            <div class="policy-icon">🧠</div>
-            <div class="policy-title">인지 비대칭</div>
-            <div class="policy-desc">사람은 즉시 인지하나, AI/봇은 분석할수록 더 깊이 빠집니다.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="cognitive" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-
-          <div class="policy-card" data-policy="quantum">
-            <div class="policy-icon">⚛️</div>
-            <div class="policy-title">양자 내성</div>
-            <div class="policy-desc">RSA·ECC·PQC가 모두 깨져도 작동 — 양자·AI 시대 카오스 인증.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="quantum" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-
-          <div class="policy-card" data-policy="delegate">
-            <div class="policy-icon">🎭</div>
-            <div class="policy-title">위임 인증</div>
-            <div class="policy-desc">사용자가 별도 암호로 다른 사람에게 인증을 위임할 수 있습니다.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="delegate" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-
-          <div class="policy-card" data-policy="autorenew">
-            <div class="policy-icon">♾️</div>
-            <div class="policy-title">자가 갱신</div>
-            <div class="policy-desc">카오스 시드와 미끼 파일이 자동으로 회전·갱신됩니다.</div>
-            <label class="policy-toggle">
-              <input type="checkbox" data-policy-key="autorenew" checked onchange="togglePolicy(this)">
-              <span class="policy-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="panel-info">
-          <div class="info-icon">🔐</div>
-          <div class="info-text">
-            <strong>"보이는 게 진실이 아니다"</strong>
-            모든 보안 정책은 위 명제 위에서 설계되었습니다.
-          </div>
-        </div>
-      </div>
-    </div>`,
-};
+// 미끼 토큰 보유자에게 내려줄 *가짜 금고* (진짜처럼 보이지만 무의미한 잡음)
+function decoyVault() {
+  return {
+    content: '',
+    items: Array.from({ length: 3 }, () => ({
+      id: crypto.randomBytes(6).toString('hex'),
+      v: crypto.randomBytes(48).toString('base64'),
+    })),
+    updatedAt: Date.now() - Math.floor(Math.random() * 1e7),
+  };
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!SECRET) return res.status(500).json({ error: 'server-misconfigured' });
+  if (req.method !== 'POST') return res.status(405).json({ status: 'locked', error: 'Method not allowed' });
 
   try {
-    const { token } = req.body || {};
-    const real = verifyRealToken(token);
-    if (!real) {
-      // 인증 안 됨 — '거부' 신호 없이 빈 금고 (우회자는 아무것도 못 얻음)
-      return res.status(200).json({ sections: {} });
+    const { token, userToken, action, content } = req.body || {};
+
+    // ① 이번 세션 인증 증표 = verify.js 가 내준 진짜 토큰
+    const auth = verifyToken(token, 'mufe');
+
+    // 토큰 없음/위조 → 잠김 (금고는 아무것도 안 내려줌)
+    if (!auth) {
+      if (isKVAvailable()) await kvIncr('stats:vault:locked-no-token');
+      return res.status(200).json({ status: 'locked', message: '금고 잠김 — 인증이 필요합니다' });
     }
-    return res.status(200).json({ sections: VAULT_SECTIONS });
+
+    // 세션 만료
+    if (!auth.issuedAt || (Date.now() - auth.issuedAt) > TOKEN_TTL_MS) {
+      return res.status(200).json({ status: 'locked', message: '금고 잠김 — 세션이 만료됐어요. 다시 인증하세요' });
+    }
+
+    // ② 미끼 토큰 보유자 → 가짜 금고 내려줌 (차단 X, 기만)
+    if (auth.type !== 'real') {
+      if (isKVAvailable()) await kvIncr('stats:vault:decoy-served');
+      return res.status(200).json({ status: 'unlocked', vault: decoyVault(), decoy: true });
+    }
+
+    // ③ 진짜 인증 통과 — 금고 키는 *신원 토큰*(mufe-u)에서 (안정적)
+    const userData = verifyToken(userToken, 'mufe-u');
+    if (!userData) {
+      return res.status(200).json({ status: 'locked', message: '금고 잠김 — 신원 확인 실패' });
+    }
+    const key = vaultKeyFor(userData);
+
+    // ── 저장 ──
+    if (action === 'set') {
+      const c = typeof content === 'string' ? content.slice(0, MAX_CONTENT) : '';
+      if (!isKVAvailable()) {
+        return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결 — 저장 불가' });
+      }
+      const record = { content: c, updatedAt: Date.now() };
+      await kvSet(key, record);
+      await kvIncr('stats:vault:set');
+      return res.status(200).json({ status: 'saved', updatedAt: record.updatedAt });
+    }
+
+    // ── 읽기 (기본) ──
+    if (!isKVAvailable()) {
+      return res.status(200).json({ status: 'unlocked', vault: { content: '', updatedAt: null }, message: '서버 저장소(KV) 미연결' });
+    }
+    await kvIncr('stats:vault:get');
+    const record = await kvGet(key);
+    return res.status(200).json({ status: 'unlocked', vault: record || { content: '', updatedAt: null } });
+
   } catch (err) {
-    return res.status(500).json({ error: 'vault error', detail: err.message });
+    return res.status(500).json({ status: 'error', detail: err.message });
   }
 };
