@@ -12975,5 +12975,16 @@ document.addEventListener('keydown', (e) => {
   };
 })();
 </script>
+<script>
+/* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
+(function(){
+  try {
+    var s = document.createElement('div');
+    s.textContent = 'BUILD 0610-K';
+    s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
+    (document.body || document.documentElement).appendChild(s);
+  } catch(e){}
+})();
+</script>
 </body>
 </html>

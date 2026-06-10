@@ -1,72 +1,69 @@
-/* ════════════════════════════════════════════════════════════
- *  MUFE 백신 — 서비스 워커 (PWA)
- *  · index.html 과 같은 폴더(웹 루트)에 올리면 됩니다.
- *  · 오프라인에서도 앱이 열리도록 핵심 파일을 캐시합니다.
- *  · 새 버전이 올라오면 자동으로 감지·갱신합니다.
- * ════════════════════════════════════════════════════════════ */
+/**
+ * ════════════════════════════════════════════════════════════════
+ *  MUFE 백신 — 서비스 워커 (네트워크 우선)
+ *
+ *  핵심: 온라인이면 *항상 서버에서 최신 화면*을 가져온다.
+ *        → 새로 배포하면 정상 경로(앱·일반 브라우저)에서 바로 반영됨.
+ *        → "옛날 화면이 계속 뜨는" 캐시 문제 해결. (시크릿 탭 불필요)
+ *  오프라인일 때만 마지막으로 받은 화면을 캐시에서 보여준다.
+ * ════════════════════════════════════════════════════════════════
+ */
 
-const MUFE_CACHE = 'mufe-baeksin-v1';
+const CACHE = 'mufe-net-first-0610k';
 
-// 캐시할 핵심 파일 (있는 것만 — 없어도 등록 실패 안 함)
-const CORE_ASSETS = [
-  './',
-  './index.html',
-  './mufe_bridge.js',
-  './mufe_core.js',
-  './mufe_core.wasm',
-];
-
-// 설치 — 핵심 파일 캐시 (개별 실패는 무시)
+// 설치 — 바로 대기 끝내고 새 워커 활성화
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(MUFE_CACHE).then((cache) =>
-      Promise.all(
-        CORE_ASSETS.map((url) =>
-          cache.add(url).catch(() => {
-            /* 파일이 아직 없어도 등록은 성공시킴 */
-          })
-        )
-      )
-    )
-  );
-  // 새 워커 즉시 대기 해제 (index.html의 SKIP_WAITING과 연동)
   self.skipWaiting();
 });
 
-// 활성화 — 옛 캐시 정리
+// 활성화 — 옛날 캐시 싹 비우고, 즉시 모든 탭 제어
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== MUFE_CACHE).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => (k !== CACHE ? caches.delete(k) : Promise.resolve())));
+    } catch (e) { /* 무시 */ }
+    await self.clients.claim();
+  })());
 });
 
-// fetch — 네트워크 우선, 실패 시 캐시 (항상 최신 우선, 오프라인 대비)
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  // GET 요청만 처리 (POST 인증 요청 등은 그대로 통과)
-  if (req.method !== 'GET') return;
-
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        // 성공 시 캐시 갱신 (동일 출처만)
-        if (res && res.status === 200 && req.url.startsWith(self.location.origin)) {
-          const copy = res.clone();
-          caches.open(MUFE_CACHE).then((cache) => cache.put(req, copy));
-        }
-        return res;
-      })
-      .catch(() => caches.match(req)) // 오프라인이면 캐시에서
-  );
-});
-
-// index.html에서 SKIP_WAITING 메시지 받으면 즉시 활성화
+// 클라이언트가 SKIP_WAITING 보내면 즉시 활성화 (index.html의 업데이트 로직과 호응)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// 요청 처리 — 네트워크 우선, 실패(오프라인) 시에만 캐시
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+
+  // GET만 다룬다. API(POST 등)·다른 메서드는 건드리지 않음 (서버 인증·금고 흐름 보호)
+  if (req.method !== 'GET') return;
+
+  // API 호출은 절대 캐시하지 않음 — 항상 서버로 직접
+  try {
+    const url = new URL(req.url);
+    if (url.pathname.startsWith('/api/')) return;
+  } catch (e) { /* 무시 */ }
+
+  event.respondWith((async () => {
+    try {
+      // 1) 네트워크에서 최신 가져오기
+      const fresh = await fetch(req);
+      // 2) 성공하면 캐시에 사본 저장 (오프라인 대비)
+      try {
+        if (fresh && fresh.status === 200 && fresh.type === 'basic') {
+          const cache = await caches.open(CACHE);
+          cache.put(req, fresh.clone());
+        }
+      } catch (e) { /* 캐시 실패해도 무시 */ }
+      return fresh;
+    } catch (err) {
+      // 3) 네트워크 안 되면(오프라인) 마지막 캐시
+      const cached = await caches.match(req);
+      if (cached) return cached;
+      throw err;
+    }
+  })());
 });
