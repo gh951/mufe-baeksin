@@ -5494,9 +5494,8 @@
       <!-- ═══ 서버 금고 (금고 A) — 인증 후 서버가 내려주는 내용 ═══ -->
       <div id="mufe-vault-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span id="mufe-vault-lockicon" style="font-size:22px;">🔒</span>
+          <span id="mufe-vault-lockicon" style="font-size:22px;transition:transform .3s;">🔒</span>
           <span style="font-weight:800;color:#d4a843;">서버 금고</span>
-          <span id="mufe-vault-status" style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);">잠김</span>
         </div>
         <div style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:10px;line-height:1.5;">
           여기 적은 내용은 <b>폰에 저장되지 않고 서버 금고</b>에 들어가요. 인증을 통과해야만 서버가 내려줍니다.
@@ -12846,14 +12845,19 @@ document.addEventListener('keydown', (e) => {
 (function () {
   function el(id) { return document.getElementById(id); }
   function setStatus(s, locked) {
-    var st = el('mufe-vault-status');
-    if (st) {
-      st.textContent = s;
-      st.style.color = locked ? 'rgba(255,255,255,.6)' : '#053b2a';
-      st.style.background = locked ? 'rgba(255,255,255,.1)' : '#34d399';
-    }
+    // 헤더엔 자물쇠 그림만 — 글자 배지("열림")는 싸구려 티라 뺌. 자물쇠가 잠김/열림을 말함.
     var ic = el('mufe-vault-lockicon');
     if (ic) ic.textContent = locked ? '🔒' : '🔓';
+    var card = el('mufe-vault-card');
+    if (card) {
+      // 열리면 금색 테두리 + 은은한 빛 (양자 보안앱다운 격)
+      card.style.borderColor = locked ? 'rgba(212,168,67,.3)' : 'rgba(212,168,67,.85)';
+      card.style.boxShadow = locked ? 'none' : '0 4px 22px rgba(212,168,67,.20)';
+    }
+    // 잠김/열림이 아닌 글자(서버 오류 등)는 아래 메시지칸에만 조용히
+    if (s && s !== '잠김' && s !== '열림') {
+      var m = el('mufe-vault-msg'); if (m) m.textContent = s;
+    }
   }
   function enable(on) {
     var t = el('mufe-vault-text'), b = el('mufe-vault-save');
@@ -12973,7 +12977,7 @@ document.addEventListener('keydown', (e) => {
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-B';
+    s.textContent = 'BUILD 0611-C';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
