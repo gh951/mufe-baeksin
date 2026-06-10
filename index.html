@@ -10786,7 +10786,38 @@
 
   // ════ PWA 설치 시스템 — 데스크탑·안드로이드·iOS 모두 ════
   let deferredInstallPrompt = null;
-  
+
+  /* [C-53] 인앱 브라우저(카톡 등) → 외부 브라우저(크롬) 자동 전환
+     카톡 인앱 웹뷰에서는 MediaPipe(얼굴 인식) 등이 안 돌아가서,
+     앱이 열리자마자 사용자 조작 없이 외부 브라우저로 자동으로 빠져나감. */
+  (function mufeEscapeInAppBrowser(){
+    try {
+      var ua = navigator.userAgent || '';
+      var url = location.href;
+      var isKakao = /KAKAOTALK/i.test(ua);
+      var isOtherInApp = /FBAN|FBAV|Instagram|Line\/|NAVER|DaumApps|; wv\)/i.test(ua);
+      if (!isKakao && !isOtherInApp) return;            // 인앱 브라우저 아니면 통과
+
+      // 같은 웹뷰에서 무한 반복 방지 (한 번만 시도)
+      try {
+        if (sessionStorage.getItem('mufe-escaped') === '1') return;
+        sessionStorage.setItem('mufe-escaped', '1');
+      } catch (e) {}
+
+      if (isKakao) {
+        // 카톡 전용 (안드로이드·iOS 공통): 기본 브라우저로 열기
+        location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+        return;
+      }
+      if (/Android/i.test(ua)) {
+        // 기타 안드로이드 인앱 → 크롬으로 강제
+        location.href = 'intent://' + url.replace(/^https?:\/\//, '')
+          + '#Intent;scheme=https;package=com.android.chrome;end';
+      }
+      // iOS의 카톡 외 인앱(인스타 등)은 강제 전환 수단이 없어 그대로 둠
+    } catch (e) {}
+  })();
+
   // 이미 PWA로 실행 중인지 감지
   function isRunningStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches ||
