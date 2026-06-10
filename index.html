@@ -5491,6 +5491,25 @@
         </div>
       </div>
 
+      <!-- ═══ 서버 금고 (금고 A) — 인증 후 서버가 내려주는 내용 ═══ -->
+      <div id="mufe-vault-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:18px;">🔒</span>
+          <span style="font-weight:800;color:#d4a843;">서버 금고</span>
+          <span id="mufe-vault-status" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">잠김</span>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:10px;line-height:1.5;">
+          여기 적은 내용은 <b>폰에 저장되지 않고 서버 금고</b>에 들어가요. 인증을 통과해야만 서버가 내려줍니다.
+        </div>
+        <textarea id="mufe-vault-text" placeholder="인증 후 금고가 열립니다…" disabled
+          style="width:100%;box-sizing:border-box;min-height:80px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#eee;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+          <button id="mufe-vault-save" onclick="mufeVaultSave()" disabled
+            style="padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;">금고에 저장</button>
+          <span id="mufe-vault-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
+        </div>
+      </div>
+
       <!-- 공격 통계 대시보드 (사용자 *우와* 자리) -->
       <div class="attack-stats-bar">
         <div class="asb-card asb-today">
@@ -8572,6 +8591,8 @@
       
       if (result.status === 'success') {
         currentMasterToken = result.token;
+        // [서버 금고] 진짜 토큰 + 신원 토큰 보관 → 금고 자동 열기
+        try { window._mufeVaultAuth = { token: result.token, userToken: userToken }; if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad(); } catch (e) {}
         showMsg(
           `<strong>${result.message}</strong><br>` +
           `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
@@ -12796,6 +12817,62 @@ document.addEventListener('keydown', (e) => {
     if (ctrl && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) { e.preventDefault(); return; }
     if (ctrl && k === 'u') { e.preventDefault(); return; }
   }, true);
+})();
+</script>
+<script>
+/* ═══ 서버 금고 — 인증(진짜 토큰) 후에만 서버가 내용을 내려줌/저장. 더하기 전용. ═══ */
+(function () {
+  function el(id) { return document.getElementById(id); }
+  function setStatus(s, locked) {
+    var st = el('mufe-vault-status');
+    if (st) { st.textContent = s; st.style.color = locked ? 'rgba(255,255,255,.5)' : '#34d399'; }
+  }
+  function enable(on) {
+    var t = el('mufe-vault-text'), b = el('mufe-vault-save');
+    if (t) { t.disabled = !on; t.placeholder = on ? '금고 내용을 적으세요…' : '인증 후 금고가 열립니다…'; }
+    if (b) b.disabled = !on;
+  }
+  window.mufeVaultLoad = async function () {
+    var auth = window._mufeVaultAuth;
+    if (!auth || !auth.token) { setStatus('잠김', true); enable(false); return; }
+    try {
+      var res = await fetch(window.location.origin + '/api/vault', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: auth.token, userToken: auth.userToken, action: 'get' })
+      });
+      var d = await res.json();
+      var m = el('mufe-vault-msg');
+      if (d.status === 'unlocked') {
+        setStatus('🔓 열림', false); enable(true);
+        var t = el('mufe-vault-text'); if (t && d.vault) t.value = d.vault.content || '';
+        if (m) m.textContent = (d.vault && d.vault.updatedAt) ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '';
+      } else if (d.status === 'locked') {
+        setStatus('잠김', true); enable(false);
+        if (m) m.textContent = d.message || '';
+      } else {
+        setStatus(d.status || '오류', true);
+        if (m) m.textContent = d.message || '';
+      }
+    } catch (e) { setStatus('서버 연결 안 됨', true); }
+  };
+  window.mufeVaultSave = async function () {
+    var auth = window._mufeVaultAuth;
+    var m = el('mufe-vault-msg');
+    if (!auth || !auth.token) { if (m) m.textContent = '먼저 인증하세요'; return; }
+    var t = el('mufe-vault-text'); var content = t ? t.value : '';
+    if (m) m.textContent = '저장 중…';
+    try {
+      var res = await fetch(window.location.origin + '/api/vault', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: auth.token, userToken: auth.userToken, action: 'set', content: content })
+      });
+      var d = await res.json();
+      if (d.status === 'saved') { if (m) m.textContent = '✅ 서버 금고에 저장됨 ' + new Date(d.updatedAt).toLocaleTimeString(); }
+      else if (d.status === 'no-storage') { if (m) m.textContent = '⚠ 서버 저장소(KV) 미연결 — 저장 안 됨'; }
+      else if (d.status === 'locked') { if (m) m.textContent = '금고 잠김 — 다시 인증하세요'; }
+      else { if (m) m.textContent = '저장 실패: ' + (d.message || d.status); }
+    } catch (e) { if (m) m.textContent = '서버 연결 안 됨'; }
+  };
 })();
 </script>
 </body>
