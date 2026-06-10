@@ -5494,7 +5494,7 @@
       <!-- ═══ 서버 금고 (금고 A) — 인증 후 서버가 내려주는 내용 ═══ -->
       <div id="mufe-vault-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="font-size:18px;">🔒</span>
+          <span id="mufe-vault-lockicon" style="font-size:18px;">🔒</span>
           <span style="font-weight:800;color:#d4a843;">서버 금고</span>
           <span id="mufe-vault-status" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">잠김</span>
         </div>
@@ -12848,6 +12848,8 @@ document.addEventListener('keydown', (e) => {
   function setStatus(s, locked) {
     var st = el('mufe-vault-status');
     if (st) { st.textContent = s; st.style.color = locked ? 'rgba(255,255,255,.5)' : '#34d399'; }
+    var ic = el('mufe-vault-lockicon');
+    if (ic) ic.textContent = locked ? '🔒' : '🔓';
   }
   function enable(on) {
     var t = el('mufe-vault-text'), b = el('mufe-vault-save');
