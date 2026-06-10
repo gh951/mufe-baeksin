@@ -8555,7 +8555,7 @@
       const _i3 = document.getElementById('authInput'); if (_i3) _i3.value = '';
       // 비밀 사본·생체 플래그 즉시 파쇄 (메모리 위생)
       try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
-      showMsg('<strong>인증 통과 — 환영합니다</strong>', 'success');
+      showMsg('<strong>인증 통과 — 환영합니다</strong><br><button class="delegate-trigger-btn" onclick="if(window.mufeUnlockApp)window.mufeUnlockApp(true)">🖥️ 대시보드로 가기</button>', 'success');
       if (window.trackAuthAttempt) window.trackAuthAttempt('success');
       if (typeof addLog === 'function') addLog('success','🛡️','온디바이스 검증 통과 — 비밀값 미전송');
       setTimeout(() => { if (typeof window.mufeUnlockApp === 'function') window.mufeUnlockApp(true); }, 900);
@@ -8597,6 +8597,7 @@
         try { window._mufeVaultAuth = { token: result.token, userToken: userToken }; if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad(); } catch (e) {}
         showMsg(
           `<strong>${result.message}</strong><br>` +
+          `<button class="delegate-trigger-btn" onclick="if(window.mufeUnlockApp)window.mufeUnlockApp(true)">🖥️ 대시보드로 가기</button>` +
           `<button class="delegate-trigger-btn" onclick="openDelegateModal()">🔗 다른 사람에게 위임 발급</button>`,
           'success'
         );
