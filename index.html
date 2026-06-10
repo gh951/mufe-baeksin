@@ -7279,6 +7279,9 @@
     window._pendingAuthMode = (mode === 'high') ? 'high' : 'simple';
     const modal = document.getElementById('authModal');
     modal.classList.add('show');
+    // [수정] 새 로그인 시작 → 생체 통과 도장 초기화 (이번 로그인에서 한 번 측정 요구).
+    //   이후엔 화면 다시 그려도 유지됨 → "됐는데 또 측정하라"는 문제 해결.
+    try { window._bioVerifyPassed = false; window._bioMeasured = false; } catch(e){}
 
     // [입구 게이트] 등록 여부로 분기:
     //   - 비번 만든 사람(토큰 있음) → 바로 인증하기(로그인) 화면
@@ -12228,8 +12231,9 @@ window.setAuthMode = function(mode){
   if (bioSection){
     if (high && bioSaved){
       bioSection.style.display = 'block';
-      window._bioVerifyPassed = false;   // 고보안 = 생체 측정 통과해야 함
-      window._bioMeasured = false;
+      // [수정] 같은 로그인 중 화면을 다시 그려도 생체 통과 도장이 지워지지 않게 — 이미 통과했으면 유지.
+      //   초기화는 새 로그인 시작(인증창 열기)에서만. (편의 기능 — 진짜 방어는 서버 금고)
+      if (!window._bioVerifyPassed) window._bioMeasured = false;
     } else {
       bioSection.style.display = 'none';
       window._bioVerifyPassed = true;    // 간편 = 생체 요구 안 함(통과 처리)
@@ -12918,6 +12922,15 @@ document.addEventListener('keydown', (e) => {
         window._mufeVaultAuth = { token: vr.token, userToken: userToken };
         if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad();
         if (typeof addLog === 'function') addLog('success','🔏','고보안 통과를 서버가 양자내성 도장으로 확인 — 금고 열림');
+        // [추가] 화면에 '양자 도장 통과'를 잠깐 띄움 — 눈으로 확인용 (2.8초 뒤 자동 사라짐)
+        try {
+          var _pt = document.createElement('div');
+          _pt.textContent = '🔐 양자 도장 통과';
+          _pt.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .25s;';
+          document.body.appendChild(_pt);
+          requestAnimationFrame(function(){ _pt.style.opacity = '1'; });
+          setTimeout(function(){ _pt.style.opacity = '0'; setTimeout(function(){ if (_pt.parentNode) _pt.parentNode.removeChild(_pt); }, 300); }, 2800);
+        } catch(e){}
       }
     } catch(e){ /* 조용히 무시 — 기존 인증/대시보드 흐름엔 영향 없음 */ }
   };
