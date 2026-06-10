@@ -36,8 +36,8 @@ function verifyToken(token, prefix) {
   try { return JSON.parse(Buffer.from(payloadB64, 'base64').toString()); } catch { return null; }
 }
 // verify.js generateAuthToken('real', ...) 와 같은 형식의 진짜 토큰
-function issueRealToken() {
-  const payload = { type: 'real', issuedAt: Date.now(), sessionId: crypto.randomBytes(8).toString('hex'), via: 'pq-proof' };
+function issueRealToken(vk) {
+  const payload = { type: 'real', issuedAt: Date.now(), sessionId: crypto.randomBytes(8).toString('hex'), via: 'pq-proof', vk: vk || null };
   const b = Buffer.from(JSON.stringify(payload)).toString('base64');
   return `mufe.${b}.${sign(b)}`;
 }
@@ -59,10 +59,18 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { action, userToken, publicKey, nonce, signature } = req.body || {};
-    const userData = verifyToken(userToken, 'mufe-u');
-    if (!userData) return res.status(200).json({ status: 'locked', message: '신원 토큰이 필요합니다' });
-    const uid = userKeyFor(userData);
+    const { action, userToken, publicKey, nonce, signature, pqid } = req.body || {};
+    // 신원(uid) 정하기:
+    //   · 고보안 = 폰이 만든 안정적 ID(pqid = 공개키 해시). 비번을 서버에 안 보내도 됨.
+    //   · 그 외(서버 신분증 보유) = 기존대로 서버 토큰에서 uid를 뽑음.
+    let uid;
+    if (typeof pqid === 'string' && pqid.length >= 16) {
+      uid = 'pq:' + crypto.createHash('sha256').update(pqid).digest('hex').slice(0, 24);
+    } else {
+      const userData = verifyToken(userToken, 'mufe-u');
+      if (!userData) return res.status(200).json({ status: 'locked', message: '신원 토큰이 필요합니다' });
+      uid = userKeyFor(userData);
+    }
 
     // ── 1) 공개키 등록 (등록 때 1회) ──
     if (action === 'register') {
@@ -112,8 +120,8 @@ module.exports = async (req, res) => {
         return res.status(200).json({ status: 'locked', message: '도장 검증 실패' });
       }
       await kvIncr('stats:pq:verified');
-      // 통과 — 금고용 진짜 토큰 발급 (vault.js가 그대로 받음)
-      return res.status(200).json({ status: 'ok', token: issueRealToken() });
+      // 통과 — 금고용 진짜 토큰 발급 (vault 키 기준 uid를 토큰에 서명해 박음 → vault.js가 그대로 받음)
+      return res.status(200).json({ status: 'ok', token: issueRealToken(uid) });
     }
 
     return res.status(200).json({ status: 'error', message: '알 수 없는 action' });

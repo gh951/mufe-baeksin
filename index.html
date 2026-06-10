@@ -12938,18 +12938,21 @@ document.addEventListener('keydown', (e) => {
       // 비번+카오스 → 씨앗 → 양자내성 키쌍 (결정적 재현, 저장·전송 안 함)
       var seed = await deriveSeed(String(passOnly) + '|' + String(sliderCoord));
       var keys = mldsa.keygen(seed);
+      // [수정] 고보안 안정적 ID = 공개키 해시(pqid). 금고를 이 ID로 묶음 — 비번 서버 미전송 유지.
+      var _pkHash = await crypto.subtle.digest('SHA-256', keys.publicKey);
+      var pqid = b64(new Uint8Array(_pkHash));
       // 1) 공개키만 서버 등록 (idempotent)
       await fetch(origin+'/api/proof', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'register', userToken: userToken, publicKey: b64(keys.publicKey) }) }).catch(function(){});
+        body: JSON.stringify({ action:'register', userToken: userToken, pqid: pqid, publicKey: b64(keys.publicKey) }) }).catch(function(){});
       // 2) 1회용 숫자
       var nr = await (await fetch(origin+'/api/proof', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'nonce', userToken: userToken }) })).json();
+        body: JSON.stringify({ action:'nonce', userToken: userToken, pqid: pqid }) })).json();
       if (!nr || nr.status !== 'nonce') { _mufeProofToast('🔐 도장 실패 — 서버가 보낸 정확한 이유: [' + ((nr && nr.status) || '응답없음') + '] ' + ((nr && nr.message) || ''), false); return; }
       // 3) 그 숫자에 양자내성 도장
       var sig = mldsa.sign(fromB64(nr.nonce), keys.secretKey);
       // 4) 서버 검증 → 금고 토큰
       var vr = await (await fetch(origin+'/api/proof', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'verify', userToken: userToken, nonce: nr.nonce, signature: b64(sig) }) })).json();
+        body: JSON.stringify({ action:'verify', userToken: userToken, pqid: pqid, nonce: nr.nonce, signature: b64(sig) }) })).json();
       if (vr && vr.status === 'ok' && vr.token){
         window._mufeVaultAuth = { token: vr.token, userToken: userToken };
         if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad();

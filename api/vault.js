@@ -90,12 +90,20 @@ module.exports = async (req, res) => {
       return res.status(200).json({ status: 'unlocked', vault: decoyVault(), decoy: true });
     }
 
-    // ③ 진짜 인증 통과 — 금고 키는 *신원 토큰*(mufe-u)에서 (안정적)
-    const userData = verifyToken(userToken, 'mufe-u');
-    if (!userData) {
-      return res.status(200).json({ status: 'locked', message: '금고 잠김 — 신원 확인 실패' });
+    // ③ 진짜 인증 통과 — 금고 키 정하기
+    let key;
+    if (auth.vk) {
+      // 고보안(양자 도장): 토큰에 *서명되어 박힌* 기준으로 금고 키 — 위조 불가(서버 SECRET 서명).
+      //   신원 토큰(mufe-u) 없이도 동작 → 비번 서버 미전송 철학 유지.
+      key = 'vault:' + sign('vault-pq|' + auth.vk);
+    } else {
+      // 간편: 신원 토큰(mufe-u)에서 안정적 키
+      const userData = verifyToken(userToken, 'mufe-u');
+      if (!userData) {
+        return res.status(200).json({ status: 'locked', message: '금고 잠김 — 신원 확인 실패' });
+      }
+      key = vaultKeyFor(userData);
     }
-    const key = vaultKeyFor(userData);
 
     // ── 저장 ──
     if (action === 'set') {
