@@ -11952,6 +11952,8 @@ function calculateMUFEBpm() {
   const elapsedSec = (Date.now() - _MUFE_AuthEngine.startTime) / 1000;
   const sampleRate = _MUFE_AuthEngine.sampleCount / Math.max(elapsedSec, 1);
   const estimatedBPM = (crossings / 2) * (60 / (signals.length / Math.max(sampleRate, 10)));
+  // [C-52d] 진단 — 실제 값 저장(왜 BPM 0인지 데이터로 확인). 게이트는 안 건드림.
+  _MUFE_AuthEngine._dbg = { std: std, cr: crossings, sr: sampleRate, ebpm: estimatedBPM, vp: validPulse, sc: _MUFE_AuthEngine.sampleCount, el: elapsedSec };
   
   // 피부 감지 + 적정 맥파 진폭 + BPM 범위 + 난수광원 반사 정합 — 모두 만족해야 사람
   if (_MUFE_AuthEngine.skinDetected && validPulse && estimatedBPM > 40 && estimatedBPM < 180) {
@@ -11973,6 +11975,22 @@ function mufeAuthLockSystem() {
   const signalsEl = document.getElementById('bioSignals');
   
   if (signalsEl) signalsEl.textContent = `${Math.min(_MUFE_AuthEngine.g_values.length, 100)} / 100`;
+  // [C-52d] 진단 표시 — 실제 값 화면에(추측 대신 데이터). 고친 뒤 제거 예정.
+  try {
+    var _d = _MUFE_AuthEngine._dbg;
+    if (_d) {
+      var _dbg = document.getElementById('mufe-bio-dbg');
+      if (!_dbg) {
+        _dbg = document.createElement('div');
+        _dbg.id = 'mufe-bio-dbg';
+        _dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.78);padding:6px 9px;border-radius:8px;z-index:2147483647;line-height:1.6;font-family:monospace;max-width:64vw;';
+        (document.body || document.documentElement).appendChild(_dbg);
+      }
+      _dbg.textContent = '진단 std=' + _d.std.toFixed(2) + ' 맥파' + (_d.vp ? 'O' : 'X') +
+        ' 교차=' + _d.cr + ' fps=' + _d.sr.toFixed(0) + ' 추정BPM=' + _d.ebpm.toFixed(0) +
+        ' skin' + (_MUFE_AuthEngine.skinDetected ? 'O' : 'X');
+    }
+  } catch (e) {}
   if (bpmEl) bpmEl.textContent = _MUFE_AuthEngine.lastBPM > 0 ? _MUFE_AuthEngine.lastBPM : '— —';
   // [C-45] 🔬 상태 — 피부(혈류) 감지 여부 실시간 표시
   const bioStatusEl = document.getElementById('bioStatus');
@@ -13184,7 +13202,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-Q · 휘발 전체적용';
+    var VER = 'BUILD 0611-T · 생체 진단';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
