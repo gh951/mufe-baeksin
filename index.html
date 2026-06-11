@@ -8868,14 +8868,19 @@
     if (e.key === 'Enter') verifyAuth();
   });
 
-  // [C-52] 휘발 입력 — 친 글자가 잠깐 보였다 사라짐(전체 비번이 한 화면에 모이지 않게).
+  // [C-52] 휘발 입력 — 선택 카드(기본/휘발). 기본=보이는 입력, 휘발=친 글자 잔상 후 사라짐.
   //   비번 입력 칸 전부에 적용: 등록(regPasscode)·로그인(authInput)·간편(loginPasscode).
-  //   안전설계: 입력칸 value는 그대로 둬서 기존 등록/검증/휘발 로직 불변. 화면 표시만 가리고 카드에 잔상.
+  //   안전설계: 입력칸 value는 그대로 둬서 기존 등록/검증 로직 불변. 화면 표시만 가림 + 잔상.
   (function mufeSetupVolatileInputs(){
     if (!document.getElementById('mufe-volatile-style')) {
       var st = document.createElement('style');
       st.id = 'mufe-volatile-style';
       st.textContent =
+        '.mufe-pick-card{margin:0 0 8px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:rgba(241,245,249,.94);}' +
+        '.mufe-pick-card .mpc-label{font-size:10px;color:#334155;font-weight:700;margin-bottom:6px;letter-spacing:.2px;}' +
+        '.mufe-pick-card .mpc-btns{display:flex;gap:6px;}' +
+        '.mufe-pick-card .mpc-btn{flex:1;padding:9px 6px;font-size:12.5px;font-weight:800;border:1px solid #c7ccd6;border-radius:8px;background:#ffffff;color:#111111;cursor:pointer;transition:all .15s;}' +
+        '.mufe-pick-card .mpc-btn.mpc-on{background:#d4a843;border-color:#b8862f;color:#1a1a1a;}' +
         '.mufe-volatile-card{position:relative;margin:0 0 8px;min-height:46px;border:1px solid rgba(212,168,67,.35);border-radius:10px;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;}' +
         '.mufe-volatile-card .mvc-label{position:absolute;left:10px;top:5px;font-size:9px;color:rgba(212,168,67,.72);letter-spacing:.2px;}' +
         '.mvc-ghost{font-size:24px;font-weight:800;color:#d4a843;margin:0 1px;will-change:opacity,transform;animation:mvc-fade .85s ease-out forwards;}' +
@@ -8887,20 +8892,52 @@
       var inp = document.getElementById(id);
       if (!inp || inp.getAttribute('data-mufe-volatile') === '1') return;
       inp.setAttribute('data-mufe-volatile', '1');
-      var card = document.createElement('div');
-      card.className = 'mufe-volatile-card';
-      card.innerHTML = '<span class="mvc-label">🔑 휘발 입력 — 친 글자는 잠깐 보였다 사라져요</span>';
-      inp.parentNode.insertBefore(card, inp);
-      inp.classList.add('mufe-volatile-hidden');
+
+      // 잔상(휘발) 카드 — 휘발 선택했을 때만 보임
+      var ghost = document.createElement('div');
+      ghost.className = 'mufe-volatile-card';
+      ghost.style.display = 'none';
+      ghost.innerHTML = '<span class="mvc-label">🔑 휘발 입력 — 친 글자는 잠깐 보였다 사라져요</span>';
+
+      // 선택 카드 — 기본 / 휘발 (잔상 카드 위)
+      var pick = document.createElement('div');
+      pick.className = 'mufe-pick-card';
+      pick.innerHTML =
+        '<div class="mpc-label">입력 방식 — 직접 고르세요</div>' +
+        '<div class="mpc-btns">' +
+          '<button type="button" class="mpc-btn mpc-on" data-m="basic">기본 (그냥 입력)</button>' +
+          '<button type="button" class="mpc-btn" data-m="vol">🔑 휘발 (더 안전)</button>' +
+        '</div>';
+
+      inp.parentNode.insertBefore(ghost, inp);
+      inp.parentNode.insertBefore(pick, ghost);
+
+      function setMode(m){
+        var vol = (m === 'vol');
+        if (vol) { inp.classList.add('mufe-volatile-hidden'); ghost.style.display = 'flex'; }
+        else { inp.classList.remove('mufe-volatile-hidden'); ghost.style.display = 'none'; }
+        var btns = pick.querySelectorAll('.mpc-btn');
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].classList.toggle('mpc-on', btns[i].getAttribute('data-m') === (vol ? 'vol' : 'basic'));
+        }
+      }
+      setMode('basic');   // 기본값 = 기본(보이는 입력) — 일반 앱 관례, 등록 오타 위험 없음
+
+      var pbtns = pick.querySelectorAll('.mpc-btn');
+      for (var k = 0; k < pbtns.length; k++) {
+        pbtns[k].addEventListener('click', function(){ setMode(this.getAttribute('data-m')); });
+      }
+
       function flash(ch){
         if (!ch) return;
         var g = document.createElement('span');
         g.className = 'mvc-ghost';
         g.textContent = (ch === ' ') ? '␣' : ch;
-        card.appendChild(g);
+        ghost.appendChild(g);
         setTimeout(function(){ if (g.parentNode) g.parentNode.removeChild(g); }, 900);
       }
       inp.addEventListener('input', function(e){
+        if (!inp.classList.contains('mufe-volatile-hidden')) return;   // 기본 모드면 잔상 안 띄움
         var t = (e && typeof e.data === 'string') ? e.data : '';
         if (t) { for (var i = 0; i < t.length; i++) flash(t[i]); }
         else if (e && e.inputType && e.inputType.indexOf('delete') === 0) { /* 지움은 표시 안 함 */ }
@@ -11952,8 +11989,6 @@ function calculateMUFEBpm() {
   const elapsedSec = (Date.now() - _MUFE_AuthEngine.startTime) / 1000;
   const sampleRate = _MUFE_AuthEngine.sampleCount / Math.max(elapsedSec, 1);
   const estimatedBPM = (crossings / 2) * (60 / (signals.length / Math.max(sampleRate, 10)));
-  // [C-52d] 진단 — 실제 값 저장(왜 BPM 0인지 데이터로 확인). 게이트는 안 건드림.
-  _MUFE_AuthEngine._dbg = { std: std, cr: crossings, sr: sampleRate, ebpm: estimatedBPM, vp: validPulse, sc: _MUFE_AuthEngine.sampleCount, el: elapsedSec };
   
   // 피부 감지 + 적정 맥파 진폭 + BPM 범위 + 난수광원 반사 정합 — 모두 만족해야 사람
   if (_MUFE_AuthEngine.skinDetected && validPulse && estimatedBPM > 40 && estimatedBPM < 180) {
@@ -11975,22 +12010,6 @@ function mufeAuthLockSystem() {
   const signalsEl = document.getElementById('bioSignals');
   
   if (signalsEl) signalsEl.textContent = `${Math.min(_MUFE_AuthEngine.g_values.length, 100)} / 100`;
-  // [C-52d] 진단 표시 — 실제 값 화면에(추측 대신 데이터). 고친 뒤 제거 예정.
-  try {
-    var _d = _MUFE_AuthEngine._dbg;
-    if (_d) {
-      var _dbg = document.getElementById('mufe-bio-dbg');
-      if (!_dbg) {
-        _dbg = document.createElement('div');
-        _dbg.id = 'mufe-bio-dbg';
-        _dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.78);padding:6px 9px;border-radius:8px;z-index:2147483647;line-height:1.6;font-family:monospace;max-width:64vw;';
-        (document.body || document.documentElement).appendChild(_dbg);
-      }
-      _dbg.textContent = '진단 std=' + _d.std.toFixed(2) + ' 맥파' + (_d.vp ? 'O' : 'X') +
-        ' 교차=' + _d.cr + ' fps=' + _d.sr.toFixed(0) + ' 추정BPM=' + _d.ebpm.toFixed(0) +
-        ' skin' + (_MUFE_AuthEngine.skinDetected ? 'O' : 'X');
-    }
-  } catch (e) {}
   if (bpmEl) bpmEl.textContent = _MUFE_AuthEngine.lastBPM > 0 ? _MUFE_AuthEngine.lastBPM : '— —';
   // [C-45] 🔬 상태 — 피부(혈류) 감지 여부 실시간 표시
   const bioStatusEl = document.getElementById('bioStatus');
@@ -13202,7 +13221,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-T · 생체 진단';
+    var VER = 'BUILD 0611-V · 선택카드 색';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
