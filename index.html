@@ -22,9 +22,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MUFE 백신">
 
-<!-- Pretendard 한글 폰트 -->
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/static/pretendard.min.css">
+<!-- Pretendard 한글 폰트 (자가 호스팅 — 외부 CDN 불필요) -->
+<style>
+@font-face{
+  font-family:'Pretendard';
+  font-weight:100 900;
+  font-display:swap;
+  src:url('PretendardVariable.woff2') format('woff2');
+}
+</style>
 
 <style>
   :root {
@@ -13137,7 +13143,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-L';
+    s.textContent = 'BUILD 0611-M';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
