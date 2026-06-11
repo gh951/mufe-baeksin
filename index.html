@@ -12910,23 +12910,38 @@ window.mufeLockRender = function(){
   var btn = 'display:inline-block;padding:10px 18px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;';
   if (on) {
     body.innerHTML =
-      '<p style="margin:0;">✅ <b style="color:#34d399;">켜져 있어요.</b> 이 금고 내용은 <b>나만 볼 수 있어요.</b> 서버에도 알아볼 수 없는 암호로만 저장돼요.</p>' +
-      '<button onclick="mufeLockOffAsk()" style="' + btn + 'margin-top:12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-weight:700;">끄기 (서버가 다시 볼 수 있게)</button>';
+      '<div style="padding:13px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.08);border-radius:10px;color:#bff3dd;line-height:1.7;">' +
+        '<b style="display:block;margin-bottom:5px;color:#34d399;font-size:13px;">🔒 완전 잠금이 켜져 있습니다</b>' +
+        '이 금고는 <b>오직 당신만</b> 열 수 있습니다. 회사도 내용을 볼 수 없습니다.<br>' +
+        '<span style="color:#ffd28a;">비밀번호를 반드시 안전하게 기억하세요. 잊으면 — 되돌릴 수 없습니다.</span>' +
+      '</div>' +
+      '<button onclick="mufeLockOffAsk()" style="' + btn + 'margin-top:12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.65);font-weight:700;">끄기 (서버가 다시 볼 수 있게)</button>';
   } else {
     body.innerHTML =
-      '<p style="margin:0 0 8px;">이 금고를 켜면 — 내용을 <b>나 말고는 아무도</b> 못 봐요. <b>서버도, 회사도, 관리자도요.</b> 오직 내 비밀번호로만 열려요.</p>' +
-      '<p style="margin:0;color:#f6a623;">⚠ 단, 비밀번호를 잊으면 <b>영영 못 열어요.</b> 아무도(회사도) 복구 못 해요. <span style="color:rgba(255,255,255,.4);">잊어도 찾는 방법은 곧 추가할게요.</span></p>' +
-      '<button onclick="mufeLockAsk()" style="' + btn + 'margin-top:12px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">🔒 완전 잠금 켜기</button>';
+      '<p style="margin:0 0 4px;color:rgba(255,255,255,.7);">켜면 — 이 금고 내용을 <b style="color:#d4a843;">오직 당신만</b> 볼 수 있습니다. 서버도, 회사도, 관리자도 못 봅니다.</p>' +
+      '<div style="margin-top:12px;padding:14px;border:1px solid rgba(244,63,94,.5);background:rgba(244,63,94,.09);border-radius:10px;color:#ffb1b1;line-height:1.75;">' +
+        '<b style="display:block;margin-bottom:6px;color:#ff6b6b;font-size:13px;">⚠ 되돌릴 수 없는 결정입니다</b>' +
+        '비밀번호를 <b>잊거나 잃어버리면</b>, 이 금고 안의 내용은 <b>영영 사라집니다.</b><br>' +
+        '회사도, 관리자도, 그 누구도 <b>복구해드릴 수 없습니다.</b> 우리에겐 당신의 비밀번호가 없으니까요.<br>' +
+        '<span style="color:#ff9a9a;">당신의 중요한 파일이, 단 한 번의 실수로 영원히 닫힐 수 있습니다.</span>' +
+      '</div>' +
+      '<button onclick="mufeLockAsk()" style="' + btn + 'margin-top:12px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">🔒 완전 잠금 켜기</button>' +
+      '<div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,.35);">※ 비밀번호를 잊어도 여는 복구 방법(24단어)은 다음 업데이트 예정입니다.</div>';
   }
 };
 window.mufeLockAsk = function(){
   var body = document.getElementById('mufe-lock-body'); if (!body) return;
   var btn = 'display:inline-block;padding:10px 18px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;';
   body.innerHTML =
-    '<p style="margin:0;color:#ff8a8a;line-height:1.6;">정말 켤까요? 지금 적힌 내용을 <b>나만 볼 수 있게</b> 잠가요.<br><b>비밀번호를 잊으면, 회사도 못 열어드려요.</b></p>' +
-    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
-    '<button onclick="mufeLockCancel()" style="' + btn + 'background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);font-weight:700;">취소</button>' +
-    '<button onclick="mufeLockConfirm()" style="' + btn + 'background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">네, 이해했어요 — 켜기</button>' +
+    '<div style="padding:15px;border:1px solid rgba(244,63,94,.6);background:rgba(244,63,94,.12);border-radius:10px;color:#ffc2c2;line-height:1.8;">' +
+      '<b style="display:block;margin-bottom:7px;color:#ff5b5b;font-size:15px;">정말 켜시겠습니까?</b>' +
+      '지금 이 순간부터, 이 금고는 <b>오직 당신의 비밀번호로만</b> 열립니다.<br>' +
+      '비밀번호를 잊으면 — <b>회사도 못 엽니다.</b> 복구도, 초기화도, 우회도 없습니다.<br>' +
+      '<span style="color:#ff8f8f;">당신의 데이터를, 당신 손으로 영원히 잠그는 것입니다.</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
+    '<button onclick="mufeLockCancel()" style="' + btn + 'background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">취소 (안전하게 두기)</button>' +
+    '<button onclick="mufeLockConfirm()" style="' + btn + 'background:rgba(244,63,94,.18);color:#ff9a9a;border:1px solid rgba(244,63,94,.5);">이해했습니다 — 그래도 켜겠습니다</button>' +
     '</div>';
 };
 window.mufeLockCancel = function(){ if (window.mufeLockRender) window.mufeLockRender(); };
@@ -13113,7 +13128,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-G';
+    s.textContent = 'BUILD 0611-H';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
