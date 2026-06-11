@@ -5507,6 +5507,10 @@
             style="padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;">금고에 저장</button>
           <span id="mufe-vault-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
         </div>
+        <label style="display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.6);cursor:pointer;line-height:1.5;">
+          <input type="checkbox" id="mufe-e2e-toggle" onchange="mufeE2EToggle(this.checked)" style="width:15px;height:15px;margin-top:1px;flex-shrink:0;cursor:pointer;">
+          <span>🔒 <b style="color:#d4a843;">E2E 암호화</b> — 켜면 <b>서버·관리자도 내용을 못 읽어요.</b> 단, 비번을 잊으면 복구할 수 없어요. <span style="color:rgba(255,255,255,.4);">(복구 코드는 다음 단계)</span></span>
+        </label>
       </div>
 
       <!-- 공격 통계 대시보드 (사용자 *우와* 자리) -->
@@ -12841,6 +12845,64 @@ document.addEventListener('keydown', (e) => {
 
 </script>
 <script>
+/* ═══ E2E 암호화 엔진 — 비번으로 내용을 잠가서 *서버도 못 읽게*. (envelope: master 열쇠를 비번열쇠로 봉인)
+   기본 꺼짐. 켜야만 동작. ②단계(24단어 복구)는 같은 master에 자물쇠 하나만 더 얹으면 됨. ═══ */
+window.mufeE2E = (function(){
+  var enc = new TextEncoder(), dec = new TextDecoder();
+  var _pwKeyCache = null, _pwSecretCache = null, _mk = null;
+  function b64e(buf){ var u=new Uint8Array(buf), s=''; for(var i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); }
+  function b64d(str){ var s=atob(str), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
+  async function pwKey(){
+    var secret = window._mufeVaultPwSecret;
+    if(!secret) return null;
+    if(_pwKeyCache && _pwSecretCache===secret) return _pwKeyCache;
+    var km = await crypto.subtle.importKey('raw', enc.encode(secret), 'PBKDF2', false, ['deriveKey']);
+    var k = await crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt:enc.encode('mufe-vault-wrap-v1'), iterations:150000, hash:'SHA-256' },
+      km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    _pwKeyCache=k; _pwSecretCache=secret; return k;
+  }
+  async function encBytes(key, bytes){
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, key, bytes);
+    return { iv:b64e(iv), ct:b64e(ct) };
+  }
+  async function decBytes(key, ivB64, ctB64){
+    var pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64d(ivB64) }, key, b64d(ctB64));
+    return new Uint8Array(pt);
+  }
+  // 내용 → 암호 블롭(문자열). 서버엔 이것만 저장되고, 서버는 못 읽음.
+  async function seal(content){
+    var pk = await pwKey(); if(!pk) throw new Error('비번 열쇠 없음(인증 후 가능)');
+    if(!_mk) _mk = crypto.getRandomValues(new Uint8Array(32));
+    var mkKey = await crypto.subtle.importKey('raw', _mk, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+    var wrap = await encBytes(pk, _mk);                      // master 열쇠를 비번열쇠로 봉인
+    var body = await encBytes(mkKey, enc.encode(String(content))); // 내용을 master 열쇠로 암호화
+    return JSON.stringify({ e2e:1, wkIv:wrap.iv, wk:wrap.ct, ctIv:body.iv, ct:body.ct });
+  }
+  // 암호 블롭 → 내용. e2e 블롭이 아니면 null(평문이니 그대로 보여주라는 뜻).
+  async function open(blobStr){
+    var o; try{ o=JSON.parse(blobStr); }catch(e){ return null; }
+    if(!o || o.e2e!==1) return null;
+    var pk = await pwKey(); if(!pk) throw new Error('비번 열쇠 없음');
+    _mk = await decBytes(pk, o.wkIv, o.wk);                  // 봉인 풀어 master 열쇠 복원
+    var mkKey = await crypto.subtle.importKey('raw', _mk, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+    var pt = await decBytes(mkKey, o.ctIv, o.ct);
+    return dec.decode(pt);
+  }
+  function isSealed(blobStr){ try{ var o=JSON.parse(blobStr); return !!(o && o.e2e===1); }catch(e){ return false; } }
+  function on(){ try{ return localStorage.getItem('mufe-e2e-on')==='1'; }catch(e){ return false; } }
+  function setOn(v){ try{ localStorage.setItem('mufe-e2e-on', v?'1':'0'); }catch(e){} }
+  return { seal:seal, open:open, isSealed:isSealed, on:on, setOn:setOn };
+})();
+window.mufeE2EToggle = function(isOn){
+  if (window.mufeE2E) window.mufeE2E.setOn(isOn);
+  var m = document.getElementById('mufe-vault-msg');
+  if (m) m.textContent = isOn ? '🔒 E2E 켜짐 — 저장하면 서버도 못 읽어요' : 'E2E 꺼짐 — 서버가 내용을 읽을 수 있어요';
+  if (isOn && typeof window.mufeVaultSave === 'function') window.mufeVaultSave(); // 켤 때 현재 내용을 바로 암호화 저장
+};
+</script>
+<script>
 /* ═══ 서버 금고 — 인증(진짜 토큰) 후에만 서버가 내용을 내려줌/저장. 더하기 전용. ═══ */
 (function () {
   function el(id) { return document.getElementById(id); }
@@ -12876,8 +12938,21 @@ document.addEventListener('keydown', (e) => {
       var m = el('mufe-vault-msg');
       if (d.status === 'unlocked') {
         setStatus('열림', false); enable(true);
-        var t = el('mufe-vault-text'); if (t && d.vault) t.value = d.vault.content || '';
-        if (m) m.textContent = (d.vault && d.vault.updatedAt) ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '';
+        var t = el('mufe-vault-text');
+        var raw = (d.vault && d.vault.content) || '';
+        var sealed = !!(window.mufeE2E && window.mufeE2E.isSealed(raw));
+        var ok = true;
+        if (sealed) {
+          try { raw = (await window.mufeE2E.open(raw)) || ''; }
+          catch (e) { raw = ''; ok = false; }
+          if (window.mufeE2E) window.mufeE2E.setOn(true);
+        }
+        if (t) t.value = raw;
+        var tg = el('mufe-e2e-toggle'); if (tg) tg.checked = !!(sealed || (window.mufeE2E && window.mufeE2E.on()));
+        if (m) {
+          if (sealed && !ok) m.textContent = '🔒 암호화된 금고 — 비번 열쇠로 못 풂 (다시 인증/복구 확인)';
+          else m.textContent = (d.vault && d.vault.updatedAt ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '') + (sealed ? ' · 🔒 암호화됨' : '');
+        }
       } else if (d.status === 'locked') {
         setStatus('잠김', true); enable(false);
         if (m) m.textContent = d.message || '';
@@ -12893,6 +12968,11 @@ document.addEventListener('keydown', (e) => {
     if (!auth || !auth.token) { if (m) m.textContent = '먼저 인증하세요'; return; }
     var t = el('mufe-vault-text'); var content = t ? t.value : '';
     if (m) m.textContent = '저장 중…';
+    // [E2E] 켜져 있고 비번 열쇠가 있으면 → 암호화해서 보냄 (서버가 못 읽음)
+    if (window.mufeE2E && window.mufeE2E.on() && window._mufeVaultPwSecret) {
+      try { content = await window.mufeE2E.seal(content); }
+      catch (e) { if (m) m.textContent = '🔒 암호화 실패: ' + ((e && e.message) || e); return; }
+    }
     try {
       var res = await fetch(window.location.origin + '/api/vault', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -12961,6 +13041,7 @@ document.addEventListener('keydown', (e) => {
         body: JSON.stringify({ action:'verify', userToken: userToken, pqid: pqid, nonce: nr.nonce, signature: b64(sig) }) })).json();
       if (vr && vr.status === 'ok' && vr.token){
         window._mufeVaultAuth = { token: vr.token, userToken: userToken };
+        window._mufeVaultPwSecret = String(passOnly) + '|' + String(sliderCoord); // [E2E] 금고 봉인/해제용 비번 열쇠 재료 (서버 미전송)
         if (typeof window.mufeVaultLoad === 'function') window.mufeVaultLoad();
         if (typeof addLog === 'function') addLog('success','🔏','고보안 통과를 서버가 양자내성 도장으로 확인 — 금고 열림');
         // [수정] 성공 알림 — 문구를 '방어'로 분명하게, 그리고 사용자가 직접 닫음(공신력 ↑)
@@ -12977,7 +13058,7 @@ document.addEventListener('keydown', (e) => {
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-C';
+    s.textContent = 'BUILD 0611-F';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}

@@ -20,7 +20,7 @@ const { kvGet, kvSet, kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;   // 세션 토큰 신선도 24시간
-const MAX_CONTENT  = 4096;                   // 금고 내용 최대 4KB
+const MAX_CONTENT  = 16384;                  // 금고 내용 최대 16KB (E2E 암호화 블롭 여유 포함)
 
 // verify.js 와 *완전히 동일한* 서명 (절대 바꾸면 안 됨 — 토큰 호환)
 function sign(data) {
