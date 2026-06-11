@@ -8868,9 +8868,9 @@
     if (e.key === 'Enter') verifyAuth();
   });
 
-  // [C-52] 휘발 입력 — 선택 카드(기본/휘발). 기본=보이는 입력, 휘발=친 글자 잔상 후 사라짐.
-  //   비번 입력 칸 전부에 적용: 등록(regPasscode)·로그인(authInput)·간편(loginPasscode).
-  //   안전설계: 입력칸 value는 그대로 둬서 기존 등록/검증 로직 불변. 화면 표시만 가림 + 잔상.
+  // [C-52] 입력 방식 선택 — 기본 / 휘발 / 가상자판(키로거 차단).
+  //   기본=보이는 입력 · 휘발=잔상 후 사라짐 · 가상자판=화면 키패드(배열 매번 섞임, 물리자판 차단).
+  //   안전설계: 입력칸 value만 최종 결과로 채워 기존 등록/검증 로직 불변. 한글 조합 엔진 node 14/14 검증.
   (function mufeSetupVolatileInputs(){
     if (!document.getElementById('mufe-volatile-style')) {
       var st = document.createElement('style');
@@ -8879,54 +8879,191 @@
         '.mufe-pick-card{margin:0 0 8px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:rgba(241,245,249,.94);}' +
         '.mufe-pick-card .mpc-label{font-size:10px;color:#334155;font-weight:700;margin-bottom:6px;letter-spacing:.2px;}' +
         '.mufe-pick-card .mpc-btns{display:flex;gap:6px;}' +
-        '.mufe-pick-card .mpc-btn{flex:1;padding:9px 6px;font-size:12.5px;font-weight:800;border:1px solid #c7ccd6;border-radius:8px;background:#ffffff;color:#111111;cursor:pointer;transition:all .15s;}' +
+        '.mufe-pick-card .mpc-btn{flex:1;padding:9px 4px;font-size:12px;font-weight:800;border:1px solid #c7ccd6;border-radius:8px;background:#ffffff;color:#111111;cursor:pointer;transition:all .15s;}' +
         '.mufe-pick-card .mpc-btn.mpc-on{background:#d4a843;border-color:#b8862f;color:#1a1a1a;}' +
         '.mufe-volatile-card{position:relative;margin:0 0 8px;min-height:46px;border:1px solid rgba(212,168,67,.35);border-radius:10px;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;}' +
         '.mufe-volatile-card .mvc-label{position:absolute;left:10px;top:5px;font-size:9px;color:rgba(212,168,67,.72);letter-spacing:.2px;}' +
         '.mvc-ghost{font-size:24px;font-weight:800;color:#d4a843;margin:0 1px;will-change:opacity,transform;animation:mvc-fade .85s ease-out forwards;}' +
         '@keyframes mvc-fade{0%{opacity:1;transform:translateY(2px) scale(1.08);}55%{opacity:.45;}100%{opacity:0;transform:translateY(-12px) scale(.78);}}' +
-        '.mufe-volatile-hidden{color:transparent !important;text-shadow:none !important;-webkit-text-fill-color:transparent !important;caret-color:#d4a843;}';
+        '.mufe-volatile-hidden{color:transparent !important;text-shadow:none !important;-webkit-text-fill-color:transparent !important;caret-color:#d4a843;}' +
+        '.mkp{margin:0 0 8px;padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:rgba(241,245,249,.97);}' +
+        '.mkp-info{font-size:10px;color:#475569;font-weight:700;margin-bottom:6px;}' +
+        '.mkp-tabs{display:flex;gap:6px;margin-bottom:6px;}' +
+        '.mkp-tabs button{flex:1;padding:7px;font-size:12px;font-weight:800;border:1px solid #c7ccd6;border-radius:7px;background:#fff;color:#111;cursor:pointer;}' +
+        '.mkp-tabs button.on{background:#d4a843;border-color:#b8862f;}' +
+        '.mkp-grid{display:flex;flex-wrap:wrap;gap:5px;max-height:208px;overflow-y:auto;justify-content:center;}' +
+        '.mkp-key{width:38px;height:38px;font-size:16px;font-weight:700;border:1px solid #c7ccd6;border-radius:7px;background:#fff;color:#111;cursor:pointer;padding:0;}' +
+        '.mkp-key:active{background:#d4a843;}' +
+        '.mkp-ctrl{display:flex;gap:6px;margin-top:6px;}' +
+        '.mkp-ctrl button{flex:1;padding:9px 4px;font-size:13px;font-weight:800;border:1px solid #c7ccd6;border-radius:7px;background:#fff;color:#111;cursor:pointer;}' +
+        '.mkp-ctrl button.mkp-done{background:#d4a843;border-color:#b8862f;}';
       document.head.appendChild(st);
     }
+
+    // ── 검증된 한글 2벌식 조합 엔진 (복합모음/복합받침은 단일 키) ──
+    var CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+    var JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+    var JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+    var JONG_SPLIT = {'ㄳ':['ㄱ','ㅅ'],'ㄵ':['ㄴ','ㅈ'],'ㄶ':['ㄴ','ㅎ'],'ㄺ':['ㄹ','ㄱ'],'ㄻ':['ㄹ','ㅁ'],'ㄼ':['ㄹ','ㅂ'],'ㄽ':['ㄹ','ㅅ'],'ㄾ':['ㄹ','ㅌ'],'ㄿ':['ㄹ','ㅍ'],'ㅀ':['ㄹ','ㅎ'],'ㅄ':['ㅂ','ㅅ']};
+    function isCho(j){ return CHO.indexOf(j) >= 0; }
+    function isJung(j){ return JUNG.indexOf(j) >= 0; }
+    function makeComposer(initial){
+      var committed = initial || '';
+      var cur = null;
+      function curChar(){
+        if (!cur) return '';
+        if (cur.cho >= 0 && cur.jung >= 0) return String.fromCharCode(0xAC00 + (cur.cho*21 + cur.jung)*28 + (cur.jong||0));
+        if (cur.cho >= 0) return CHO[cur.cho];
+        if (cur.jung >= 0) return JUNG[cur.jung];
+        return '';
+      }
+      function text(){ return committed + curChar(); }
+      function flush(){ committed += curChar(); cur = null; }
+      function input(j){
+        if (!isCho(j) && !isJung(j) && JONG.indexOf(j) <= 0) { flush(); committed += j; return; }
+        if (isJung(j)) {
+          var ji = JUNG.indexOf(j);
+          if (!cur || (cur.jung < 0 && cur.cho < 0)) { flush(); cur = {cho:-1,jung:ji,jong:0}; }
+          else if (cur.cho >= 0 && cur.jung < 0) { cur.jung = ji; }
+          else if (cur.cho >= 0 && cur.jung >= 0 && (cur.jong||0) === 0) { flush(); cur = {cho:-1,jung:ji,jong:0}; }
+          else if (cur.cho >= 0 && cur.jung >= 0 && (cur.jong||0) > 0) {
+            var jongJamo = JONG[cur.jong], moveCho, leftJong;
+            if (JONG_SPLIT[jongJamo]) { leftJong = JONG_SPLIT[jongJamo][0]; moveCho = JONG_SPLIT[jongJamo][1]; }
+            else { leftJong = ''; moveCho = jongJamo; }
+            cur.jong = JONG.indexOf(leftJong);
+            flush();
+            cur = {cho:CHO.indexOf(moveCho),jung:ji,jong:0};
+          } else { flush(); cur = {cho:-1,jung:ji,jong:0}; }
+          return;
+        }
+        if (!isCho(j) && JONG.indexOf(j) > 0) {
+          if (cur && cur.cho >= 0 && cur.jung >= 0 && (cur.jong||0) === 0) { cur.jong = JONG.indexOf(j); }
+          else { flush(); committed += j; }
+          return;
+        }
+        var ci = CHO.indexOf(j);
+        if (!cur) { cur = {cho:ci,jung:-1,jong:0}; return; }
+        if (cur.cho >= 0 && cur.jung < 0) { flush(); cur = {cho:ci,jung:-1,jong:0}; return; }
+        if (cur.cho >= 0 && cur.jung >= 0 && (cur.jong||0) === 0) {
+          var ji2 = JONG.indexOf(j);
+          if (ji2 > 0) { cur.jong = ji2; } else { flush(); cur = {cho:ci,jung:-1,jong:0}; }
+          return;
+        }
+        flush(); cur = {cho:ci,jung:-1,jong:0};
+      }
+      function backspace(){
+        if (cur) {
+          if ((cur.jong||0) > 0) { cur.jong = 0; return; }
+          if (cur.jung >= 0) { cur.jung = -1; if (cur.cho < 0) cur = null; return; }
+          cur = null; return;
+        }
+        committed = committed.slice(0, -1);
+      }
+      return { input:input, text:text, backspace:backspace };
+    }
+
+    var SYM = ['1','2','3','4','5','6','7','8','9','0','!','@','#','$','%','^','&','*','(',')','-','_','+','=','.',',','?','/'];
+    var ENG = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    var HAN = CHO.concat(JUNG).concat(['ㄳ','ㄵ','ㄶ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅄ']);
+    function shuffle(a){ a = a.slice(); for (var i = a.length-1; i > 0; i--){ var r = Math.floor(Math.random()*(i+1)); var t = a[i]; a[i] = a[r]; a[r] = t; } return a; }
+
+    function buildKeypad(inp, ghost, setBasic){
+      var mode = 'han', shift = false, composer = null;
+      var panel = document.createElement('div');
+      panel.className = 'mkp';
+      panel.style.display = 'none';
+      panel.innerHTML =
+        '<div class="mkp-info">🔢 가상 키패드 — 물리 자판 안 씀(키로거 차단). 배열은 매번 섞여요.</div>' +
+        '<div class="mkp-tabs">' +
+          '<button type="button" data-mode="han">한글</button>' +
+          '<button type="button" data-mode="eng">영문</button>' +
+          '<button type="button" data-mode="num">숫자기호</button>' +
+        '</div>' +
+        '<div class="mkp-grid"></div>' +
+        '<div class="mkp-ctrl">' +
+          '<button type="button" data-act="shift">⇧ 대/소</button>' +
+          '<button type="button" data-act="space">공백</button>' +
+          '<button type="button" data-act="back">⌫ 지움</button>' +
+          '<button type="button" data-act="done" class="mkp-done">완료</button>' +
+        '</div>';
+      var grid = panel.querySelector('.mkp-grid');
+
+      function emit(){ inp.value = composer.text(); inp.dispatchEvent(new Event('input', {bubbles:true})); }
+      function keysFor(){
+        if (mode === 'eng') return shuffle(ENG).map(function(c){ return shift ? c.toUpperCase() : c; });
+        if (mode === 'num') return shuffle(SYM);
+        return shuffle(HAN);
+      }
+      function render(){
+        grid.innerHTML = '';
+        keysFor().forEach(function(k){
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'mkp-key'; b.textContent = k;
+          b.addEventListener('click', function(){ composer.input(k); emit(); });
+          grid.appendChild(b);
+        });
+        var tabs = panel.querySelectorAll('.mkp-tabs button');
+        for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('on', tabs[i].getAttribute('data-mode') === mode);
+      }
+      panel.querySelector('.mkp-tabs').addEventListener('click', function(e){
+        var t = e.target.getAttribute('data-mode'); if (!t) return;
+        mode = t; shift = false; render();
+      });
+      panel.querySelector('.mkp-ctrl').addEventListener('click', function(e){
+        var a = e.target.getAttribute('data-act'); if (!a) return;
+        if (a === 'shift') { shift = !shift; render(); }
+        else if (a === 'space') { composer.input(' '); emit(); }
+        else if (a === 'back') { composer.backspace(); emit(); }
+        else if (a === 'done') { setBasic(); }
+      });
+      return {
+        el: panel,
+        open: function(){ composer = makeComposer(inp.value); mode = 'han'; shift = false; render(); panel.style.display = 'block'; },
+        close: function(){ panel.style.display = 'none'; }
+      };
+    }
+
     function attach(id){
       var inp = document.getElementById(id);
       if (!inp || inp.getAttribute('data-mufe-volatile') === '1') return;
       inp.setAttribute('data-mufe-volatile', '1');
 
-      // 잔상(휘발) 카드 — 휘발 선택했을 때만 보임
       var ghost = document.createElement('div');
       ghost.className = 'mufe-volatile-card';
       ghost.style.display = 'none';
       ghost.innerHTML = '<span class="mvc-label">🔑 휘발 입력 — 친 글자는 잠깐 보였다 사라져요</span>';
 
-      // 선택 카드 — 기본 / 휘발 (잔상 카드 위)
       var pick = document.createElement('div');
       pick.className = 'mufe-pick-card';
       pick.innerHTML =
         '<div class="mpc-label">입력 방식 — 직접 고르세요</div>' +
         '<div class="mpc-btns">' +
-          '<button type="button" class="mpc-btn mpc-on" data-m="basic">기본 (그냥 입력)</button>' +
-          '<button type="button" class="mpc-btn" data-m="vol">🔑 휘발 (더 안전)</button>' +
+          '<button type="button" class="mpc-btn mpc-on" data-m="basic">기본</button>' +
+          '<button type="button" class="mpc-btn" data-m="vol">🔑 휘발</button>' +
+          '<button type="button" class="mpc-btn" data-m="pad">🔢 가상자판</button>' +
         '</div>';
+
+      function goBasic(){ setMode('basic'); }
+      var kp = buildKeypad(inp, ghost, goBasic);
 
       inp.parentNode.insertBefore(ghost, inp);
       inp.parentNode.insertBefore(pick, ghost);
+      inp.parentNode.insertBefore(kp.el, inp.nextSibling);
 
       function setMode(m){
-        var vol = (m === 'vol');
-        if (vol) { inp.classList.add('mufe-volatile-hidden'); ghost.style.display = 'flex'; }
-        else { inp.classList.remove('mufe-volatile-hidden'); ghost.style.display = 'none'; }
+        inp.classList.remove('mufe-volatile-hidden');
+        ghost.style.display = 'none';
+        inp.readOnly = false;
+        kp.close();
+        if (m === 'vol') { inp.classList.add('mufe-volatile-hidden'); ghost.style.display = 'flex'; }
+        else if (m === 'pad') { inp.readOnly = true; kp.open(); }
         var btns = pick.querySelectorAll('.mpc-btn');
-        for (var i = 0; i < btns.length; i++) {
-          btns[i].classList.toggle('mpc-on', btns[i].getAttribute('data-m') === (vol ? 'vol' : 'basic'));
-        }
+        for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('mpc-on', btns[i].getAttribute('data-m') === m);
       }
-      setMode('basic');   // 기본값 = 기본(보이는 입력) — 일반 앱 관례, 등록 오타 위험 없음
+      setMode('basic');
 
       var pbtns = pick.querySelectorAll('.mpc-btn');
-      for (var k = 0; k < pbtns.length; k++) {
-        pbtns[k].addEventListener('click', function(){ setMode(this.getAttribute('data-m')); });
-      }
+      for (var k = 0; k < pbtns.length; k++) pbtns[k].addEventListener('click', function(){ setMode(this.getAttribute('data-m')); });
 
       function flash(ch){
         if (!ch) return;
@@ -8937,10 +9074,10 @@
         setTimeout(function(){ if (g.parentNode) g.parentNode.removeChild(g); }, 900);
       }
       inp.addEventListener('input', function(e){
-        if (!inp.classList.contains('mufe-volatile-hidden')) return;   // 기본 모드면 잔상 안 띄움
+        if (!inp.classList.contains('mufe-volatile-hidden')) return;
         var t = (e && typeof e.data === 'string') ? e.data : '';
         if (t) { for (var i = 0; i < t.length; i++) flash(t[i]); }
-        else if (e && e.inputType && e.inputType.indexOf('delete') === 0) { /* 지움은 표시 안 함 */ }
+        else if (e && e.inputType && e.inputType.indexOf('delete') === 0) { /* 지움 표시 안 함 */ }
         else { flash('•'); }
       });
     }
@@ -13221,7 +13358,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-V · 선택카드 색';
+    var VER = 'BUILD 0611-W · 가상키패드';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
