@@ -2,6 +2,53 @@
 <!-- MUFE 백신 — 양자·AI 시대 대응 보안 -->
 <html lang="ko">
 <head>
+<script>
+/* [C-53 재적용] 카톡/인앱 브라우저 → 일반 브라우저 자동 탈출.
+   카톡 WebView는 패스키(WebAuthn) 등을 막아서, Chrome/Safari로 내보냄.
+   안전: 인앱(KAKAOTALK 등)일 때만 동작 → 일반 Chrome 사용자엔 전혀 영향 없음. */
+(function mufeEscapeInApp(){
+  try {
+    var ua = navigator.userAgent || '';
+    var isKakao = /KAKAOTALK/i.test(ua);
+    var isIOS = /iPhone|iPad|iPod/i.test(ua);
+    var isAndroid = /Android/i.test(ua);
+    var isOtherInApp = /; wv\)|NAVER|Line\/|FBAN|FBAV|Instagram|DaumApps/i.test(ua);
+    if (!isKakao && !isOtherInApp) return;   // 일반 브라우저면 아무것도 안 함
+
+    function openExternal(){
+      if (isKakao) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href); }
+      else if (isAndroid) {
+        var tail = location.host + location.pathname + location.search;
+        location.href = 'intent://' + tail + '#Intent;scheme=https;package=com.android.chrome;end';
+      }
+    }
+    function banner(){
+      function add(){
+        if (document.getElementById('mufe-inapp-banner')) return;
+        var d = document.createElement('div');
+        d.id = 'mufe-inapp-banner';
+        d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0c4a6e;color:#fff;padding:13px 14px;font-size:13px;line-height:1.7;font-weight:700;box-shadow:0 3px 14px rgba(0,0,0,.45);text-align:center;';
+        var msg = isIOS
+          ? '🔑 패스키는 카톡/인앱 브라우저에서 안 돼요.<br>우측 아래 <b>공유 → Safari로 열기</b> 눌러주세요.'
+          : '🔑 일반 브라우저로 전환 중… 안 되면 아래 버튼이나 <b>우측 ⋮ → 다른 브라우저로 열기</b>';
+        var btnHtml = isIOS ? '' : '<button id="mufe-inapp-go" style="margin:8px 6px 0;padding:6px 14px;font-size:12px;font-weight:800;border:0;border-radius:7px;background:#38bdf8;color:#04263b;">Chrome으로 열기</button>';
+        d.innerHTML = msg + '<br>' + btnHtml + '<button id="mufe-inapp-x" style="margin:8px 6px 0;padding:6px 12px;font-size:12px;font-weight:800;border:0;border-radius:7px;background:#fff;color:#0c4a6e;">닫기</button>';
+        (document.body||document.documentElement).appendChild(d);
+        var go=document.getElementById('mufe-inapp-go'); if(go) go.onclick=openExternal;
+        var x=document.getElementById('mufe-inapp-x'); if(x) x.onclick=function(){ d.parentNode && d.parentNode.removeChild(d); };
+      }
+      if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    }
+
+    // 자동 전환은 세션당 1회만(무한반복 방지). iOS는 자동 불가 → 안내만.
+    if (!isIOS && !sessionStorage.getItem('mufe-escaped')) {
+      try { sessionStorage.setItem('mufe-escaped','1'); } catch(e){}
+      openExternal();
+    }
+    banner();
+  } catch(e){}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MUFE 백신 — 양자·AI 시대 보안</title>
@@ -9103,7 +9150,24 @@
       btn.addEventListener('click', async function(){
         box.style.display='block'; box.innerHTML='<b>패스키 자가진단</b><br>';
         try {
-          if(!window.PublicKeyCredential){ line('❌ 이 브라우저는 패스키 미지원'); return; }
+          var inFrame=(window.top!==window.self);
+          var sec=window.isSecureContext;
+          var ua=navigator.userAgent||'';
+          var inapp=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line|DaumApps|; wv\)/i.test(ua);
+          line('🌐 '+location.protocol+'//'+location.hostname);
+          line('🔒 보안(HTTPS): '+(sec?'예':'아니오'));
+          line('🪟 미리보기/iframe 안: '+(inFrame?'예':'아니오'));
+          line('📱 인앱브라우저(Chrome아님): '+(inapp?'예':'아닌듯'));
+          line('🔑 PublicKeyCredential: '+(window.PublicKeyCredential?'있음':'없음'));
+          line('🧭 <small>'+ua.slice(0,90)+'</small>');
+          if(!window.PublicKeyCredential){
+            line('<b style="color:#b91c1c;">패스키 불가 — 원인:</b>');
+            if(inFrame) line('→ <b>미리보기/iframe 안</b>이라 막힘. 클로드 미리보기 말고 <b>배포된 mufe-baeksin.com을 Chrome으로</b> 여세요.');
+            else if(!sec) line('→ <b>HTTPS 아님.</b> https 주소로 여세요.');
+            else if(inapp) line('→ <b>인앱 브라우저</b>예요. <b>Chrome</b>으로 여세요.');
+            else line('→ 브라우저가 패스키 미지원. 최신 Chrome 권장. (위 🧭 줄을 알려주세요)');
+            return;
+          }
           var uvpaa=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
           line((uvpaa?'✅':'❌')+' 기기 생체 인증기 '+(uvpaa?'있음':'없음'));
           if(!uvpaa){ line('→ 생체/PIN 설정이 필요해요(설정에서 등록 후 재시도).'); return; }
@@ -13409,7 +13473,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AA · 패스키1단계';
+    var VER = 'BUILD 0611-AC · 카톡탈출';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
