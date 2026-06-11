@@ -5507,10 +5507,15 @@
             style="padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;">금고에 저장</button>
           <span id="mufe-vault-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
         </div>
-        <label style="display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.6);cursor:pointer;line-height:1.5;">
-          <input type="checkbox" id="mufe-e2e-toggle" onchange="mufeE2EToggle(this.checked)" style="width:15px;height:15px;margin-top:1px;flex-shrink:0;cursor:pointer;">
-          <span>🔒 <b style="color:#d4a843;">E2E 암호화</b> — 켜면 <b>서버·관리자도 내용을 못 읽어요.</b> 단, 비번을 잊으면 복구할 수 없어요. <span style="color:rgba(255,255,255,.4);">(복구 코드는 다음 단계)</span></span>
-        </label>
+      </div>
+
+      <!-- ═══ 나만의 완전 잠금 카드 (E2E) — 쉬운 말 + 실수로 못 켜게(일부러 두 번 확인) ═══ -->
+      <div id="mufe-lock-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span id="mufe-lock-icon" style="font-size:22px;">🔓</span>
+          <span style="font-weight:800;color:#d4a843;">나만의 완전 잠금</span>
+        </div>
+        <div id="mufe-lock-body" style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;"></div>
       </div>
 
       <!-- 공격 통계 대시보드 (사용자 *우와* 자리) -->
@@ -12895,12 +12900,62 @@ window.mufeE2E = (function(){
   function setOn(v){ try{ localStorage.setItem('mufe-e2e-on', v?'1':'0'); }catch(e){} }
   return { seal:seal, open:open, isSealed:isSealed, on:on, setOn:setOn };
 })();
-window.mufeE2EToggle = function(isOn){
-  if (window.mufeE2E) window.mufeE2E.setOn(isOn);
-  var m = document.getElementById('mufe-vault-msg');
-  if (m) m.textContent = isOn ? '🔒 E2E 켜짐 — 저장하면 서버도 못 읽어요' : 'E2E 꺼짐 — 서버가 내용을 읽을 수 있어요';
-  if (isOn && typeof window.mufeVaultSave === 'function') window.mufeVaultSave(); // 켤 때 현재 내용을 바로 암호화 저장
+/* 나만의 완전 잠금 카드 — 쉬운 말, *일부러 두 번 확인*해야 켜짐(실수 방지) */
+window.mufeLockRender = function(){
+  var icon = document.getElementById('mufe-lock-icon');
+  var body = document.getElementById('mufe-lock-body');
+  if (!body) return;
+  var on = !!(window.mufeE2E && window.mufeE2E.on());
+  if (icon) icon.textContent = on ? '🔒' : '🔓';
+  var btn = 'display:inline-block;padding:10px 18px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;';
+  if (on) {
+    body.innerHTML =
+      '<p style="margin:0;">✅ <b style="color:#34d399;">켜져 있어요.</b> 이 금고 내용은 <b>나만 볼 수 있어요.</b> 서버에도 알아볼 수 없는 암호로만 저장돼요.</p>' +
+      '<button onclick="mufeLockOffAsk()" style="' + btn + 'margin-top:12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-weight:700;">끄기 (서버가 다시 볼 수 있게)</button>';
+  } else {
+    body.innerHTML =
+      '<p style="margin:0 0 8px;">이 금고를 켜면 — 내용을 <b>나 말고는 아무도</b> 못 봐요. <b>서버도, 회사도, 관리자도요.</b> 오직 내 비밀번호로만 열려요.</p>' +
+      '<p style="margin:0;color:#f6a623;">⚠ 단, 비밀번호를 잊으면 <b>영영 못 열어요.</b> 아무도(회사도) 복구 못 해요. <span style="color:rgba(255,255,255,.4);">잊어도 찾는 방법은 곧 추가할게요.</span></p>' +
+      '<button onclick="mufeLockAsk()" style="' + btn + 'margin-top:12px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">🔒 완전 잠금 켜기</button>';
+  }
 };
+window.mufeLockAsk = function(){
+  var body = document.getElementById('mufe-lock-body'); if (!body) return;
+  var btn = 'display:inline-block;padding:10px 18px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;';
+  body.innerHTML =
+    '<p style="margin:0;color:#ff8a8a;line-height:1.6;">정말 켤까요? 지금 적힌 내용을 <b>나만 볼 수 있게</b> 잠가요.<br><b>비밀번호를 잊으면, 회사도 못 열어드려요.</b></p>' +
+    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+    '<button onclick="mufeLockCancel()" style="' + btn + 'background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);font-weight:700;">취소</button>' +
+    '<button onclick="mufeLockConfirm()" style="' + btn + 'background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">네, 이해했어요 — 켜기</button>' +
+    '</div>';
+};
+window.mufeLockCancel = function(){ if (window.mufeLockRender) window.mufeLockRender(); };
+window.mufeLockConfirm = function(){
+  if (!window._mufeVaultPwSecret) {
+    var b = document.getElementById('mufe-lock-body');
+    if (b) b.innerHTML = '<p style="margin:0;color:#ff8a8a;">먼저 로그인(인증)해야 켤 수 있어요.</p>';
+    return;
+  }
+  if (window.mufeE2E) window.mufeE2E.setOn(true);
+  if (typeof window.mufeVaultSave === 'function') window.mufeVaultSave(); // 현재 내용을 바로 암호화 저장
+  if (window.mufeLockRender) window.mufeLockRender();
+};
+window.mufeLockOffAsk = function(){
+  var body = document.getElementById('mufe-lock-body'); if (!body) return;
+  var btn = 'display:inline-block;padding:10px 18px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;';
+  body.innerHTML =
+    '<p style="margin:0;color:rgba(255,255,255,.7);line-height:1.6;">끄면 — 다시 <b>서버가 내용을 볼 수 있게</b> 돼요. 정말 끌까요?</p>' +
+    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+    '<button onclick="mufeLockCancel()" style="' + btn + 'background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">아니요, 그대로 둘게요</button>' +
+    '<button onclick="mufeLockOff()" style="' + btn + 'background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-weight:700;">네, 끌게요</button>' +
+    '</div>';
+};
+window.mufeLockOff = function(){
+  if (window.mufeE2E) window.mufeE2E.setOn(false);
+  if (typeof window.mufeVaultSave === 'function') window.mufeVaultSave(); // 현재 내용을 평문으로 다시 저장
+  if (window.mufeLockRender) window.mufeLockRender();
+};
+try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 </script>
 <script>
 /* ═══ 서버 금고 — 인증(진짜 토큰) 후에만 서버가 내용을 내려줌/저장. 더하기 전용. ═══ */
@@ -12948,7 +13003,7 @@ window.mufeE2EToggle = function(isOn){
           if (window.mufeE2E) window.mufeE2E.setOn(true);
         }
         if (t) t.value = raw;
-        var tg = el('mufe-e2e-toggle'); if (tg) tg.checked = !!(sealed || (window.mufeE2E && window.mufeE2E.on()));
+        if (typeof window.mufeLockRender === 'function') window.mufeLockRender();
         if (m) {
           if (sealed && !ok) m.textContent = '🔒 암호화된 금고 — 비번 열쇠로 못 풂 (다시 인증/복구 확인)';
           else m.textContent = (d.vault && d.vault.updatedAt ? ('마지막 저장: ' + new Date(d.vault.updatedAt).toLocaleString()) : '') + (sealed ? ' · 🔒 암호화됨' : '');
@@ -13058,7 +13113,7 @@ window.mufeE2EToggle = function(isOn){
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-F';
+    s.textContent = 'BUILD 0611-G';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
