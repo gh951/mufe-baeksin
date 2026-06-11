@@ -13142,12 +13142,14 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
+    var VER = 'BUILD 0611-O';
     var s = document.createElement('div');
     s.id = 'mufe-build';
-    s.textContent = 'BUILD 0611-N';
-    s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);background:rgba(0,0,0,.4);padding:3px 7px;border-radius:6px;z-index:9998;pointer-events:none;line-height:1.45;text-align:right;';
+    s.textContent = VER;
+    s.style.cssText = 'position:fixed;bottom:8px;right:8px;font-size:11px;font-weight:800;color:rgba(255,255,255,.9);background:rgba(0,0,0,.62);padding:5px 9px;border-radius:8px;z-index:2147483647;pointer-events:none;line-height:1.5;text-align:right;box-shadow:0 1px 6px rgba(0,0,0,.45);';
     (document.body || document.documentElement).appendChild(s);
 
+    var bannerShown = false;
     function extHosts(){
       var hosts = {};
       try {
@@ -13164,17 +13166,31 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
       try { return !!(document.fonts && document.fonts.check && document.fonts.check('16px "Pretendard"')); }
       catch(_){ return false; }
     }
-    function render(){
+    function status(){
       var ext = extHosts(), n = ext.length, fok = fontOk();
       var fontTag = fok ? '<span style="color:#7CFC9A;">폰트 자가호스팅 ✓</span>'
                         : '<span style="color:#ffd27c;">폰트 폴백 ✗</span>';
       var cdnTag = (n === 0) ? '<span style="color:#7CFC9A;">외부CDN 0 ✓</span>'
                              : '<span style="color:#ffd27c;">외부CDN '+n+' ('+ext.join(', ')+')</span>';
-      s.innerHTML = 'BUILD 0611-N<br>'+fontTag+'<br>'+cdnTag;
+      return { font: fontTag, cdn: cdnTag };
+    }
+    function render(){
+      var st = status();
+      s.innerHTML = VER + '<br>' + st.font + '<br>' + st.cdn;
+    }
+    function banner(){
+      if (bannerShown) return; bannerShown = true;
+      var st = status();
+      var b = document.createElement('div');
+      b.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);max-width:92%;font-size:13px;font-weight:800;color:#fff;background:rgba(18,18,24,.96);border:1.5px solid rgba(212,168,67,.8);padding:11px 16px;border-radius:11px;z-index:2147483647;text-align:center;line-height:1.55;box-shadow:0 6px 20px rgba(0,0,0,.55);';
+      b.innerHTML = '✅ ' + VER + ' 로드됨<br>' + st.font + ' · ' + st.cdn + '<br><span style="font-size:10px;opacity:.55;">탭하면 닫힘</span>';
+      b.onclick = function(){ if (b.parentNode) b.parentNode.removeChild(b); };
+      (document.body || document.documentElement).appendChild(b);
+      setTimeout(function(){ if (b.parentNode) b.parentNode.removeChild(b); }, 7000);
     }
     render();
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(render); }
-    window.addEventListener('load', function(){ setTimeout(render, 700); });
+    window.addEventListener('load', function(){ setTimeout(function(){ render(); banner(); }, 800); });
     setTimeout(render, 2500);
   } catch(e){}
 })();
