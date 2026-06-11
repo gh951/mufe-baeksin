@@ -8869,39 +8869,45 @@
   });
 
   // [C-52] 휘발 입력 — 친 글자가 잠깐 보였다 사라짐(전체 비번이 한 화면에 모이지 않게).
-  //   안전설계: authInput.value는 그대로 둬서 기존 검증/휘발 로직 불변. 화면 표시만 가리고 카드에 잔상.
-  //   최종 휘발(값 파쇄)은 기존대로 '인증 검증'(사용자 선택) 순간에 일어남.
-  (function mufeSetupVolatileInput(){
-    var ai = document.getElementById('authInput');
-    if (!ai || document.getElementById('mufe-volatile-style')) return;
-    var st = document.createElement('style');
-    st.id = 'mufe-volatile-style';
-    st.textContent =
-      '#mufe-volatile-card{position:relative;margin:0 0 8px;min-height:46px;border:1px solid rgba(212,168,67,.35);border-radius:10px;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;}' +
-      '#mufe-volatile-card .mvc-label{position:absolute;left:10px;top:5px;font-size:9px;color:rgba(212,168,67,.72);letter-spacing:.2px;}' +
-      '.mvc-ghost{font-size:24px;font-weight:800;color:#d4a843;margin:0 1px;will-change:opacity,transform;animation:mvc-fade .85s ease-out forwards;}' +
-      '@keyframes mvc-fade{0%{opacity:1;transform:translateY(2px) scale(1.08);}55%{opacity:.45;}100%{opacity:0;transform:translateY(-12px) scale(.78);}}' +
-      '.auth-input.mufe-volatile-hidden{color:transparent !important;text-shadow:none !important;caret-color:#d4a843;}';
-    document.head.appendChild(st);
-    var card = document.createElement('div');
-    card.id = 'mufe-volatile-card';
-    card.innerHTML = '<span class="mvc-label">🔑 휘발 입력 — 친 글자는 잠깐 보였다 사라져요</span>';
-    ai.parentNode.insertBefore(card, ai);
-    ai.classList.add('mufe-volatile-hidden');
-    function flash(ch){
-      if (!ch) return;
-      var g = document.createElement('span');
-      g.className = 'mvc-ghost';
-      g.textContent = (ch === ' ') ? '␣' : ch;
-      card.appendChild(g);
-      setTimeout(function(){ if (g.parentNode) g.parentNode.removeChild(g); }, 900);
+  //   비번 입력 칸 전부에 적용: 등록(regPasscode)·로그인(authInput)·간편(loginPasscode).
+  //   안전설계: 입력칸 value는 그대로 둬서 기존 등록/검증/휘발 로직 불변. 화면 표시만 가리고 카드에 잔상.
+  (function mufeSetupVolatileInputs(){
+    if (!document.getElementById('mufe-volatile-style')) {
+      var st = document.createElement('style');
+      st.id = 'mufe-volatile-style';
+      st.textContent =
+        '.mufe-volatile-card{position:relative;margin:0 0 8px;min-height:46px;border:1px solid rgba(212,168,67,.35);border-radius:10px;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;}' +
+        '.mufe-volatile-card .mvc-label{position:absolute;left:10px;top:5px;font-size:9px;color:rgba(212,168,67,.72);letter-spacing:.2px;}' +
+        '.mvc-ghost{font-size:24px;font-weight:800;color:#d4a843;margin:0 1px;will-change:opacity,transform;animation:mvc-fade .85s ease-out forwards;}' +
+        '@keyframes mvc-fade{0%{opacity:1;transform:translateY(2px) scale(1.08);}55%{opacity:.45;}100%{opacity:0;transform:translateY(-12px) scale(.78);}}' +
+        '.mufe-volatile-hidden{color:transparent !important;text-shadow:none !important;-webkit-text-fill-color:transparent !important;caret-color:#d4a843;}';
+      document.head.appendChild(st);
     }
-    ai.addEventListener('input', function(e){
-      var t = (e && typeof e.data === 'string') ? e.data : '';
-      if (t) { for (var i = 0; i < t.length; i++) flash(t[i]); }
-      else if (e && e.inputType && e.inputType.indexOf('delete') === 0) { /* 지움은 표시 안 함 */ }
-      else { flash('•'); }
-    });
+    function attach(id){
+      var inp = document.getElementById(id);
+      if (!inp || inp.getAttribute('data-mufe-volatile') === '1') return;
+      inp.setAttribute('data-mufe-volatile', '1');
+      var card = document.createElement('div');
+      card.className = 'mufe-volatile-card';
+      card.innerHTML = '<span class="mvc-label">🔑 휘발 입력 — 친 글자는 잠깐 보였다 사라져요</span>';
+      inp.parentNode.insertBefore(card, inp);
+      inp.classList.add('mufe-volatile-hidden');
+      function flash(ch){
+        if (!ch) return;
+        var g = document.createElement('span');
+        g.className = 'mvc-ghost';
+        g.textContent = (ch === ' ') ? '␣' : ch;
+        card.appendChild(g);
+        setTimeout(function(){ if (g.parentNode) g.parentNode.removeChild(g); }, 900);
+      }
+      inp.addEventListener('input', function(e){
+        var t = (e && typeof e.data === 'string') ? e.data : '';
+        if (t) { for (var i = 0; i < t.length; i++) flash(t[i]); }
+        else if (e && e.inputType && e.inputType.indexOf('delete') === 0) { /* 지움은 표시 안 함 */ }
+        else { flash('•'); }
+      });
+    }
+    ['regPasscode', 'authInput', 'loginPasscode'].forEach(attach);
   })();
 
   // [C-47] 자동 검증 제거 — 복붙·실시간 단어 붙이는 중에 멈추면
@@ -13178,7 +13184,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-P · 휘발입력';
+    var VER = 'BUILD 0611-Q · 휘발 전체적용';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
