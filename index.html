@@ -8886,7 +8886,7 @@
         '.mvc-ghost{font-size:24px;font-weight:800;color:#d4a843;margin:0 1px;will-change:opacity,transform;animation:mvc-fade .85s ease-out forwards;}' +
         '@keyframes mvc-fade{0%{opacity:1;transform:translateY(2px) scale(1.08);}55%{opacity:.45;}100%{opacity:0;transform:translateY(-12px) scale(.78);}}' +
         '.mufe-volatile-hidden{color:transparent !important;text-shadow:none !important;-webkit-text-fill-color:transparent !important;caret-color:#d4a843;}' +
-        '.mkp{position:fixed;left:0;right:0;bottom:0;z-index:2147483600;box-sizing:border-box;width:100%;margin:0;padding:10px;border-top:2px solid #b8862f;border-radius:14px 14px 0 0;background:#eef2f7;box-shadow:0 -10px 30px rgba(0,0,0,.32);max-height:64vh;overflow-y:auto;}' +
+        '.mkp{box-sizing:border-box;width:100%;margin:10px 0;padding:10px;border:2px solid #b8862f;border-radius:12px;background:#eef2f7;box-shadow:0 6px 18px rgba(0,0,0,.18);}' +
         '.mkp-info{font-size:10px;color:#475569;font-weight:700;margin-bottom:6px;}' +
         '.mkp-tabs{display:flex;gap:6px;margin-bottom:6px;}' +
         '.mkp-tabs button{flex:1;padding:7px;font-size:12px;font-weight:800;border:1px solid #c7ccd6;border-radius:7px;background:#fff;color:#111;cursor:pointer;}' +
@@ -9019,7 +9019,7 @@
       });
       return {
         el: panel,
-        open: function(){ composer = makeComposer(inp.value); mode = 'han'; shift = false; render(); panel.style.display = 'block'; },
+        open: function(){ composer = makeComposer(inp.value); mode = 'han'; shift = false; render(); panel.style.display = 'block'; try{ setTimeout(function(){ panel.scrollIntoView({behavior:'smooth',block:'center'}); }, 60); }catch(e){} },
         close: function(){ panel.style.display = 'none'; }
       };
     }
@@ -9049,7 +9049,7 @@
 
       inp.parentNode.insertBefore(ghost, inp);
       inp.parentNode.insertBefore(pick, ghost);
-      document.body.appendChild(kp.el);   // 화면 최상위에 — 부모 overflow/transform 에 안 잘림
+      inp.parentNode.insertBefore(kp.el, inp.nextSibling);   // 입력칸 바로 아래 인라인 카드
 
       function setMode(m){
         inp.classList.remove('mufe-volatile-hidden');
@@ -13359,7 +13359,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-Y · 키패드 하단고정';
+    var VER = 'BUILD 0611-Z · 키패드 인라인카드';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
