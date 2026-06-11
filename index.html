@@ -9085,6 +9085,56 @@
     ['regPasscode', 'authInput', 'loginPasscode'].forEach(attach);
   })();
 
+  // [C-53] 패스키 1단계 — 기기 자가진단(이 폰이 패스키 인증을 끝까지 하는지). 클라이언트 전용·서버 없음·기존 코드 불간섭.
+  (function mufePasskeySelfTest(){
+    function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+    function rnd(n){ var a=new Uint8Array(n); if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(a); return a; }
+    ready(function(){
+      if (document.getElementById('mufe-pk-test-btn')) return;
+      var btn=document.createElement('button');
+      btn.id='mufe-pk-test-btn'; btn.type='button'; btn.textContent='🔑 패스키 시험';
+      btn.style.cssText='position:fixed;left:10px;bottom:10px;z-index:2147483300;padding:9px 12px;font-size:12px;font-weight:800;color:#fff;background:#0c4a6e;border:1px solid #38bdf8;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;';
+      document.body.appendChild(btn);
+      var box=document.createElement('div');
+      box.id='mufe-pk-test-box';
+      box.style.cssText='position:fixed;left:10px;bottom:54px;z-index:2147483301;max-width:330px;padding:12px 14px;font-size:13px;line-height:1.7;color:#0f172a;background:#fff;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none;';
+      document.body.appendChild(box);
+      function line(t){ box.innerHTML+=t+'<br>'; }
+      btn.addEventListener('click', async function(){
+        box.style.display='block'; box.innerHTML='<b>패스키 자가진단</b><br>';
+        try {
+          if(!window.PublicKeyCredential){ line('❌ 이 브라우저는 패스키 미지원'); return; }
+          var uvpaa=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          line((uvpaa?'✅':'❌')+' 기기 생체 인증기 '+(uvpaa?'있음':'없음'));
+          if(!uvpaa){ line('→ 생체/PIN 설정이 필요해요(설정에서 등록 후 재시도).'); return; }
+          line('⏳ 패스키 만드는 중… 생체(지문/얼굴) 떠요');
+          var cred=await navigator.credentials.create({ publicKey:{
+            challenge:rnd(32),
+            rp:{ id:location.hostname, name:'MUFE 백신' },
+            user:{ id:rnd(16), name:'mufe-test', displayName:'MUFE 시험' },
+            pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+            authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'preferred' },
+            timeout:60000, attestation:'none'
+          }});
+          line('✅ 패스키 생성됨(생체 통과)');
+          window._mufePkId=new Uint8Array(cred.rawId);
+          line('⏳ 로그인 시험… 생체 다시 떠요');
+          var asr=await navigator.credentials.get({ publicKey:{
+            challenge:rnd(32),
+            allowCredentials:[{ type:'public-key', id:window._mufePkId }],
+            userVerification:'required', timeout:60000, rpId:location.hostname
+          }});
+          line((asr&&asr.response&&asr.response.signature)?'✅ 로그인 서명 생성됨':'⚠️ 서명 없음');
+          line('<b style="color:#15803d;">→ 이 기기는 패스키 인증 가능 ✅</b>');
+          line('<small>이제 서버 검증(2단계) 붙이면 진짜 로그인 완성.</small>');
+        } catch(e){
+          line('❌ 실패: '+((e&&e.name)?e.name:'')+' '+((e&&e.message)?e.message:e));
+          line('<small>이 메시지 그대로 알려주시면 원인 잡아요.</small>');
+        }
+      });
+    });
+  })();
+
   // [C-47] 자동 검증 제거 — 복붙·실시간 단어 붙이는 중에 멈추면
   //   비번만으로 검증돼 연산지옥 오발하던 문제. 이제 '인증 검증' 버튼으로만 검증.
   (function(){
@@ -13359,7 +13409,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-Z · 키패드 인라인카드';
+    var VER = 'BUILD 0611-AA · 패스키1단계';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
