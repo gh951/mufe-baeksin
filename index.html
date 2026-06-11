@@ -12923,7 +12923,7 @@ window.mufeLockRender = function(){
         '<div style="border-top:1px solid rgba(220,38,38,.22);padding-top:11px;">' +
           '<b style="display:block;margin-bottom:6px;color:#c0392b;font-size:13.5px;">⚠ 되돌릴 수 없는 결정입니다</b>' +
           '<span style="color:#a93226;font-size:12.5px;">비밀번호를 <b>잊거나 잃어버리면</b>, 이 금고 안의 내용은 <b>영영 사라집니다.</b><br>' +
-          '회사도, 관리자도, 그 누구도 <b>복구해드릴 수 없습니다.</b> 우리에겐 고객님의 비밀번호가 없으니까요.<br>' +
+          '회사도, 관리자도, 그 누구도 <b>복구해드릴 수 없습니다.</b><br>' +
           '<b style="color:#922b21;">고객님의 중요한 파일이, 단 한 번의 실수로 영원히 닫힐 수 있습니다.</b></span>' +
         '</div>' +
         '<div style="margin-top:11px;font-size:10px;color:#999;">※ 비밀번호를 잊어도 여는 복구 방법(24단어)은 다음 업데이트 예정입니다.</div>' +
@@ -12947,10 +12947,15 @@ window.mufeLockAsk = function(){
     '</div>';
 };
 window.mufeLockCancel = function(){ if (window.mufeLockRender) window.mufeLockRender(); };
+window.mufeLockGoLogin = function(){ if (typeof openAuthModal === 'function') openAuthModal('high'); };
 window.mufeLockConfirm = function(){
   if (!window._mufeVaultPwSecret) {
     var b = document.getElementById('mufe-lock-body');
-    if (b) b.innerHTML = '<p style="margin:0;color:#ff8a8a;">먼저 로그인(인증)해야 켤 수 있어요.</p>';
+    if (b) b.innerHTML =
+      '<div style="background:#ffffff;border:1px solid rgba(0,0,0,.15);border-radius:12px;padding:15px;line-height:1.7;">' +
+        '<span style="color:#444;font-size:12.5px;">먼저 <b style="color:#a67908;">고보안 비밀번호로 로그인(인증)</b>해야 켤 수 있습니다.</span>' +
+      '</div>' +
+      '<button onclick="mufeLockGoLogin()" style="display:inline-block;margin-top:12px;padding:11px 20px;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;">🔐 고보안 비밀번호로 로그인</button>';
     return;
   }
   if (window.mufeE2E) window.mufeE2E.setOn(true);
@@ -13132,7 +13137,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-J';
+    s.textContent = 'BUILD 0611-L';
     s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
     (document.body || document.documentElement).appendChild(s);
   } catch(e){}
