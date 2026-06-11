@@ -13143,9 +13143,39 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 (function(){
   try {
     var s = document.createElement('div');
-    s.textContent = 'BUILD 0611-M';
-    s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.45);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:6px;z-index:9998;pointer-events:none;';
+    s.id = 'mufe-build';
+    s.textContent = 'BUILD 0611-N';
+    s.style.cssText = 'position:fixed;bottom:5px;right:7px;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);background:rgba(0,0,0,.4);padding:3px 7px;border-radius:6px;z-index:9998;pointer-events:none;line-height:1.45;text-align:right;';
     (document.body || document.documentElement).appendChild(s);
+
+    function extHosts(){
+      var hosts = {};
+      try {
+        (performance.getEntriesByType('resource') || []).forEach(function(e){
+          var h = ''; try { h = new URL(e.name).hostname; } catch(_){}
+          if (h && (h.indexOf('jsdelivr')>=0 || h.indexOf('esm.sh')>=0 || h.indexOf('unpkg')>=0)) {
+            hosts[h.replace('cdn.','')] = 1;
+          }
+        });
+      } catch(_){}
+      return Object.keys(hosts);
+    }
+    function fontOk(){
+      try { return !!(document.fonts && document.fonts.check && document.fonts.check('16px "Pretendard"')); }
+      catch(_){ return false; }
+    }
+    function render(){
+      var ext = extHosts(), n = ext.length, fok = fontOk();
+      var fontTag = fok ? '<span style="color:#7CFC9A;">폰트 자가호스팅 ✓</span>'
+                        : '<span style="color:#ffd27c;">폰트 폴백 ✗</span>';
+      var cdnTag = (n === 0) ? '<span style="color:#7CFC9A;">외부CDN 0 ✓</span>'
+                             : '<span style="color:#ffd27c;">외부CDN '+n+' ('+ext.join(', ')+')</span>';
+      s.innerHTML = 'BUILD 0611-N<br>'+fontTag+'<br>'+cdnTag;
+    }
+    render();
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(render); }
+    window.addEventListener('load', function(){ setTimeout(render, 700); });
+    setTimeout(render, 2500);
   } catch(e){}
 })();
 </script>
