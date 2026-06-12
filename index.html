@@ -5899,6 +5899,24 @@
           <p>현재 시스템에 적용된 보안 원칙을 확인하세요.</p>
         </div>
 
+        <!-- [C-55] 패스키 카드 — 입구 떠다니는 버튼에서 대시보드로 이동 -->
+        <div style="margin:0 0 16px;padding:16px 18px;border:1px solid #d8c08a;border-radius:14px;background:#fffdf6;box-shadow:0 2px 10px rgba(0,0,0,.06);">
+          <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:#0b2545;">
+            <span style="font-size:20px;">🔑</span> 패스키 로그인
+            <span style="font-size:11px;font-weight:700;color:#9a5e02;background:#fbeccb;border:1px solid #eccb8e;border-radius:6px;padding:2px 7px;">기기 생체</span>
+          </div>
+          <div style="margin:8px 0 0;font-size:13px;line-height:1.7;color:#334155;">
+            비밀번호를 타이핑하지 않고 <b>이 기기의 지문·얼굴</b>로 로그인합니다.
+            열쇠는 기기 보안칩에만 있어 <b>서버로 전송되지 않고</b>, 가짜(피싱) 사이트에선 <b>아예 동작하지 않아요</b>(주소에 묶임).
+            처음 딱 한 번 <b>등록</b> → 그다음부턴 <b>로그인</b>만 누르면 됩니다.
+          </div>
+          <button type="button"
+            onclick="if(typeof window.mufeOpenPasskey==='function'){window.mufeOpenPasskey();}else{alert('패스키 모듈 로딩 중 — 잠시 후 다시 눌러주세요');}"
+            style="margin-top:12px;width:100%;padding:12px;font-size:13.5px;font-weight:800;border:1px solid #b8862f;border-radius:9px;background:#d4a843;color:#1a1a1a;cursor:pointer;">
+            🔑 패스키 등록 / 로그인 열기
+          </button>
+        </div>
+
         <div class="policy-grid">
           <div class="policy-card" data-policy="decoy">
             <div class="policy-icon">🛡️</div>
@@ -9206,7 +9224,7 @@
       var btn=document.createElement('button');
       btn.id='mufe-pk-btn'; btn.type='button'; btn.textContent='🔑 패스키';
       btn.style.cssText='position:fixed;left:10px;bottom:10px;z-index:2147483300;padding:8px 12px;font-size:12px;font-weight:800;color:#fff;background:#0c4a6e;border:1px solid #38bdf8;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;';
-      document.body.appendChild(btn);
+      document.body.appendChild(btn); btn.style.display='none'; /*[C-55] 입구 버튼 숨김 → 대시보드 카드로*/
       var box=document.createElement('div');
       box.id='mufe-pk-box';
       box.style.cssText='position:fixed;left:10px;right:10px;bottom:52px;z-index:2147483301;max-width:340px;max-height:74vh;overflow-y:auto;padding:12px 14px;font-size:13px;line-height:1.7;color:#0f172a;background:#fff;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none;';
@@ -9221,6 +9239,7 @@
       var msg=box.querySelector('#mufe-pk-msg');
       box.querySelector('#mufe-pk-x').onclick=function(){ box.style.display='none'; };
       btn.onclick=function(){ box.style.display='block'; msg.innerHTML = localStorage.getItem(KEY)?'등록된 패스키 있음 — "패스키 로그인" 누르세요':'아직 등록 안 됨 — 먼저 "패스키 등록"'; };
+      window.mufeOpenPasskey = btn.onclick;  /*[C-55] 대시보드 카드에서 호출*/
       box.querySelector('#mufe-pk-reg').onclick=async function(){
         msg.innerHTML='⏳ 패스키 만드는 중… 생체 떠요';
         try { await register(); msg.innerHTML='✅ 패스키 등록 완료. 이제 "패스키 로그인" 돼요.'; }
@@ -13545,7 +13564,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     s.id = 'mufe-build';
     s.textContent = VER;
     s.style.cssText = 'position:fixed;bottom:8px;right:8px;font-size:11px;font-weight:800;color:rgba(255,255,255,.9);background:rgba(0,0,0,.62);padding:5px 9px;border-radius:8px;z-index:2147483647;pointer-events:none;line-height:1.5;text-align:right;box-shadow:0 1px 6px rgba(0,0,0,.45);';
-    (document.body || document.documentElement).appendChild(s);
+    void 0;/*[C-55] 우측 하단 BUILD 표식 제거 — 화면에 안 붙임*/
 
     var bannerShown = false;
     function extHosts(){
@@ -13588,7 +13607,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     }
     render();
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(render); }
-    window.addEventListener('load', function(){ setTimeout(function(){ render(); banner(); }, 800); });
+    window.addEventListener('load', function(){ setTimeout(function(){ render(); }, 800); });  /*[C-55] 외부CDN 로드 팝업 제거 — 구석 버전라벨은 유지*/
     setTimeout(render, 2500);
   } catch(e){}
 })();
