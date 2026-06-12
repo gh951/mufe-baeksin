@@ -3,7 +3,12 @@ name: Build MUFE Android APK
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'app-debug.apk'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -17,13 +22,10 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
 
-      - name: 웹 자산 준비 (www/)
+      - name: www 준비 (라이브 사이트 로드라 placeholder만)
         run: |
           mkdir -p www
-          cp index.html www/index.html
-          # 별도 파일(service-worker.js, manifest.json, 폰트 등)이 있으면 아래에 추가:
-          # cp service-worker.js www/ 2>/dev/null || true
-          # cp manifest.json www/ 2>/dev/null || true
+          echo '<!DOCTYPE html><meta charset="utf-8"><title>MUFE</title>' > www/index.html
 
       - name: Capacitor 설치
         run: npm install
@@ -31,23 +33,47 @@ jobs:
       - name: 안드로이드 플랫폼 추가
         run: npx cap add android
 
-      - name: 웹 자산 동기화
+      - name: 동기화
         run: npx cap sync android
 
-      - name: FLAG_SECURE + 카메라 권한 주입
+      - name: FLAG_SECURE 적용 + 카메라 권한 + 자체검사
         run: |
           DEST=android/app/src/main/java/com/mufe/baeksin
           mkdir -p "$DEST"
-          cp MainActivity.java "$DEST/MainActivity.java"
+          cat > "$DEST/MainActivity.java" << 'JAVA'
+          package com.mufe.baeksin;
+          import android.os.Bundle;
+          import android.view.WindowManager;
+          import com.getcapacitor.BridgeActivity;
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+              }
+          }
+          JAVA
+          echo "===== 적용된 MainActivity ====="
+          cat "$DEST/MainActivity.java"
+          echo "==============================="
+          grep -q "FLAG_SECURE" "$DEST/MainActivity.java" && echo "OK: FLAG_SECURE 들어감" || { echo "FAIL"; exit 1; }
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          grep -q 'android.permission.CAMERA' "$MANIFEST" || \
-            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' "$MANIFEST"
+          grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
 
       - name: 디버그 APK 빌드
         run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
 
-      - name: APK 업로드
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: MUFE-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: APK 자동 발행 (사이트/QR 최신 유지)
+        continue-on-error: true
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./app-debug.apk
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add app-debug.apk
+          git commit -m "Auto-publish app-debug.apk" || { echo "변경 없음"; exit 0; }
+          git push
