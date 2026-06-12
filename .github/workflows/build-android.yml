@@ -142,15 +142,10 @@ jobs:
           name: MUFE-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: APK 자동 발행 (사이트/QR 최신화)
-        continue-on-error: true
-        run: |
-          A=android/app/build/outputs/apk/debug/app-debug.apk
-          SZ=$(stat -c%s "$A")
-          if [ "$SZ" -gt 99000000 ]; then echo "APK가 100MB 초과 — 발행 건너뜀(빌드설정 점검 필요)"; exit 0; fi
-          cp "$A" ./app-debug.apk
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add app-debug.apk
-          git commit -m "Auto-publish app-debug.apk" || { echo "변경없음"; exit 0; }
-          git push
+      - name: 릴리스로 발행 (직접 다운로드 · 100MB제한/압축/캐시 없음)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app
+          name: MUFE 최신 앱
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
