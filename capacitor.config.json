@@ -2,5 +2,8 @@
   "appId": "com.mufe.baeksin",
   "appName": "MUFE 백신",
   "webDir": "www",
-  "server": { "androidScheme": "https" }
+  "server": {
+    "url": "https://mufe-baeksin.com",
+    "androidScheme": "https"
+  }
 }
