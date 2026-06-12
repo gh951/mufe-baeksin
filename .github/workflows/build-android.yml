@@ -45,7 +45,15 @@ jobs:
         run: |
           cat > /tmp/wrapper.html << 'WRAP'
           <script>
-          /* [번들] API 호출을 라이브 서버로 자동전환 (CORS 열림, 정규식 미사용) */
+          /* [번들] 흰화면 진단줄 + 오래된 서비스워커 정리 */
+          (function(){
+            function show(m,c){try{var d=document.getElementById('__diag')||document.createElement('div');d.id='__diag';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:'+(c||'#111')+';color:#fff;font:14px monospace;padding:8px;white-space:pre-wrap;word-break:break-all';d.textContent=m;(document.body||document.documentElement).appendChild(d);}catch(e){}}
+            window.onerror=function(m,src,ln){show('오류: '+m+' @'+String(src||'').split('/').pop()+':'+ln,'#b00000');return false;};
+            document.addEventListener('DOMContentLoaded',function(){show('JS OK 로딩중...','#007700');});
+            setTimeout(function(){var b=document.body;if(b&&b.innerText.replace(/\s/g,'').length<3){show('3초: 본문 비어있음 (로드실패 의심)','#b00000');}},3000);
+            try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});});}}catch(e){}
+          })();
+          /* [번들] API 호출을 라이브 서버로 자동전환 (CORS 열림) */
           (function(){
             var REMOTE='https://mufe-baeksin.com';
             if(!window.fetch)return;
@@ -107,7 +115,7 @@ jobs:
                   try {
                       new android.app.AlertDialog.Builder(this)
                           .setTitle("성공")
-                          .setMessage("MUFE v6 (번들) · 화면보안 ON")
+                          .setMessage("MUFE v7 진단 · 화면보안 ON")
                           .setPositiveButton("확인", null)
                           .show();
                   } catch (Exception e) {}
