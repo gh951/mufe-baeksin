@@ -19,7 +19,7 @@
 const crypto = require('crypto');
 const { kvGet, kvSet, kvDel, kvIncr, isKVAvailable } = require('./_kv');
 
-const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const SECRET = process.env.MUFE_SECRET;   // [C-53] 기본키 fallback 제거 — 없으면 거부(조용한 약화 방지)
 const NONCE_TTL = 120;          // 1회용 숫자 유효 120초
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'error', error: 'Method not allowed' });
+  if (!SECRET) return res.status(500).json({ status: 'error', error: 'server-misconfigured' });
 
   if (!isKVAvailable()) {
     return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결 — 도장 기능 사용 불가' });

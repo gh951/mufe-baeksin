@@ -18,7 +18,7 @@
 const crypto = require('crypto');
 const { kvGet, kvSet, kvIncr, isKVAvailable } = require('./_kv');
 
-const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const SECRET = process.env.MUFE_SECRET;   // [C-53] 기본키 fallback 제거 — 없으면 거부(조용한 약화 방지)
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;   // 세션 토큰 신선도 24시간
 const MAX_CONTENT  = 16384;                  // 금고 내용 최대 16KB (E2E 암호화 블롭 여유 포함)
 
@@ -66,6 +66,7 @@ module.exports = async (req, res) => {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'locked', error: 'Method not allowed' });
+  if (!SECRET) return res.status(500).json({ status: 'error', error: 'server-misconfigured' });
 
   try {
     const { token, userToken, action, content } = req.body || {};

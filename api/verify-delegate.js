@@ -17,7 +17,7 @@
 const crypto = require('crypto');
 const { kvSet, kvGet, kvIncr, isKVAvailable } = require('./_kv');
 
-const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
+const SECRET = process.env.MUFE_SECRET;   // [C-53] 기본키 fallback 제거 — 없으면 거부(조용한 약화 방지)
 
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
@@ -69,6 +69,7 @@ module.exports = async (req, res) => {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!SECRET) return res.status(500).json({ error: 'server-misconfigured' });
 
   // [C-53] 무차별 위임답 스캔 → 거부 벽 없이 미끼(연산지옥)로. 정상 위임은 그대로 통과.
   if (await rateLimited(req)) {
