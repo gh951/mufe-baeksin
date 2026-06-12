@@ -40,12 +40,16 @@
       if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
     }
 
-    // 자동 전환은 세션당 1회만(무한반복 방지). iOS는 자동 불가 → 안내만.
-    if (!isIOS && !sessionStorage.getItem('mufe-escaped')) {
-      try { sessionStorage.setItem('mufe-escaped','1'); } catch(e){}
-      openExternal();
+    // 안드/카톡: 배너 없이 조용히 자동 전환. 3초 가드로 무한반복만 막고, 새로 들어오면 또 자동 이동.
+    if (!isIOS) {
+      var lastT = 0; try { lastT = +sessionStorage.getItem('mufe-escaped-t') || 0; } catch(e){}
+      if (Date.now() - lastT > 3000) {
+        try { sessionStorage.setItem('mufe-escaped-t', String(Date.now())); } catch(e){}
+        openExternal();
+      }
+    } else {
+      banner(); // iOS는 자동 전환이 막혀 있어 안내 배너만(없으면 탈출 방법을 모름)
     }
-    banner();
   } catch(e){}
 })();
 </script>
@@ -13536,7 +13540,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AG · 위장트래픽';
+    var VER = 'BUILD 0611-AH · 자동전환';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
