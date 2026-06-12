@@ -47,6 +47,22 @@ function generateAuthToken(type, data) {
   return `mufe-r.${payloadB64}.${sig}`;  // recipient 토큰 prefix
 }
 
+// [C-53 rate-limit] 무차별 위임답 스캔 차단. 같은 IP가 1분에 20회 초과 → 거부 벽 없이 미끼로.
+//   정상 위임 통과는 그대로(정상 사용자는 1분에 몇 번 안 함). KV 없거나 에러면 제한 안 함(정상 흐름 보호).
+const RL_MAX = 20;
+async function rateLimited(req) {
+  if (!isKVAvailable()) return false;
+  try {
+    const fwd = (req.headers['x-forwarded-for'] || '');
+    const ip = fwd.split(',')[0].trim() || (req.socket && req.socket.remoteAddress) || 'unknown';
+    const bucket = Math.floor(Date.now() / 60000);   // 1분 버킷 — 매 분 자동 초기화
+    const n = await kvIncr(`rl:delegate:${ip}:${bucket}`);
+    return (typeof n === 'number' && n > RL_MAX);
+  } catch (e) {
+    return false;   // 에러나면 막지 않음(가용성 우선)
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -54,7 +70,17 @@ module.exports = async (req, res) => {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  
+
+  // [C-53] 무차별 위임답 스캔 → 거부 벽 없이 미끼(연산지옥)로. 정상 위임은 그대로 통과.
+  if (await rateLimited(req)) {
+    if (isKVAvailable()) { try { await kvIncr('stats:delegate:rate-limited'); } catch (e) {} }
+    const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
+      type: 'decoy', issuedAt: Date.now(),
+      sessionId: crypto.randomBytes(8).toString('hex'), trapped: true, reason: 'rate-limited',
+    })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
+    return res.status(200).json({ status: 'decoy', token: fakeToken, message: '정답입니다. 통과 다음 단계로', detail: '' });
+  }
+
   try {
     const { delegateAnswer, recipientId, delegateToken } = req.body || {};
     
@@ -79,10 +105,6 @@ module.exports = async (req, res) => {
           token: fakeToken,
           message: '정답입니다. 통과 다음 단계로',
           detail: '',
-          serverSide: {
-            actualResult: 'TRAPPED-WRONG-DELEGATE-ANSWER',
-            reason: 'invalid-delegate-pool',
-          },
         });
     }
     
@@ -107,10 +129,6 @@ module.exports = async (req, res) => {
               token: fakeToken,
               message: '정답입니다. 통과 다음 단계로',
               detail: '',
-              serverSide: {
-                actualResult: 'TRAPPED-REUSED-DELEGATE',
-                reason: 'one-time-token-reused',
-              },
             });
         }
         
@@ -129,10 +147,6 @@ module.exports = async (req, res) => {
               token: fakeToken,
               message: '정답입니다. 통과 다음 단계로',
               detail: '',
-              serverSide: {
-                actualResult: 'TRAPPED-EXPIRED-DELEGATE',
-                reason: 'token-expired',
-              },
             });
         }
         
