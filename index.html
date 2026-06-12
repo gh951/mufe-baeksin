@@ -13501,10 +13501,42 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 })();
 </script>
 <script>
+/* ═══ 위장 트래픽(쓰레기 분산) — 입구 + 전선에 가짜 요청을 흘려 도청자가 '진짜 인증'을 못 골라내게.
+   설계 원칙:
+   ① 진짜 인증/금고 fetch는 건드리지 않음 (완전 추가형 — 따로 돎)
+   ② 진짜 서버 로직·rate-limit·통계 안 건드림 — 가짜는 핸들러 없는 경로로 보내 404로 싸게 버려짐(본문만 전선에 흘러 노이즈가 됨)
+   ③ HTTPS라 경로·본문·헤더는 도청자에게 안 보이고 보이는 건 크기·시각뿐 → 그 크기·시각을 무작위로 흩어 진짜를 묻음
+   ④ 비용(요청 수↑)이 있어 빈도는 보수적. 끄기: localStorage.setItem('mufe-chaff','off') */
+(function(){
+  try { if (localStorage.getItem('mufe-chaff') === 'off') return; } catch(e){}
+  var ORIGIN = (window.location && window.location.origin) || '';
+  if (ORIGIN.indexOf('http') !== 0) return; // file:// 등에선 안 함
+  var PATHS = ['/api/noise','/api/sync','/api/ping','/api/telemetry']; // 실제 핸들러 없음 → 404로 싸게 버려짐
+  function rint(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+  function junk(n){ var s='', c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='; for(var i=0;i<n;i++) s+=c.charAt(Math.floor(Math.random()*c.length)); return s; }
+  function decoy(){
+    try {
+      var path = PATHS[Math.floor(Math.random()*PATHS.length)];
+      var body = JSON.stringify({ n: junk(rint(40,700)), t: Date.now() }); // 크기 무작위 — 진짜 인증 본문 범위 흉내
+      fetch(ORIGIN + path, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-mufe-chaff':'1' }, // 서버가 원하면 싸게 무시 가능(도청자엔 안 보임)
+        body: body, cache: 'no-store', keepalive: true
+      }).then(function(){}).catch(function(){}); // 응답 본문 안 읽음(대역폭 절약)
+    } catch(e){}
+  }
+  function entranceBurst(){ var n = rint(2,4); for (var i=0;i<n;i++) setTimeout(decoy, rint(150,2500)); } // 입구: 진짜 challenge/login 트래픽을 묻음
+  function loop(){ decoy(); setTimeout(loop, rint(25000,70000)); } // 전선: 25~70초 무작위 — 비용 고려해 낮게
+  function start(){ entranceBurst(); setTimeout(loop, rint(8000,20000)); }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') start();
+  else window.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<script>
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AF · 패스키순서';
+    var VER = 'BUILD 0611-AG · 위장트래픽';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
