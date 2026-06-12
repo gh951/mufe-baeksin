@@ -32,10 +32,14 @@ jobs:
             --exclude='login.js' --exclude='register.js' --exclude='verify.js' \
             --exclude='verify-delegate.js' --exclude='challenge.js' --exclude='delegate.js' \
             --exclude='_kv.js' --exclude='service-worker.js' --exclude='*.md' \
+            --exclude='mufe-electron' --exclude='*.exe' --exclude='*.dmg' \
+            --exclude='*.AppImage' --exclude='*.zip' --exclude='dist' --exclude='out' \
             ./ /tmp/bundle/
           rm -rf www && mkdir -p www && cp -a /tmp/bundle/. www/
           test -f www/index.html || { echo "FAIL: index.html 없음"; exit 1; }
           echo "번들된 항목:"; ls www/ | head -40
+          echo "=== www 총 크기 ==="; du -sh www/
+          echo "=== 큰 항목 top ==="; du -sh www/* 2>/dev/null | sort -rh | head -10
 
       - name: 서버 API 호출을 라이브 서버로 자동전환 (번들용)
         run: |
@@ -108,7 +112,12 @@ jobs:
           grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
 
       - name: APK 빌드
-        run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
+        run: |
+          cd android && chmod +x ./gradlew && ./gradlew assembleDebug
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          SZ=$(stat -c%s "$APK")
+          echo "=== APK 크기: $((SZ/1024/1024)) MB ($SZ bytes) ==="
+          if [ "$SZ" -gt 99000000 ]; then echo "경고: 100MB 근접 — GitHub 발행 실패 위험"; fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -118,7 +127,10 @@ jobs:
       - name: APK 자동 발행 (사이트/QR 최신화)
         continue-on-error: true
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk ./app-debug.apk
+          A=android/app/build/outputs/apk/debug/app-debug.apk
+          SZ=$(stat -c%s "$A")
+          if [ "$SZ" -gt 99000000 ]; then echo "APK가 100MB 초과 — 발행 건너뜀(빌드설정 점검 필요)"; exit 0; fi
+          cp "$A" ./app-debug.apk
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add app-debug.apk
