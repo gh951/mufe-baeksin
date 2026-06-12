@@ -1,0 +1,53 @@
+name: Build MUFE Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+
+      - name: 웹 자산 준비 (www/)
+        run: |
+          mkdir -p www
+          cp index.html www/index.html
+          # 별도 파일(service-worker.js, manifest.json, 폰트 등)이 있으면 아래에 추가:
+          # cp service-worker.js www/ 2>/dev/null || true
+          # cp manifest.json www/ 2>/dev/null || true
+
+      - name: Capacitor 설치
+        run: npm install
+
+      - name: 안드로이드 플랫폼 추가
+        run: npx cap add android
+
+      - name: 웹 자산 동기화
+        run: npx cap sync android
+
+      - name: FLAG_SECURE + 카메라 권한 주입
+        run: |
+          DEST=android/app/src/main/java/com/mufe/baeksin
+          mkdir -p "$DEST"
+          cp MainActivity.java "$DEST/MainActivity.java"
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.CAMERA' "$MANIFEST" || \
+            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' "$MANIFEST"
+
+      - name: 디버그 APK 빌드
+        run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
+
+      - name: APK 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: MUFE-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

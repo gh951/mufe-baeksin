@@ -1,8 +1,12 @@
 {
-  "name": "mufe-baeksin",
+  "name": "mufe-native",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@noble/post-quantum": "0.6.1"
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
   }
 }
