@@ -13540,7 +13540,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AH · 자동전환';
+    var VER = 'BUILD 0611-AI · 차단';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
@@ -13591,6 +13591,26 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     window.addEventListener('load', function(){ setTimeout(function(){ render(); banner(); }, 800); });
     setTimeout(render, 2500);
   } catch(e){}
+})();
+</script>
+<script>
+/* ===== MUFE 구경꾼 차단 (BUILD 0611-AI) — 추가형 · 속도방지턱 =====
+   주의: '벽'이 아니라 '구경꾼/초보 차단' 심리 방어. 작정한 공격자는 우회함.
+   진짜 방어는 서버 금고 + 연산지옥 + 머릿속 열쇠.
+   개발자 끄기: 브라우저 메뉴로 콘솔 열어 localStorage.setItem('mufe-guard','off') 입력 후 새로고침 */
+(function(){
+  try {
+    if (localStorage.getItem('mufe-guard') === 'off') return;
+    window.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; }, true);
+    window.addEventListener('keydown', function(e){
+      var k = (e.key || '').toLowerCase();
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (e.key === 'F12') { e.preventDefault(); return false; }
+      if (ctrl && k === 'u') { e.preventDefault(); return false; }
+      if (ctrl && k === 's') { e.preventDefault(); return false; }
+      if (ctrl && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) { e.preventDefault(); return false; }
+    }, true);
+  } catch (e) {}
 })();
 </script>
 </body>
