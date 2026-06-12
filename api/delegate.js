@@ -4,8 +4,7 @@
  *  
  *  POST /.netlify/functions/delegate
  *  
- *  대장님이 던지신 *바클로드보* 패턴 — 1차 인증자가
- *  2차 사용자에게 위임할 수 있는 별도 암호 발급
+ *  1차 인증자(마스터)가 2차 사용자에게 위임할 수 있는 별도 암호 발급
  *  
  *  body: { masterToken, recipientId }
  *  → 수신자별 *동적 위임 답* 발급
@@ -13,7 +12,7 @@
  */
 
 const crypto = require('crypto');
-const { kvSet, kvIncr, isKVAvailable } = require('./_kv');
+const { kvSet, kvGet, kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET || 'mufe-c33-default-secret-change-in-production';
 
@@ -35,11 +34,19 @@ function verifyToken(token) {
   }
 }
 
-// 위임 답 풀 — 수신자별 다르게
-const DELEGATE_POOL = [
-  '바클로드보', '클로드보바', '보바클로드', '드바클로보',
-  '바보클로드', '보클로바드', '드보바클로'
-];
+// [C-53] 위임 답을 '발급할 때마다 다른 랜덤'으로 — 코드에 답이 없으니 읽어도 못 뚫음.
+//   입력하기 쉬운 한글 음절 30개에서 6음절 무작위(약 7억 조합). 답 자체는 KV에만 기록된다.
+const SYLLABLES = ['바','클','로','드','보','무','페','신','카','오','스','양','자','광','반','사','심','박','코','믿','해','달','별','산','강','들','꽃','빛','숲','람'];
+function randomAnswer() {
+  const b = crypto.randomBytes(6);
+  let s = '';
+  for (let i = 0; i < 6; i++) s += SYLLABLES[b[i] % SYLLABLES.length];
+  return s;
+}
+// 답 → 창고 키 (발급/검증이 *완전히 동일한* 규칙을 써야 함 — verify-delegate.js와 일치)
+function answerKey(ans) {
+  return 'delans:' + crypto.createHash('sha256').update(String(ans).trim()).digest('hex').slice(0, 24);
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -70,16 +77,18 @@ module.exports = async (req, res) => {
       return res.status(403).json({ 
           error: '권한 없음',
           detail: '진짜 인증된 사용자만 위임 가능',
-          serverSide: { trapped: true, reason: 'decoy-master-token' },
         });
     }
     
-    // 수신자별 동적 위임 답 결정
-    const recipientHash = crypto.createHash('sha256')
-      .update(`${recipientId}|${tokenData.sessionId}|${Date.now()}`)
-      .digest('hex');
-    const delegateIdx = parseInt(recipientHash.slice(0, 4), 16) % DELEGATE_POOL.length;
-    const delegateAnswer = DELEGATE_POOL[delegateIdx];
+    // [C-53] 매번 다른 랜덤 답 — 창고에 이미 있으면(드묾) 다시 뽑아 충돌 회피
+    let delegateAnswer = randomAnswer();
+    if (isKVAvailable()) {
+      for (let tries = 0; tries < 5; tries++) {
+        const dup = await kvGet(answerKey(delegateAnswer));
+        if (!dup) break;
+        delegateAnswer = randomAnswer();
+      }
+    }
     
     // 유효 기간 계산
     const durationMap = {
@@ -116,14 +125,17 @@ module.exports = async (req, res) => {
     const ttlSec = Math.ceil(expiresIn / 1000);
     
     if (isKVAvailable()) {
-      // 위임 자리 박힘
-      await kvSet(`del:${delegateId}`, {
+      const record = {
         used: false,
         issuedAt: Date.now(),
         recipientId,
         oneTime: duration === 'once',
         expiresAt: Date.now() + expiresIn,
-      }, ttlSec);
+      };
+      // 위임 자리 박힘(기존 — 토큰 기반 추적 유지)
+      await kvSet(`del:${delegateId}`, record, ttlSec);
+      // [C-53] 답 기반 검증용 — 검증측이 '이 답이 진짜 발급된 것인지' 확인
+      await kvSet(answerKey(delegateAnswer), record, ttlSec);
       
       // 통계 — 위임 발급 카운터 박음
       await kvIncr('stats:delegates:issued');

@@ -23,11 +23,10 @@ function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
 
-// 위임 답 풀 (delegate.js와 동일 — 검증용)
-const DELEGATE_POOL = [
-  '바클로드보', '클로드보바', '보바클로드', '드바클로보',
-  '바보클로드', '보클로바드', '드보바클로'
-];
+// [C-53] 답 → 창고 키 (delegate.js의 answerKey와 *완전히 동일한* 규칙이어야 함)
+function answerKey(ans) {
+  return 'delans:' + crypto.createHash('sha256').update(String(ans).trim()).digest('hex').slice(0, 24);
+}
 
 // 1회용 토큰 추적 — Netlify Functions는 stateless라 메모리 한계
 // 실전: Redis/DynamoDB 사용
@@ -82,108 +81,56 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { delegateAnswer, recipientId, delegateToken } = req.body || {};
-    
+    const { delegateAnswer, recipientId } = req.body || {};
+
     if (!delegateAnswer) {
       return res.status(400).json({ error: '위임 답을 입력해주세요' });
     }
-    
     const ans = delegateAnswer.trim();
-    
-    // 위임 답 풀 박힘 X = decoy (모토: "차단 없음, 기만 격리만")
-    if (!DELEGATE_POOL.includes(ans)) {
-      if (isKVAvailable()) await kvIncr('stats:delegate:trapped');
-      
+
+    // 미끼 응답 — 진짜와 겉보기 완전히 동일(내부표식 없음)
+    function sendDecoy(stat) {
+      if (isKVAvailable() && stat) { kvIncr(stat).catch(() => {}); }
       const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
-        type: 'decoy', issuedAt: Date.now(),
-        sessionId: crypto.randomBytes(8).toString('hex'),
-        trapped: true,
+        type: 'decoy', issuedAt: Date.now(), sessionId: crypto.randomBytes(8).toString('hex'), trapped: true,
       })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
-      
-      return res.status(200).json({
-          status: 'decoy',
-          token: fakeToken,
-          message: '정답입니다. 통과 다음 단계로',
-          detail: '',
-        });
+      return res.status(200).json({ status: 'decoy', token: fakeToken, message: '정답입니다. 통과 다음 단계로', detail: '' });
     }
-    
-    // KV에서 1회용 박힘 확인
-    if (isKVAvailable() && delegateToken) {
-      const delegateId = crypto.createHash('sha256').update(delegateToken).digest('hex').slice(0, 16);
-      const delegateData = await kvGet(`del:${delegateId}`);
-      
-      if (delegateData) {
-        // 이미 박힌 자리 = decoy
-        if (delegateData.used && delegateData.oneTime) {
-          await kvIncr('stats:delegate:reused');
-          
-          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
-            type: 'decoy', issuedAt: Date.now(),
-            sessionId: crypto.randomBytes(8).toString('hex'),
-            trapped: true, reason: 'reused',
-          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
-          
-          return res.status(200).json({
-              status: 'decoy',
-              token: fakeToken,
-              message: '정답입니다. 통과 다음 단계로',
-              detail: '',
-            });
-        }
-        
-        // 만료 자리 = decoy
-        if (delegateData.expiresAt && Date.now() > delegateData.expiresAt) {
-          await kvIncr('stats:delegate:expired');
-          
-          const fakeToken = `mufe-r.${Buffer.from(JSON.stringify({
-            type: 'decoy', issuedAt: Date.now(),
-            sessionId: crypto.randomBytes(8).toString('hex'),
-            trapped: true, reason: 'expired',
-          })).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
-          
-          return res.status(200).json({
-              status: 'decoy',
-              token: fakeToken,
-              message: '정답입니다. 통과 다음 단계로',
-              detail: '',
-            });
-        }
-        
-        // 사용 박음 (1회용 표시)
-        if (delegateData.oneTime) {
-          await kvSet(`del:${delegateId}`, {
-            ...delegateData,
-            used: true,
-            usedAt: Date.now(),
-            usedBy: recipientId || 'unknown',
-          }, 86400); // 24시간 박힘 (감사 로그용)
-        }
-      }
+
+    // [C-53] 위임은 서버 창고가 있어야 검증 가능 — 창고 없으면 미끼(기만 격리)
+    if (!isKVAvailable()) return sendDecoy(null);
+
+    // [C-53] '진짜 발급된 답'인지 창고에서 확인 — 코드의 고정 답은 더이상 통하지 않음
+    const rec = await kvGet(answerKey(ans));
+    if (!rec) return sendDecoy('stats:delegate:trapped');                         // 발급된 적 없는 답
+
+    // 만료된 위임
+    if (rec.expiresAt && Date.now() > rec.expiresAt) return sendDecoy('stats:delegate:expired');
+
+    // 1회용인데 이미 쓴 위임
+    if (rec.oneTime && rec.used) return sendDecoy('stats:delegate:reused');
+
+    // 통과 — 1회용이면 '사용함'으로 박아 재사용 차단
+    if (rec.oneTime) {
+      const ttl = Math.max(1, Math.ceil(((rec.expiresAt || Date.now()) - Date.now()) / 1000));
+      try {
+        await kvSet(answerKey(ans), { ...rec, used: true, usedAt: Date.now(), usedBy: recipientId || 'unknown' }, ttl);
+      } catch (e) {}
     }
-    
-    // 통과 → 수신자 토큰 발급
+
     const recipientToken = generateAuthToken('delegate-recipient', {
       recipientId: recipientId || 'unknown',
-      delegateAnswer: ans,
     });
-    
-    // 통계 — 성공 카운터
-    if (isKVAvailable()) {
-      await kvIncr('stats:delegate:success');
-      await kvIncr(`stats:delegate:by-day:${new Date().toISOString().slice(0,10)}`);
-    }
-    
+    await kvIncr('stats:delegate:success');
+    await kvIncr(`stats:delegate:by-day:${new Date().toISOString().slice(0, 10)}`);
+
     return res.status(200).json({
         status: 'success',
         token: recipientToken,
         message: '정답입니다. 통과 다음 단계로',
         detail: '',
-        subdetail: isKVAvailable()
-          ? `위임 박은 자리 + 1회용 진짜 추적 박힘`
-          : `위임받은 답으로 통과 — 마스터 사용자가 부여한 일시 권한`,
         permissions: ['view', 'limited-access'],
-        expiresIn: '24시간 (또는 위임 시 설정한 기간)',
+        expiresIn: '위임 시 설정한 기간',
       });
     
   } catch (err) {
