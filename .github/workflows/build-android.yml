@@ -20,19 +20,71 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
 
-      - name: www placeholder
+      - name: 웹 자산을 앱 안에 번들 (서버/빌드 파일 제외)
         run: |
-          mkdir -p www
-          echo '<!DOCTYPE html><meta charset="utf-8"><title>MUFE</title>' > www/index.html
+          rm -rf /tmp/bundle && mkdir -p /tmp/bundle
+          rsync -a \
+            --exclude='.git' --exclude='.github' --exclude='android' \
+            --exclude='node_modules' --exclude='www' --exclude='api' \
+            --exclude='*.apk' \
+            --exclude='capacitor.config.json' --exclude='package.json' --exclude='package-lock.json' \
+            --exclude='MainActivity.java' --exclude='vercel.json' --exclude='.gitignore' \
+            --exclude='login.js' --exclude='register.js' --exclude='verify.js' \
+            --exclude='verify-delegate.js' --exclude='challenge.js' --exclude='delegate.js' \
+            --exclude='_kv.js' --exclude='service-worker.js' --exclude='*.md' \
+            ./ /tmp/bundle/
+          rm -rf www && mkdir -p www && cp -a /tmp/bundle/. www/
+          test -f www/index.html || { echo "FAIL: index.html 없음"; exit 1; }
+          echo "번들된 항목:"; ls www/ | head -40
 
-      - name: Capacitor 설치
-        run: npm install
-      - name: 안드로이드 추가
-        run: npx cap add android
-      - name: 동기화
-        run: npx cap sync android
+      - name: 서버 API 호출을 라이브 서버로 자동전환 (번들용)
+        run: |
+          cat > /tmp/wrapper.html << 'WRAP'
+          <script>
+          /* [번들] API 호출을 라이브 서버로 자동전환 (CORS 열림, 정규식 미사용) */
+          (function(){
+            var REMOTE='https://mufe-baeksin.com';
+            if(!window.fetch)return;
+            var of=window.fetch.bind(window);
+            window.fetch=function(input,init){
+              try{
+                var u=(typeof input==='string')?input:(input&&input.url)||'';
+                var i=u.indexOf('/api/');
+                if(i!==-1&&u.indexOf(REMOTE)===-1){
+                  var nu=REMOTE+u.substring(i);
+                  input=(typeof input==='string')?nu:new Request(nu,input);
+                }
+              }catch(e){}
+              return of(input,init);
+            };
+          })();
+          </script>
+          WRAP
+          python3 - << 'PY'
+          import pathlib
+          w = pathlib.Path("/tmp/wrapper.html").read_text(encoding="utf-8")
+          p = pathlib.Path("www/index.html")
+          s = p.read_text(encoding="utf-8")
+          if "[번들]" not in s:
+              s = s.replace("<head>", "<head>\n" + w, 1)
+              p.write_text(s, encoding="utf-8")
+          assert "[번들]" in p.read_text(encoding="utf-8"), "주입 실패"
+          print("OK: 서버연결 자동전환 주입 완료")
+          PY
 
-      - name: FLAG_SECURE + 하얀화면방지 + 표시팝업 + 자체검사
+      - name: Capacitor 설정 (server.url 없음 = 번들 로드)
+        run: |
+          cat > capacitor.config.json << 'CFG'
+          { "appId": "com.mufe.baeksin", "appName": "MUFE 백신", "webDir": "www" }
+          CFG
+
+      - name: Capacitor 설치 / 플랫폼 / 동기화
+        run: |
+          npm install
+          npx cap add android
+          npx cap sync android
+
+      - name: FLAG_SECURE + 표시팝업 + 자체검사
         run: |
           DEST=android/app/src/main/java/com/mufe/baeksin
           mkdir -p "$DEST"
@@ -41,30 +93,17 @@ jobs:
           import android.os.Bundle;
           import android.view.WindowManager;
           import android.widget.Toast;
-          import com.getcapacitor.Bridge;
           import com.getcapacitor.BridgeActivity;
           public class MainActivity extends BridgeActivity {
-              private boolean firstResume = true;
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-                  Toast.makeText(this, "MUFE 화면보안 v4", Toast.LENGTH_LONG).show();
-              }
-              @Override
-              public void onResume() {
-                  super.onResume();
-                  if (firstResume) { firstResume = false; return; }
-                  Bridge b = getBridge();
-                  if (b != null && b.getWebView() != null) {
-                      b.getWebView().reload();
-                  }
+                  Toast.makeText(this, "MUFE 화면보안 v5 (번들)", Toast.LENGTH_LONG).show();
               }
           }
           JAVA
-          echo "===== MainActivity ====="; cat "$DEST/MainActivity.java"
           grep -q "FLAG_SECURE" "$DEST/MainActivity.java" && echo "OK FLAG_SECURE" || { echo FAIL; exit 1; }
-          grep -q "reload()" "$DEST/MainActivity.java" && echo "OK 하얀화면방지" || { echo FAIL; exit 1; }
           MANIFEST=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
 
