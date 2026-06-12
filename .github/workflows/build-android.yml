@@ -32,7 +32,7 @@ jobs:
       - name: 동기화
         run: npx cap sync android
 
-      - name: FLAG_SECURE + 표시팝업 + 카메라 + 자체검사
+      - name: FLAG_SECURE + 하얀화면방지 + 표시팝업 + 자체검사
         run: |
           DEST=android/app/src/main/java/com/mufe/baeksin
           mkdir -p "$DEST"
@@ -41,18 +41,30 @@ jobs:
           import android.os.Bundle;
           import android.view.WindowManager;
           import android.widget.Toast;
+          import com.getcapacitor.Bridge;
           import com.getcapacitor.BridgeActivity;
           public class MainActivity extends BridgeActivity {
+              private boolean firstResume = true;
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-                  Toast.makeText(this, "MUFE 화면보안 ON (v3)", Toast.LENGTH_LONG).show();
+                  Toast.makeText(this, "MUFE 화면보안 v4", Toast.LENGTH_LONG).show();
+              }
+              @Override
+              public void onResume() {
+                  super.onResume();
+                  if (firstResume) { firstResume = false; return; }
+                  Bridge b = getBridge();
+                  if (b != null && b.getWebView() != null) {
+                      b.getWebView().reload();
+                  }
               }
           }
           JAVA
           echo "===== MainActivity ====="; cat "$DEST/MainActivity.java"
           grep -q "FLAG_SECURE" "$DEST/MainActivity.java" && echo "OK FLAG_SECURE" || { echo FAIL; exit 1; }
+          grep -q "reload()" "$DEST/MainActivity.java" && echo "OK 하얀화면방지" || { echo FAIL; exit 1; }
           MANIFEST=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
 
