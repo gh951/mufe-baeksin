@@ -32,7 +32,7 @@ jobs:
             --exclude='login.js' --exclude='register.js' --exclude='verify.js' \
             --exclude='verify-delegate.js' --exclude='challenge.js' --exclude='delegate.js' \
             --exclude='_kv.js' --exclude='service-worker.js' --exclude='*.md' \
-            --exclude='mufe-electron' --exclude='*.exe' --exclude='*.dmg' \
+            --exclude='mufe-electron' --exclude='무폐 이미지' --exclude='*.exe' --exclude='*.dmg' \
             --exclude='*.AppImage' --exclude='*.zip' --exclude='dist' --exclude='out' \
             ./ /tmp/bundle/
           rm -rf www && mkdir -p www && cp -a /tmp/bundle/. www/
@@ -49,7 +49,7 @@ jobs:
           (function(){
             function show(m,c){try{var d=document.getElementById('__diag')||document.createElement('div');d.id='__diag';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:'+(c||'#111')+';color:#fff;font:14px monospace;padding:8px;white-space:pre-wrap;word-break:break-all';d.textContent=m;(document.body||document.documentElement).appendChild(d);}catch(e){}}
             window.onerror=function(m,src,ln){show('오류: '+m+' @'+String(src||'').split('/').pop()+':'+ln,'#b00000');return false;};
-            document.addEventListener('DOMContentLoaded',function(){show('JS OK 로딩중...','#007700');});
+            document.addEventListener('DOMContentLoaded',function(){show('JS OK 로딩중...','#007700');setTimeout(function(){var d=document.getElementById('__diag');if(d&&d.textContent.indexOf('JS OK')===0)d.remove();},3500);});
             setTimeout(function(){var b=document.body;if(b&&b.innerText.replace(/\s/g,'').length<3){show('3초: 본문 비어있음 (로드실패 의심)','#b00000');}},3000);
             try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});});}}catch(e){}
           })();
@@ -77,11 +77,19 @@ jobs:
           w = pathlib.Path("/tmp/wrapper.html").read_text(encoding="utf-8")
           p = pathlib.Path("www/index.html")
           s = p.read_text(encoding="utf-8")
+          # 1) 인앱 탈출 스크립트 무력화 (네이티브 WebView가 ;wv) 때문에 Chrome로 탈출→흰화면)
+          s = s.replace("(function mufeEscapeInApp(){", "(function mufeEscapeInApp(){ return; /*번들:탈출비활성*/ ", 1)
+          # 2) 이미지암호/대문 이미지를 서버에서 로드 (앱 경량화)
+          s = s.replace("const MUFE_IMG_DIRS  = ['/무폐 이미지/', '/images/'];", "const MUFE_IMG_DIRS  = ['https://mufe-baeksin.com/무폐 이미지/', 'https://mufe-baeksin.com/images/'];", 1)
+          for _pp in ["/무폐 이미지/chaos-000.png.jpeg", "/무폐 이미지/chaos-000.png", "/images/chaos-000.png"]:
+              s = s.replace("'" + _pp + "'", "'https://mufe-baeksin.com" + _pp + "'")
+              s = s.replace('"' + _pp + '"', '"https://mufe-baeksin.com' + _pp + '"')
+          # 3) 진단줄 + API 자동전환 주입
           if "[번들]" not in s:
               s = s.replace("<head>", "<head>\n" + w, 1)
-              p.write_text(s, encoding="utf-8")
-          assert "[번들]" in p.read_text(encoding="utf-8"), "주입 실패"
-          print("OK: 서버연결 자동전환 주입 완료")
+          p.write_text(s, encoding="utf-8")
+          assert ("[번들]" in s) and ("탈출비활성" in s), "보정/주입 실패"
+          print("OK: 탈출비활성 + 이미지서버화 + 자동전환 완료")
           PY
 
       - name: Capacitor 설정 (server.url 없음 = 번들 로드)
@@ -115,7 +123,7 @@ jobs:
                   try {
                       new android.app.AlertDialog.Builder(this)
                           .setTitle("성공")
-                          .setMessage("MUFE v7 진단 · 화면보안 ON")
+                          .setMessage("MUFE v8 · 화면보안 ON")
                           .setPositiveButton("확인", null)
                           .show();
                   } catch (Exception e) {}
