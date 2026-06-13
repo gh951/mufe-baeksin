@@ -116,8 +116,13 @@ module.exports = async (req, res) => {
       }
       if (typeof signature !== 'string') return res.status(200).json({ status: 'locked', message: '서명 없음' });
 
-      // 양자내성(ML-DSA) 검증 — ESM 동적 import
-      const { ml_dsa65 } = await import('@noble/post-quantum/ml-dsa.js');
+      // 양자내성(ML-DSA) 검증 — ESM 동적 import (실패 시 정확한 이유를 화면에 노출)
+      let ml_dsa65;
+      try {
+        ({ ml_dsa65 } = await import('@noble/post-quantum/ml-dsa.js'));
+      } catch (impErr) {
+        return res.status(200).json({ status: 'locked', message: '양자 라이브러리 로드 실패(서버 의존성 누락): ' + String((impErr && impErr.message) || impErr).slice(0, 100) });
+      }
       const toU8 = (b64) => new Uint8Array(Buffer.from(b64, 'base64'));
       let ok = false;
       try {
@@ -135,6 +140,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ status: 'error', message: '알 수 없는 action' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', detail: err.message });
+    console.error('[proof] error:', err && err.message);
+    return res.status(500).json({ status: 'error' });
   }
 };
