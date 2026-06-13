@@ -93,17 +93,25 @@ module.exports = async (req, res) => {
 
     // ③ 진짜 인증 통과 — 금고 키 정하기
     let key;
+    let legacyKey = null;   // [D] 옛 슬롯 읽기 폴백용(자동 이전은 안 함)
     if (auth.vk) {
       // 고보안(양자 도장): 토큰에 *서명되어 박힌* 기준으로 금고 키 — 위조 불가(서버 SECRET 서명).
       //   신원 토큰(mufe-u) 없이도 동작 → 비번 서버 미전송 철학 유지.
       key = 'vault:' + sign('vault-pq|' + auth.vk);
     } else {
-      // 간편: 신원 토큰(mufe-u)에서 안정적 키
+      // [D] 간편: 금고를 *userId*로 격리 — 비번 평문을 키에 쓰지 않는다(토큰엔 비번 없음).
+      //   userId는 진짜 토큰에 서명되어 박혀 있어(verify/register) 사용자마다 유일.
       const userData = verifyToken(userToken, 'mufe-u');
-      if (!userData) {
+      const uid = auth.userId || (userData && userData.userId) || null;
+      if (!uid && !userData) {
         return res.status(200).json({ status: 'locked', message: '금고 잠김 — 신원 확인 실패' });
       }
-      key = vaultKeyFor(userData);
+      if (uid) {
+        key = 'vault:' + sign('vault-uid|' + uid);                  // 새 격리 키(사용자별 유일)
+        legacyKey = userData ? vaultKeyFor(userData) : null;        // 옛 키 — 읽기만 폴백
+      } else {
+        key = vaultKeyFor(userData);                                // uid 없는 아주 옛 토큰만
+      }
     }
 
     // ── 저장 ──
@@ -123,7 +131,13 @@ module.exports = async (req, res) => {
       return res.status(200).json({ status: 'unlocked', vault: { content: '', updatedAt: null }, message: '서버 저장소(KV) 미연결' });
     }
     await kvIncr('stats:vault:get');
-    const record = await kvGet(key);
+    let record = await kvGet(key);
+    if (!record && legacyKey) {
+      // [D] 새 격리 슬롯이 비어 있으면 옛 슬롯을 '읽기만' 시도(자동 복사 안 함 — 공유슬롯 오염 방지).
+      //   한 번 저장(set)하면 새 격리 슬롯으로 들어가 이후 완전 격리된다.
+      const legacy = await kvGet(legacyKey);
+      if (legacy) record = legacy;
+    }
     return res.status(200).json({ status: 'unlocked', vault: record || { content: '', updatedAt: null } });
 
   } catch (err) {
