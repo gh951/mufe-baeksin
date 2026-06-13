@@ -12005,11 +12005,9 @@ function finishBioMeasurement() {
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
   // [C-47v4] 타이머가 "진짜 맥박일 때만" 진행하므로, 완료 = 맥박이 지속 검출됨. 통과 = 맥박 검출(사진·책상·천장은 맥박 0 → 막대가 안 가서 완료 자체가 안 됨). 진행과 판정이 일치 → 모순 제거.
-  // [수정] 진행=판정 일치 — 타이머가 끝까지 찬 건 혈류(맥파)가 그만큼 지속 감지됐다는 뜻(살아있는 사람).
-  //   기존엔 타이머는 혈류로 진행하는데 판정은 _mufePulseSeen(정확 BPM)으로 따로 봐서, 100% 채워도 '혈류 없음'으로 막히는 모순이 있었음.
-  //   사진·책상·천장은 맥파 주기성이 없어 hasBloodFlow=false → 타이머가 안 차므로 완료 자체가 안 됨(라이브니스 유지).
-  const livingOk = _MUFE_AuthEngine._activeMs >= (_MUFE_AuthEngine.timeLimit * 0.9);
-  const success = livingOk || (window._mufePulseSeen||0) >= 1;
+  // [라이브니스 복원] 통과 = 실제 맥박 피크가 여러 번 검출됐는가. 시간이 아니라 '진짜 혈류'가 기준.
+  //   노이즈·손떨림·정지화면·사진은 규칙적 맥박 피크가 안 잡혀 _mufePulseSeen이 안 쌓임 → 통과 불가.
+  const success = (window._mufePulseSeen||0) >= 3;
   
   const result = {
     success,
@@ -12272,27 +12270,20 @@ function getGreenChannelAverage() {
         r > bl &&                          // 최소한 적색이 청색보다 (피부 경향)
         r > 60 && r < 245;                 // 밝기 범위 (너무 어둡/밝지 않게)
 
-  // 최근 녹색채널 흐름을 모아 '맥파(주기적 진동)'가 있는지 실시간 분석
+  // 최근 녹색채널 흐름 + 시각을 모아 '맥파(주기적 박동)'를 피크 검출로 분석
   _MUFE_AuthEngine._pulseBuf = (_MUFE_AuthEngine._pulseBuf || []);
+  _MUFE_AuthEngine._pulseT = (_MUFE_AuthEngine._pulseT || []);
   _MUFE_AuthEngine._pulseBuf.push(g);
-  if (_MUFE_AuthEngine._pulseBuf.length > 60) _MUFE_AuthEngine._pulseBuf.shift();
+  _MUFE_AuthEngine._pulseT.push(Date.now() / 1000);
+  if (_MUFE_AuthEngine._pulseBuf.length > 90) { _MUFE_AuthEngine._pulseBuf.shift(); _MUFE_AuthEngine._pulseT.shift(); }
 
+  // [CGO 이식] 피크 검출로 맥파 판정 — 노이즈·손떨림에 강건. (60표본+ 모인 후 = 워밍업)
   let hasBloodFlow = false;
   const buf = _MUFE_AuthEngine._pulseBuf;
-  if (buf.length >= 45) {
-    // 평균 대비 진폭(표준편차)과 '0선 교차(주기성)'를 본다
-    const m = buf.reduce((a, b) => a + b, 0) / buf.length;
-    let v = 0, crossings = 0;
-    for (let i = 0; i < buf.length; i++) {
-      v += (buf[i] - m) * (buf[i] - m);
-      if (i > 0 && (buf[i-1] - m) * (buf[i] - m) < 0) crossings++;
-    }
-    const std = Math.sqrt(v / buf.length);
-    // 맥파 조건: (1) 적당한 진동 진폭(평탄=책상 거부, 과대=노이즈 거부)
-    //           (2) 주기적 교차가 심박 범위(분당 약 40~180 → 표본창에서 적정 횟수)
-    const amplitudeOK = std > 0.30 && std < 18;
-    const periodicityOK = crossings >= 4 && crossings <= 40;
-    hasBloodFlow = amplitudeOK && periodicityOK;
+  if (buf.length >= 60) {
+    const pk = _mufeDetectPeaks(buf, _MUFE_AuthEngine._pulseT);
+    // 신호강도 충분 + 실제 맥박 피크 2개+ + BPM 정상 → 살아있는 혈류
+    hasBloodFlow = pk.sigStd > 0.35 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180;
   }
 
   // 최종: 혈류(맥파)가 진짜 있고, 색도 피부 경향이어야 '살아있는 본인'
@@ -12312,37 +12303,47 @@ function getGreenChannelAverage() {
   return { green: g, isSkin };
 }
 
+// [CGO 이식] 동적 임계 피크 검출 — 단순 0선 교차보다 노이즈·손떨림에 강함.
+//   detrend → σ → 임계(σ×0.3) → 좌우 3포인트 국소최대 → 최소간격(BPM180 상한) → 피크 시각 → BPM.
+function _mufeDetectPeaks(values, times) {
+  const m = values.reduce((a, b) => a + b, 0) / values.length;
+  const det = values.map(v => v - m);
+  let ss = 0; for (let i = 0; i < det.length; i++) ss += det[i] * det[i];
+  const sigStd = Math.sqrt(ss / det.length);
+  const thr = sigStd * 0.3, WIN = 3, minGap = 0.33;
+  let lastT = -1; const peaks = [];
+  for (let i = WIN; i < det.length - WIN; i++) {
+    if (det[i] < thr) continue;
+    let pk = true;
+    for (let w = 1; w <= WIN; w++) { if (det[i] < det[i - w] || det[i] < det[i + w]) { pk = false; break; } }
+    if (!pk) continue;
+    const pt = times ? times[i] : i / 30;
+    if (pt - lastT < minGap) continue;
+    peaks.push(pt); lastT = pt;
+  }
+  let bpm = 0;
+  if (peaks.length >= 2) {
+    let iv = 0; for (let i = 1; i < peaks.length; i++) iv += (peaks[i] - peaks[i - 1]);
+    const avg = iv / (peaks.length - 1); bpm = avg > 0 ? 60 / avg : 0;
+  }
+  if (bpm < 40 || bpm > 180) bpm = 0;
+  return { peaks: peaks.length, bpm, sigStd };
+}
+
 function calculateMUFEBpm() {
   if (_MUFE_AuthEngine.g_values.length < 100) return;
-  
+
   const signals = _MUFE_AuthEngine.g_values.slice(-100);
-  const mean = signals.reduce((a, b) => a + b) / signals.length;
-  
-  // [C-45] 혈류 신호 강도(분산) 검사 — 진짜 맥파는 일정한 진폭으로 진동.
-  //   책상·벽처럼 변화 없는 평탄 신호나, 무작위 노이즈는 여기서 걸러짐.
-  let variance = 0;
-  for (let i = 0; i < signals.length; i++) {
-    variance += (signals[i] - mean) * (signals[i] - mean);
-  }
-  variance /= signals.length;
-  const std = Math.sqrt(variance);
-  // 맥파라면 적정 진폭 범위(너무 평탄≠혈류, 너무 요동≠노이즈)
-  const validPulse = std > 0.25 && std < 25;
-  
-  let crossings = 0;
-  for (let i = 1; i < signals.length; i++) {
-    if ((signals[i-1] - mean) * (signals[i] - mean) < 0) crossings++;
-  }
-  
+  // 실측 fps로 피크 시각 환산 (BPM·최소간격 계산용)
   const elapsedSec = (Date.now() - _MUFE_AuthEngine.startTime) / 1000;
-  const sampleRate = _MUFE_AuthEngine.sampleCount / Math.max(elapsedSec, 1);
-  const estimatedBPM = (crossings / 2) * (60 / (signals.length / Math.max(sampleRate, 10)));
-  
-  // 피부 감지 + 적정 맥파 진폭 + BPM 범위 + 난수광원 반사 정합 — 모두 만족해야 사람
-  if (_MUFE_AuthEngine.skinDetected && validPulse && estimatedBPM > 40 && estimatedBPM < 180) {
-    _MUFE_AuthEngine.lastBPM = Math.round(estimatedBPM);
-    window._mufePulseSeen = (window._mufePulseSeen||0) + 1;   // [C-47v3] 진짜 맥박(40~180) 검출 횟수 — 사진은 맥박 0이라 안 올라감
-    // 광반사 검증: 표본이 충분히 모이면 상관관계 확인
+  const fps = _MUFE_AuthEngine.sampleCount / Math.max(elapsedSec, 1);
+  const times = signals.map((_, i) => i / Math.max(fps, 10));
+  const pk = _mufeDetectPeaks(signals, times);
+
+  // 피부 + 신호강도 충분(약신호·평탄 거부) + 실제 맥박 피크 2개+ + BPM 정상 — 모두여야 살아있는 사람
+  if (_MUFE_AuthEngine.skinDetected && pk.sigStd > 0.35 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180) {
+    _MUFE_AuthEngine.lastBPM = Math.round(pk.bpm);
+    window._mufePulseSeen = (window._mufePulseSeen||0) + 1;   // 진짜 맥박 피크 검출 — 노이즈·정지화면은 규칙적 피크가 없어 안 올라감
     _MUFE_AuthEngine.lightReflexPassed = analyzeLightReflex();
     _MUFE_AuthEngine.isHuman = _MUFE_AuthEngine.lightReflexPassed;
   } else {
@@ -13818,7 +13819,7 @@ window.mufeSplitUI = (function(){
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AP · 생체수정+분할금고';
+    var VER = 'BUILD 0611-AQ · 생체피크검출+분할금고';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
