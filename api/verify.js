@@ -11,6 +11,7 @@
  */
 const crypto = require('crypto');
 const { kvGet, kvSet, kvIncr, isKVAvailable } = require('./_kv');
+const { argon2id } = require('@noble/hashes/argon2.js');   // [#9] 메모리-하드 비번 해시(Argon2id)
 
 const SECRET = process.env.MUFE_SECRET;   // 기본값 fallback 제거
 
@@ -26,10 +27,20 @@ function hashPasscodeV2(passcode, userId) {
   const salt = crypto.createHash('sha256').update(SECRET + '|' + (userId || '')).digest();
   return 'p2:' + crypto.pbkdf2Sync(String(passcode), salt, KDF_ITER, 32, 'sha256').toString('hex');
 }
-// 저장형식 자동 판별 — p2:=PBKDF2(신), 그 외=HMAC(구). 일정시간 비교(타이밍 누출 줄임).
+// [#9] Argon2id — 메모리-하드(GPU/ASIC 대입 저항). 보고서의 'Argon2id' 주장과 서버 정합.
+//   m=19MB·t=2 (서버 ~0.8s/회). 추가형: 기존 p2(PBKDF2)·HMAC 그대로 검증되고, 통과 시 p3로 자동 격상.
+const ARGON = { t: 2, m: 19456, p: 1, dkLen: 32 };
+function hashPasscodeV3(passcode, userId) {
+  const salt = crypto.createHash('sha256').update(SECRET + '|v3|' + (userId || '')).digest();
+  return 'p3:' + Buffer.from(argon2id(String(passcode), salt, ARGON)).toString('hex');
+}
+// 저장형식 자동 판별 — p3:=Argon2id(최신), p2:=PBKDF2, 그 외=HMAC(구). 일정시간 비교(타이밍 누출 줄임).
 function verifyPass(passcode, userId, stored) {
   if (!stored || typeof stored !== 'string') return false;
-  const cand = stored.startsWith('p2:') ? hashPasscodeV2(passcode, userId) : hashPasscode(passcode);
+  let cand;
+  if (stored.startsWith('p3:')) cand = hashPasscodeV3(passcode, userId);
+  else if (stored.startsWith('p2:')) cand = hashPasscodeV2(passcode, userId);
+  else cand = hashPasscode(passcode);
   if (cand.length !== stored.length) return false;
   try { return crypto.timingSafeEqual(Buffer.from(cand), Buffer.from(stored)); } catch (e) { return false; }
 }
@@ -198,7 +209,7 @@ module.exports = async (req, res) => {
 
     // 이행기 폴백: 창고에 없고 옛 토큰이 비번을 품고 있으면 그걸로 통과시키고 해시를 창고로 옮김
     if (!storedPassHash && userData.passcode) {
-      storedPassHash = hashPasscodeV2(userData.passcode, userId);
+      storedPassHash = hashPasscodeV3(userData.passcode, userId);
       try {
         if (isKVAvailable() && userId) {
           await kvSet(`user:${userId}`, { passHash: storedPassHash, format: userFormat, migratedAt: Date.now() });
@@ -220,7 +231,9 @@ module.exports = async (req, res) => {
     // 어떤 형식으로 입력했는지 — 비번 후보를 형식별로 떼어 (버전 자동판별) 비교
     let matchedFormat = null;
     let matchedCand = null;
-    for (const fmt of ALL_FORMATS) {
+    // [#9] 등록 형식(userFormat)을 가장 먼저 — 정상 로그인은 해시 1회로 끝남(Argon2id 비용 절감)
+    const fmtOrder = [userFormat].concat(ALL_FORMATS.filter(f => f !== userFormat));
+    for (const fmt of fmtOrder) {
       const cand = extractPasscode(userAnswer, caughtWord, fmt);
       if (cand == null) continue;
       if (verifyPass(cand, userId, storedPassHash)) { matchedFormat = fmt; matchedCand = cand; break; }
@@ -229,9 +242,9 @@ module.exports = async (req, res) => {
     // 등록한 형식과 일치 = 진짜 통과
     if (matchedFormat && matchedFormat === userFormat) {
       // [#9] 옛 HMAC 해시면 → PBKDF2로 자동 격상 저장(1회). 실패해도 통과엔 영향 없음.
-      if (matchedCand != null && isKVAvailable() && userId && !(typeof storedPassHash === 'string' && storedPassHash.startsWith('p2:'))) {
+      if (matchedCand != null && isKVAvailable() && userId && !(typeof storedPassHash === 'string' && storedPassHash.startsWith('p3:'))) {
         try {
-          await kvSet(`user:${userId}`, { passHash: hashPasscodeV2(matchedCand, userId), format: userFormat, upgradedAt: Date.now() });
+          await kvSet(`user:${userId}`, { passHash: hashPasscodeV3(matchedCand, userId), format: userFormat, upgradedAt: Date.now() });
         } catch (e) {}
       }
       const realToken = generateAuthToken('real', userId, userFormat);

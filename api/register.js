@@ -9,6 +9,7 @@
  */
 const crypto = require('crypto');
 const { kvSet, kvGet, kvIncr, isKVAvailable } = require('./_kv');
+const { argon2id } = require('@noble/hashes/argon2.js');   // [#9] 메모리-하드 비번 해시(Argon2id)
 
 const SECRET = process.env.MUFE_SECRET;   // 기본값 fallback 제거
 const VALID_FORMATS = ['joined-after', 'spaced-after', 'joined-before', 'spaced-before'];
@@ -24,6 +25,12 @@ const KDF_ITER = 200000;
 function hashPasscodeV2(passcode, userId) {
   const salt = crypto.createHash('sha256').update(SECRET + '|' + (userId || '')).digest();
   return 'p2:' + crypto.pbkdf2Sync(String(passcode), salt, KDF_ITER, 32, 'sha256').toString('hex');
+}
+// [#9] Argon2id — verify.js의 hashPasscodeV3와 *완전히 동일한* 규칙이어야 함(salt 'v3' 태그·파라미터 동일).
+const ARGON = { t: 2, m: 19456, p: 1, dkLen: 32 };
+function hashPasscodeV3(passcode, userId) {
+  const salt = crypto.createHash('sha256').update(SECRET + '|v3|' + (userId || '')).digest();
+  return 'p3:' + Buffer.from(argon2id(String(passcode), salt, ARGON)).toString('hex');
 }
 function getUserId(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`uid:${passcode}`).digest('hex').slice(0, 16);
@@ -58,7 +65,7 @@ module.exports = async (req, res) => {
     if (!VALID_FORMATS.includes(format)) return res.status(400).json({ error: '유효한 형식을 입력해주세요' });
 
     const userId = getUserId(passcode);
-    const passHash = hashPasscodeV2(passcode, userId);   // [#9] 새 가입은 처음부터 PBKDF2
+    const passHash = hashPasscodeV3(passcode, userId);   // [#9] 새 가입은 처음부터 Argon2id
 
     let existingUser = null;
     if (isKVAvailable()) existingUser = await kvGet(`user:${userId}`);
@@ -92,6 +99,7 @@ module.exports = async (req, res) => {
       detail: '',
     });
   } catch (err) {
-    return res.status(500).json({ error: '등록 실패', detail: err.message });
+    console.error('[register] error:', err && err.message);
+    return res.status(500).json({ error: '등록 실패' });
   }
 };
