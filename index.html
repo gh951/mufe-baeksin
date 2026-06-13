@@ -1,4 +1,4 @@
-<!-- MUFE build AV-132831 - 2026-06-13 - 분할금고+도장팝업+생체피크+클릭재킹 전부 포함 -->
+<!-- MUFE build AW-143319 - 2026-06-13 - 분할금고 폰조각 저장제거(휘발)+자동prompt제거+끄기길+메시지가시성 -->
 <!DOCTYPE html>
 <!-- MUFE 백신 — 양자·AI 시대 대응 보안 -->
 <html lang="ko">
@@ -5590,7 +5590,7 @@
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <button id="mufe-split-btn" onclick="window.mufeSplitUI && window.mufeSplitUI.onClick()" disabled
               style="padding:7px 13px;border:1px solid rgba(212,168,67,.5);border-radius:9px;background:transparent;color:#d4a843;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;">🔐 분할 금고 (서버+폰 2조각)</button>
-            <span id="mufe-split-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
+            <span id="mufe-split-msg" style="font-size:12px;color:#d4a843;font-weight:600;"></span>
           </div>
           <div id="mufe-split-words" style="display:none;margin-top:10px;padding:12px;border-radius:10px;background:rgba(0,0,0,.3);font-size:12px;line-height:1.8;color:#ffe9b0;word-break:keep-all;"></div>
         </div>
@@ -13658,27 +13658,31 @@ window.mufeSplit = (function(){
     var r = await callVault('share-init', { mode:mode });
     if(r.status!=='ok') throw new Error('서버조각 실패: '+(r.message||r.status));
     var S = E.b64ToU8(r.share), P, words=null;
-    if(r.mode==='A'){ P = E.randomP(); words = await E.entropyToWords(P); try{ localStorage.setItem('mufe-split-p', E.u8ToB64(P)); }catch(e){} }
+    if(r.mode==='A'){ P = E.randomP(); words = await E.entropyToWords(P); }   /* [휘발] 폰조각 저장 안 함 — 24단어만이 유일한 복구 수단 */
     else { P = await E.derivePassP(pwSecret(), SALT_B); }
     window._mufeSplitK = E.xor(P,S);
+    try{ if(P&&P.fill) P.fill(0); }catch(e){}   /* [휘발] 폰조각 즉시 0으로 — 결합키 K만 세션 메모리에 남김 */
     return { mode:r.mode, words:words };
   }
   // 분할 금고 열기 — 폰조각 확보→K 세팅. opts.words 주면 24단어로 복구. 반환: 'ok'|'not-setup'|'need-recovery'
   async function unlock(opts){
     if(!E) throw new Error('엔진 미초기화');
     opts = opts||{};
+    if(!opts.words && window._mufeSplitK && window._mufeSplitK.length===32) return 'ok';   /* [휘발] 같은 세션이면 메모리의 K 재사용 */
     var r = await callVault('share-get');
     if(r.status==='no-share') return 'not-setup';
     if(r.status!=='ok') throw new Error('서버조각 조회 실패: '+(r.message||r.status));
     var S = E.b64ToU8(r.share), P;
     if(r.mode==='A'){
-      if(opts.words){ P = await E.wordsToEntropy(opts.words); try{ localStorage.setItem('mufe-split-p', E.u8ToB64(P)); }catch(e){} }
-      else { var pb=null; try{ pb=localStorage.getItem('mufe-split-p'); }catch(e){} if(!pb) return 'need-recovery'; P = E.b64ToU8(pb); }
+      if(opts.words){ P = await E.wordsToEntropy(opts.words); }   /* [휘발] 24단어로만 복구 — 어디에도 저장 안 함 */
+      else { return 'need-recovery'; }   /* [휘발] 메모리에 K 없고 24단어도 없으면 → 복구 필요 */
     } else { P = await E.derivePassP(pwSecret(), SALT_B); }
     window._mufeSplitK = E.xor(P,S);
+    try{ if(P&&P.fill) P.fill(0); }catch(e){}   /* [휘발] 폰조각 즉시 0으로 */
     return 'ok';
   }
-  function clear(){ window._mufeSplitK = null; }
+  function clear(){ try{ if(window._mufeSplitK&&window._mufeSplitK.fill) window._mufeSplitK.fill(0); }catch(e){} window._mufeSplitK = null; }
+  try{ window.addEventListener('beforeunload', function(){ try{ if(window._mufeSplitK&&window._mufeSplitK.fill) window._mufeSplitK.fill(0); window._mufeSplitK=null; }catch(e){} }); }catch(e){}   /* [휘발] 페이지 떠나면 결합키 0으로 */
   return { setup:setup, unlock:unlock, clear:clear };
 })();
 </script>
@@ -13695,6 +13699,12 @@ window.mufeSplitUI = (function(){
     var rows = words.map(function(w,i){ return '<span style="display:inline-block;min-width:100px;">'+(i+1)+'. '+w+'</span>'; }).join('');
     d.innerHTML = '<b style="color:#d4a843;">복구 24단어 — 종이에 적어 보관하세요 (화면 캡처 금지)</b><br>'+rows+
       '<br><button onclick="document.getElementById(\'mufe-split-words\').style.display=\'none\'" style="margin-top:10px;padding:6px 12px;border:none;border-radius:8px;background:#d4a843;color:#000;font-weight:700;cursor:pointer;font-size:11px;font-family:inherit;">적었습니다 · 숨기기</button>';
+    d.style.display='block';
+  }
+  function needRecoveryUI(){
+    msg('🔑 이 세션엔 폰 조각이 없습니다 — 아래 버튼으로 24단어를 넣어 여세요');
+    var d=g('mufe-split-words'); if(!d) return;
+    d.innerHTML='<button onclick="window.mufeSplitUI&&window.mufeSplitUI.recover()" style="padding:9px 18px;border:none;border-radius:10px;background:#d4a843;color:#000;font-weight:800;cursor:pointer;font-size:13px;font-family:inherit;">🔑 24단어 입력해 복구</button>';
     d.style.display='block';
   }
   async function recover(){
@@ -13716,14 +13726,16 @@ window.mufeSplitUI = (function(){
     try{
       var r = await window.mufeSplit.unlock();
       if(r==='ok') msg('🔐 분할 잠금 해제됨 (2조각 결합)');
-      else if(r==='need-recovery'){ msg('이 기기에 폰 조각이 없습니다 — 24단어로 복구하세요'); recover(); }
+      else if(r==='need-recovery'){ needRecoveryUI(); }   /* [휘발] 자동 입력창 대신 능동 버튼 — 갑자기 뜨던 prompt 제거 */
       else if(r==='not-setup'){ setFlag(false); msg('서버에 분할 정보가 없습니다 (다시 켜세요)'); }
     }catch(e){ msg('분할 해제 실패: '+((e&&e.message)||e)); }
   }
   async function onClick(){
     if(!window.mufeSplit){ msg('엔진 준비 안 됨'); return; }
     if(flag()){
-      if(window.confirm('이미 분할 금고가 켜져 있습니다.\n확인 = 다른 기기에서 열기 위해 24단어로 복구\n취소 = 닫기')) recover();
+      var c = window.confirm('이미 분할 금고가 켜져 있습니다.\n\n[확인] 24단어로 복구 (다른 기기 / 폰조각 없을 때)\n[취소] 끄고 처음부터 다시 켜기');
+      if(c) recover();
+      else { try{ window.mufeSplit.clear(); }catch(e){} setFlag(false); var dw=g('mufe-split-words'); if(dw){ dw.style.display='none'; } msg('분할 금고를 껐습니다 — 버튼을 다시 눌러 새로 켜세요 (이번엔 24단어를 꼭 적으세요)'); }
       return;
     }
     var useA = window.confirm('분할 금고를 켭니다 — 마스터키를 서버+폰 두 조각으로 나눕니다.\n\n[확인] 방식 A : 24단어 백업 (가장 강함. 폰을 잃으면 24단어로만 복구)\n[취소] 방식 B : 본비번 복구 (편리하지만 보안은 비번 강도에 의존)');
@@ -13919,7 +13931,7 @@ window.mufeSplitUI = (function(){
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AV-132831 · 분할금고복원';
+    var VER = 'BUILD 0611-AW-143319 · 분할금고휘발';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
