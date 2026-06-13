@@ -19,8 +19,11 @@ const { kvGet, kvSet, kvDel, kvIncr, isKVAvailable } = require('./_kv');
 
 const SECRET = process.env.MUFE_SECRET;   // 기본키 fallback 없음
 const NONCE_TTL = 120;                    // 1회용 챌린지 120초
-// 기대 origin — 환경변수로 고정하면 가장 안전. 없으면 origin 차단은 건너뛰고 서명만 검증(가용성 우선).
-const EXPECT_ORIGIN = process.env.MUFE_ORIGIN || null;
+// [#2 피싱] 허용 origin 화이트리스트 — 환경변수(MUFE_ORIGIN, 콤마 구분) 우선, 없으면 기본 도메인.
+//   피싱 사이트(다른 origin)에서 온 패스키 응답은 여기서 차단. 패스키는 보조 출입문이라, 막혀도 본 인증(비번+생체)은 별개로 작동.
+const DEFAULT_ORIGINS = ['https://mufe-baeksin.com', 'https://www.mufe-baeksin.com', 'https://e-baeksin.com', 'https://www.e-baeksin.com'];
+const ENV_ORIGINS = (process.env.MUFE_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+const ALLOWED_ORIGINS = ENV_ORIGINS.length ? ENV_ORIGINS : DEFAULT_ORIGINS;
 
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
@@ -86,7 +89,7 @@ module.exports = async (req, res) => {
       try { cd = JSON.parse(b64ToBuf(clientDataJSON).toString()); } catch { return res.status(200).json({ status: 'locked', message: 'clientData 형식 오류' }); }
       if (cd.type !== 'webauthn.get') { await kvIncr('stats:pk:bad-type'); return res.status(200).json({ status: 'locked', message: 'type 불일치' }); }
       if (cd.challenge !== storedCh) { await kvIncr('stats:pk:bad-challenge'); return res.status(200).json({ status: 'locked', message: '챌린지 불일치' }); }
-      if (EXPECT_ORIGIN && cd.origin !== EXPECT_ORIGIN) { await kvIncr('stats:pk:bad-origin'); return res.status(200).json({ status: 'locked', message: 'origin 불일치' }); }
+      if (!ALLOWED_ORIGINS.includes(cd.origin)) { await kvIncr('stats:pk:bad-origin'); return res.status(200).json({ status: 'locked', message: 'origin 불일치 (피싱 차단)' }); }
 
       // authenticatorData 플래그 (UP=presence, UV=user verified)
       const authBuf = b64ToBuf(authData);
@@ -106,12 +109,25 @@ module.exports = async (req, res) => {
 
       if (!ok) { await kvIncr('stats:pk:bad-sig'); return res.status(200).json({ status: 'locked', message: '서명 검증 실패' }); }
 
+      // [강화] 서명 카운터 검증 — 복제된 인증기 탐지. authData[33..36]가 단조증가해야 함.
+      //   단, 동기 패스키(iCloud/구글 등)는 counter=0 고정이라 그 경우만 건너뜀(정상 사용자 안 깨지게).
+      const counter = authBuf.length >= 37 ? authBuf.readUInt32BE(33) : 0;
+      if (counter > 0) {
+        const prev = (await kvGet('pkcnt:' + credHash)) || 0;
+        if (counter <= prev) {
+          await kvIncr('stats:pk:clone-suspect');
+          return res.status(200).json({ status: 'locked', message: '카운터 역행 — 복제 의심' });
+        }
+        await kvSet('pkcnt:' + credHash, counter);
+      }
+
       await kvIncr('stats:pk:verified');
       return res.status(200).json({ status: 'ok', token: issueToken(credHash) });
     }
 
     return res.status(200).json({ status: 'error', message: '알 수 없는 action' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', detail: err.message });
+    console.error('[passkey] error:', err && err.message);
+    return res.status(500).json({ status: 'error' });
   }
 };
