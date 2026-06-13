@@ -26,6 +26,27 @@ const MAX_CONTENT  = 16384;                  // 금고 내용 최대 16KB (E2E �
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
+// [#7 at-rest] 서버 저장 시 한 겹 더 암호화 — DB(KV)가 탈취돼도 서버 SECRET 없으면 내용을 못 봄.
+//   E2E와는 별개 층: E2E는 서버도 못 봄(#8까지), at-rest는 외부 DB탈취 방어(#7). 옛 평문·가짜 금고는 접두 없으면 그대로 통과.
+function atRestKey() { return crypto.createHash('sha256').update('vault-atrest|v1|' + SECRET).digest(); }
+function encContent(plain) {
+  try {
+    if (typeof plain !== 'string' || plain === '') return plain;
+    const iv = crypto.randomBytes(12);
+    const c = crypto.createCipheriv('aes-256-gcm', atRestKey(), iv);
+    const enc = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
+    return 'v1g:' + Buffer.concat([iv, c.getAuthTag(), enc]).toString('base64');
+  } catch (e) { return plain; }
+}
+function decContent(stored) {
+  try {
+    if (typeof stored !== 'string' || !stored.startsWith('v1g:')) return stored;
+    const buf = Buffer.from(stored.slice(4), 'base64');
+    const d = crypto.createDecipheriv('aes-256-gcm', atRestKey(), buf.slice(0, 12));
+    d.setAuthTag(buf.slice(12, 28));
+    return Buffer.concat([d.update(buf.slice(28)), d.final()]).toString('utf8');
+  } catch (e) { return stored; }
+}
 // [은닉 마커 검증] verify.js 와 동일 — payload.m 이 'decoy' 마커인지 서버 SECRET만으로 판별(KV 불필요)
 function isDecoyToken(p) {
   return !!(p && p.sessionId && p.m && p.m === sign(p.sessionId + ':decoy'));
@@ -165,7 +186,7 @@ module.exports = async (req, res) => {
         const prev = await kvGet(key);
         if (prev && prev.content) await kvSet(key + '::bak', { content: prev.content, updatedAt: prev.updatedAt, backedAt: Date.now() });
       } catch (e) {}
-      const record = { content: c, updatedAt: Date.now() };
+      const record = { content: encContent(c), updatedAt: Date.now() };   // [#7 at-rest] 서버키로 한 겹 더 암호화
       await kvSet(key, record);
       await kvIncr('stats:vault:set');
       return res.status(200).json({ status: 'saved', updatedAt: record.updatedAt });
@@ -197,6 +218,10 @@ module.exports = async (req, res) => {
       //   한 번 저장(set)하면 새 격리 슬롯으로 들어가 이후 완전 격리된다.
       const legacy = await kvGet(legacyKey);
       if (legacy) record = legacy;
+    }
+    // [#7 at-rest] 저장 때 서버키로 암호화한 내용을 복호해 내려줌 (옛 평문·가짜 금고는 접두 없으면 그대로)
+    if (record && typeof record.content === 'string') {
+      record = Object.assign({}, record, { content: decContent(record.content) });
     }
     return res.status(200).json({ status: 'unlocked', vault: record || { content: '', updatedAt: null } });
 
