@@ -78,6 +78,14 @@ module.exports = async (req, res) => {
       if (typeof publicKey !== 'string' || publicKey.length < 100) {
         return res.status(200).json({ status: 'error', message: '공개키 형식 오류' });
       }
+      // [검증] 고보안(pqid) 경로면 pqid가 정말 이 공개키의 해시인지 확인 — 클라가 보낸 pqid를 그대로 믿지 않음.
+      if (typeof pqid === 'string' && pqid.length >= 16) {
+        const expectedPqid = crypto.createHash('sha256').update(Buffer.from(publicKey, 'base64')).digest('base64');
+        if (pqid !== expectedPqid) {
+          await kvIncr('stats:pq:pqid-mismatch');
+          return res.status(200).json({ status: 'error', message: '공개키 형식 오류' });
+        }
+      }
       const existing = await kvGet('pqpub:' + uid);
       if (existing) {
         // 이미 등록됨 — 덮어쓰기 금지(첫 등록만 신뢰). 같은 키면 OK.
