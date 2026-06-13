@@ -4,7 +4,9 @@
   "private": true,
   "dependencies": {
     "@capacitor/core": "^6.1.2",
-    "@capacitor/android": "^6.1.2"
+    "@capacitor/android": "^6.1.2",
+    "@noble/post-quantum": "^0.6.1",
+    "@noble/hashes": "^2.2.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2"
