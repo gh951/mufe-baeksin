@@ -120,10 +120,30 @@ module.exports = async (req, res) => {
       if (!isKVAvailable()) {
         return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결 — 저장 불가' });
       }
+      // [#11] 덮어쓰기 전에 직전 내용을 백업(최근 1부) — 실수/삭제 복구용. 실패해도 저장엔 영향 없음.
+      try {
+        const prev = await kvGet(key);
+        if (prev && prev.content) await kvSet(key + '::bak', { content: prev.content, updatedAt: prev.updatedAt, backedAt: Date.now() });
+      } catch (e) {}
       const record = { content: c, updatedAt: Date.now() };
       await kvSet(key, record);
       await kvIncr('stats:vault:set');
       return res.status(200).json({ status: 'saved', updatedAt: record.updatedAt });
+    }
+
+    // [#11] 직전 백업으로 복구 (덮어쓰기·삭제 되돌리기). 현재 내용은 백업에 swap 보관 → 복구 취소도 가능.
+    if (action === 'restore') {
+      if (!isKVAvailable()) return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결' });
+      const bak = await kvGet(key + '::bak');
+      if (!bak || !bak.content) return res.status(200).json({ status: 'no-backup', message: '복구할 직전 백업이 없습니다' });
+      try {
+        const cur = await kvGet(key);
+        if (cur && cur.content) await kvSet(key + '::bak', { content: cur.content, updatedAt: cur.updatedAt, backedAt: Date.now() });
+      } catch (e) {}
+      const record = { content: bak.content, updatedAt: Date.now(), restoredFrom: bak.backedAt || null };
+      await kvSet(key, record);
+      await kvIncr('stats:vault:restore');
+      return res.status(200).json({ status: 'restored', updatedAt: record.updatedAt });
     }
 
     // ── 읽기 (기본) ──
