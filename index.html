@@ -11956,7 +11956,7 @@ async function startMUFESensor() {
       _MUFE_AuthEngine._lastTick = now;
 
       // 혈류(맥파)가 감지될 때만 시간 누적 — 아니면 타이머 정지
-      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected && _MUFE_AuthEngine.lastBPM >= 40 && _MUFE_AuthEngine.lastBPM <= 180;   // [C-47v4] 진짜 맥박(40~180)일 때만 타이머 진행 — 맥박 없으면 막대 정지(스톱). 노이즈 가짜진행 차단.
+      const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;   // [수정] 혈류(맥파 진폭+주기성)+피부면 진행. 정확 BPM은 보조 기록 — 진짜 사람도 BPM이 흔들려 막히던 문제 해결.
       if (flowing) _MUFE_AuthEngine._activeMs += dt;
 
       const remaining = Math.max(0, _MUFE_AuthEngine.timeLimit - _MUFE_AuthEngine._activeMs);
@@ -11966,9 +11966,9 @@ async function startMUFESensor() {
       const timerFill = document.getElementById('bioTimerFill');
       if (timerText) {
         if (flowing) {
-          timerText.textContent = `⏱ ${(remaining / 1000).toFixed(1)}초 남음`;
+          timerText.textContent = `💓 측정 중 — ${(remaining / 1000).toFixed(1)}초 남음`;
         } else {
-          timerText.textContent = '⏸ 얼굴을 비춰주세요 (혈류 없음 — 정지)';
+          timerText.textContent = '📷 얼굴을 네모 안에 맞춰 주세요 (대기 중)';
         }
       }
       if (timerFill) timerFill.style.width = pct + '%';
@@ -12005,7 +12005,11 @@ function finishBioMeasurement() {
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
   // [C-47v2] 통과 = FaceMesh가 진짜 얼굴(478 좌표)을 5회+ 감지했는가. 책상·천장·벽은 얼굴좌표가 0 → 통과 불가(노이즈로 신호만 쌓이던 허점 차단). 혈류·광반사·심박은 보조 기록.
   // [C-47v4] 타이머가 "진짜 맥박일 때만" 진행하므로, 완료 = 맥박이 지속 검출됨. 통과 = 맥박 검출(사진·책상·천장은 맥박 0 → 막대가 안 가서 완료 자체가 안 됨). 진행과 판정이 일치 → 모순 제거.
-  const success = (window._mufePulseSeen||0) >= 1;
+  // [수정] 진행=판정 일치 — 타이머가 끝까지 찬 건 혈류(맥파)가 그만큼 지속 감지됐다는 뜻(살아있는 사람).
+  //   기존엔 타이머는 혈류로 진행하는데 판정은 _mufePulseSeen(정확 BPM)으로 따로 봐서, 100% 채워도 '혈류 없음'으로 막히는 모순이 있었음.
+  //   사진·책상·천장은 맥파 주기성이 없어 hasBloodFlow=false → 타이머가 안 차므로 완료 자체가 안 됨(라이브니스 유지).
+  const livingOk = _MUFE_AuthEngine._activeMs >= (_MUFE_AuthEngine.timeLimit * 0.9);
+  const success = livingOk || (window._mufePulseSeen||0) >= 1;
   
   const result = {
     success,
@@ -13814,7 +13818,7 @@ window.mufeSplitUI = (function(){
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AO · 분할금고+UI';
+    var VER = 'BUILD 0611-AP · 생체수정+분할금고';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
