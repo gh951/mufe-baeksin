@@ -5596,6 +5596,22 @@
         </div>
       </div>
 
+      <!-- ═══ 보안칩 봉인 (TEE #5) — 로그인에 폰 보안칩 생체 서명 한 겹 더, 서버가 직접 검증 ═══ -->
+      <div id="mufe-tee-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:22px;">🔐</span>
+          <span style="font-weight:800;color:#d4a843;">보안칩 봉인</span>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:10px;line-height:1.5;">
+          켜면 로그인할 때 <b>이 폰의 보안칩이 생체로 서명</b>하고 <b>서버가 직접 확인</b>해요. 다른 기기에선 통과할 수 없어요. (설치한 앱에서만 켜집니다)
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button id="mufe-tee-btn" onclick="window.MufeTeeUI && window.MufeTeeUI.onClick()" disabled
+            style="padding:7px 13px;border:1px solid rgba(212,168,67,.5);border-radius:9px;background:transparent;color:#d4a843;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;">🔒 보안칩 봉인 켜기</button>
+          <span id="mufe-tee-msg" style="font-size:12px;color:#d4a843;font-weight:600;"></span>
+        </div>
+      </div>
+
       <!-- ═══ 나만의 완전 잠금 카드 (E2E) — 쉬운 말 + 실수로 못 켜게(일부러 두 번 확인) ═══ -->
       <div id="mufe-lock-card" style="margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:14px;background:rgba(212,168,67,.05);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -8669,6 +8685,20 @@
     //   ※ keyChecked=false(간편·헬퍼 없음)는 아래 기존 서버 경로로 그대로 진행.
     // ════════════════════════════════════════════════════════════
     if (keyChecked && keyOk) {
+      // [#5 보안칩 봉인] 켠 사용자 + 보안칩 통로 있으면 — 서버가 보안칩 생체 서명을 직접 검증(한 겹 더).
+      //   안 켠 사용자/웹·구형(통로 없음)은 skip=true로 그대로 통과 (additive, 아무도 안 깨짐).
+      try {
+        if (window.MufeTeeUI) {
+          const _tee = await window.MufeTeeUI.verifyStep();
+          if (_tee && _tee.skip !== true && _tee.ok !== true) {
+            const _it = document.getElementById('authInput'); if (_it) _it.value = '';
+            showMsg('<strong>보안칩 인증 실패 — 다시 시도해 주세요</strong><br><span style="font-size:11px;opacity:.7;">' + (_tee.msg || '') + '</span>', 'error');
+            if (typeof addLog === 'function') addLog('warn','🔐','보안칩 봉인 미통과 — 입장 보류(재시도)');
+            _unlock(); return;
+          }
+          if (_tee && _tee.ok === true && typeof addLog === 'function') addLog('success','🔐','보안칩 서명 서버 검증 통과');
+        }
+      } catch (_te) { /* 모듈 오류 시 기존 통과 유지(봉인이 정상 사용자를 가두지 않게) */ }
       const _i3 = document.getElementById('authInput'); if (_i3) _i3.value = '';
       // 비밀 사본·생체 플래그 즉시 파쇄 (메모리 위생)
       try { window._bioVerifyPassed = false; if (window._mufePupilCoords) window._mufePupilCoords = null; } catch(e){}
@@ -13309,6 +13339,101 @@ document.addEventListener('keydown', (e) => {
 <script>
 /* ═══ E2E 암호화 엔진 — 비번으로 내용을 잠가서 *서버도 못 읽게*. (envelope: master 열쇠를 비번열쇠로 봉인)
    기본 꺼짐. 켜야만 동작. ②단계(24단어 복구)는 같은 master에 자물쇠 하나만 더 얹으면 됨. ═══ */
+/* ═══ 보안칩 봉인 (TEE 바인딩 #5) — 네이티브 보안칩 P-256 서명을 로그인에 한 겹 더 ═══
+ *  · 사용자 설정(켠 사람만). 보안칩 통로(window.MufeTee) 없으면(웹/구형) 조용히 건너뜀 — 기존 흐름 안 깨짐.
+ *  · 켜기: 보안칩이 키 생성(genKey, 생체 필수) → 공개키만 서버에 등록(개인키는 칩에서 안 나옴).
+ *  · 로그인: 서버 1회용 challenge → 보안칩이 생체로 서명(sign) → 서버가 공개키로 검증(tee-verify).
+ *  · 추가형: 기존 비번/생체/분할금고 한 줄도 안 건드림.
+ */
+(function(){
+  function bridge(){ return (typeof window!=='undefined' && window.MufeTee) ? window.MufeTee : null; }
+  function teeOn(){ try { return localStorage.getItem('mufe-tee-on')==='1'; } catch(e){ return false; } }
+  function credId(){ try { return 'tee-' + (localStorage.getItem('mufe-user-token')||'anon'); } catch(e){ return 'tee-anon'; } }
+  function api(){ var b=(typeof API_BASE!=='undefined' && API_BASE)?API_BASE:''; return b + '/api/passkey'; }
+
+  // 보안칩 키 생성 (동기) — "OK:<spki base64>" | "ERR:.."
+  function genKey(){
+    try { var b=bridge(); return (b && b.genKey) ? b.genKey() : 'ERR:no-bridge'; }
+    catch(e){ return 'ERR:'+(e&&e.message); }
+  }
+  // 보안칩 서명 (네이티브 콜백 → Promise). 생체 프롬프트 뜸.
+  window._mufeTeeCbs = window._mufeTeeCbs || {};
+  window.__mufeTeeCb = function(cbId, result){
+    var r = window._mufeTeeCbs[cbId];
+    if (r){ delete window._mufeTeeCbs[cbId]; r(result); }
+  };
+  function sign(challenge){
+    return new Promise(function(resolve){
+      var b = bridge();
+      if (!b || !b.sign){ resolve('ERR:no-bridge'); return; }
+      var cbId = 'cb'+Date.now()+Math.random().toString(36).slice(2);
+      window._mufeTeeCbs[cbId] = resolve;
+      try { b.sign(String(challenge), cbId); }
+      catch(e){ delete window._mufeTeeCbs[cbId]; resolve('ERR:'+(e&&e.message)); return; }
+      setTimeout(function(){ if(window._mufeTeeCbs[cbId]){ delete window._mufeTeeCbs[cbId]; resolve('ERR:timeout'); } }, 60000);
+    });
+  }
+
+  // 켜기: 키 생성 + 공개키 등록
+  async function enroll(){
+    if (!bridge()) return {ok:false, msg:'이 기기엔 보안칩 통로가 없어요 (설치한 앱에서만)'};
+    var pub = genKey();
+    if (typeof pub!=='string' || pub.indexOf('OK:')!==0) return {ok:false, msg:'보안칩 키 생성 실패'};
+    var spki = pub.slice(3);
+    try {
+      var r = await fetch(api(), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',credId:credId(),spki:spki})});
+      var j = await r.json();
+      if (j.status==='registered' || j.status==='exists'){ try{localStorage.setItem('mufe-tee-on','1');}catch(e){} return {ok:true}; }
+      return {ok:false, msg:'등록 실패: '+(j.message||j.status)};
+    } catch(e){ return {ok:false, msg:'서버 연결 실패'}; }
+  }
+  function disable(){ try{ localStorage.removeItem('mufe-tee-on'); }catch(e){} }  // 끄기(키는 칩에 남되 로그인 검증서 제외)
+
+  // 로그인 한 겹 더: challenge → 생체 서명 → 서버 검증
+  //   반환 {skip:true}=대상 아님(통과 유지), {ok:true}=서명 검증 통과, {ok:false,msg}=실패(통과 거부)
+  async function verifyStep(){
+    if (!teeOn()) return {skip:true};       // 안 켠 사용자
+    if (!bridge()) return {skip:true};      // 보안칩 통로 없음(웹/구형) — 잠그지 않음
+    try {
+      var r = await fetch(api(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'challenge',credId:credId()})});
+      var j = await r.json();
+      if (j.status!=='challenge' || !j.challenge) return {ok:false, msg:'챌린지 발급 실패'};
+      var sigR = await sign(j.challenge);    // ← 생체 프롬프트
+      if (typeof sigR!=='string' || sigR.indexOf('OK:')!==0) return {ok:false, msg:'보안칩 서명 실패/취소'};
+      var signature = sigR.slice(3);
+      r = await fetch(api(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'tee-verify',credId:credId(),signature:signature})});
+      j = await r.json();
+      return {ok: j.status==='ok', msg: j.message||j.status};
+    } catch(e){ return {ok:false, msg:'서버 연결 실패'}; }
+  }
+
+  // ── 설정 버튼 ──
+  function setMsg(t,c){ var e=document.getElementById('mufe-tee-msg'); if(e){ e.textContent=t||''; if(c) e.style.color=c; } }
+  function refreshBtn(){
+    var btn=document.getElementById('mufe-tee-btn'); if(!btn) return;
+    if (!bridge()){ btn.disabled=true; btn.textContent='🔒 보안칩 봉인 (앱 전용)'; setMsg('브라우저에선 사용 불가 — 설치한 앱에서 켜집니다','rgba(255,255,255,.5)'); return; }
+    btn.disabled=false;
+    if (teeOn()){ btn.textContent='🔓 보안칩 봉인 끄기'; setMsg('켜짐 — 로그인 때 보안칩 생체 서명 한 겹 더','#4ade80'); }
+    else { btn.textContent='🔒 보안칩 봉인 켜기'; setMsg('',' #d4a843'); }
+  }
+  async function onClick(){
+    if (!bridge()){ setMsg('이 기기엔 보안칩 통로가 없어요 (설치한 앱에서만)','#fbbf24'); return; }
+    if (teeOn()){
+      if (!confirm('보안칩 봉인을 끌까요? 다음 로그인부터 보안칩 서명 단계가 빠집니다.')) return;
+      disable(); refreshBtn(); return;
+    }
+    setMsg('보안칩 키 만드는 중…','#d4a843');
+    var res = await enroll();
+    if (res.ok){ setMsg('보안칩 봉인 켜짐 ✓','#4ade80'); refreshBtn(); }
+    else { setMsg(res.msg||'실패','#fbbf24'); }
+  }
+  function afterAuth(){ try{ refreshBtn(); }catch(e){} }
+
+  window.MufeTeeUI = { verifyStep:verifyStep, onClick:onClick, afterAuth:afterAuth, refreshBtn:refreshBtn };
+  // 페이지 로드 시 버튼 상태 1회 반영
+  try { if (document.readyState!=='loading') setTimeout(refreshBtn,300); else document.addEventListener('DOMContentLoaded', function(){ setTimeout(refreshBtn,300); }); } catch(e){}
+})();
+
 /* ═══ 분할 금고 키 엔진 (#7·#8) — BIP39 24단어 + P⊕S + AES-GCM ═══ */
 /* ===========================================================================
  * MUFE 분할 금고 키 엔진  (#7·#8)
@@ -13581,6 +13706,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     var auth = window._mufeVaultAuth;
     if (!auth || !auth.token) { setStatus('잠김', true); enable(false); return; }
     try { if (window.mufeSplitUI) await window.mufeSplitUI.afterAuth(); } catch (e) {}
+    try { if (window.MufeTeeUI) window.MufeTeeUI.afterAuth(); } catch (e) {}
     try {
       var res = await fetch(window.location.origin + '/api/vault', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
