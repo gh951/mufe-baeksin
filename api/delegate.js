@@ -19,6 +19,10 @@ const SECRET = process.env.MUFE_SECRET;   // [C-53] 기본키 fallback 제거 �
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
+// [은닉 마커 검증] verify.js 와 동일 — payload.m 이 'decoy' 마커인지 서버 SECRET만으로 판별(KV 불필요)
+function isDecoyToken(p) {
+  return !!(p && p.sessionId && p.m && p.m === sign(p.sessionId + ':decoy'));
+}
 
 function verifyToken(token) {
   if (!token || !token.startsWith('mufe.')) return null;
@@ -73,12 +77,28 @@ module.exports = async (req, res) => {
         });
     }
     
-    if (tokenData.type !== 'real') {
-      // 미끼 토큰으로는 위임 불가 (진짜로는 허락하는 척하면서 격리)
-      return res.status(403).json({ 
-          error: '권한 없음',
-          detail: '진짜 인증된 사용자만 위임 가능',
-        });
+    // [허니토큰] 미끼 토큰 → 차단(403) 대신 '위임 발급 완료'한 척 진짜와 같은 형식의 가짜를 줌(연산지옥).
+    //   type이 위장돼도 잡게 서버 금고(honey KV)도 조회. 이 가짜 답은 KV에 진짜로 저장 안 됨
+    //   → 해커가 그 답으로 위임 검증을 시도하면 또 미끼에 걸림(연쇄 지옥).
+    let _isHoney = isDecoyToken(tokenData) || (tokenData.type !== 'real');   // 은닉 마커(KV독립) 우선 + 옛 type 폴백
+    if (!_isHoney && tokenData.sessionId && isKVAvailable()) {
+      try { if (await kvGet('honey:' + tokenData.sessionId)) _isHoney = true; } catch (e) {}
+    }
+    if (_isHoney) {
+      if (isKVAvailable()) {
+        await kvIncr('stats:delegates:decoy-served');
+        if (tokenData.sessionId) await kvIncr('honey-hits:' + tokenData.sessionId);
+      }
+      const _fakeRecip = (req.body && req.body.recipientId) || 'guest';
+      return res.status(200).json({
+        status: 'success',
+        delegateToken: 'mufe.' + crypto.randomBytes(24).toString('base64') + '.' + crypto.randomBytes(8).toString('hex'),
+        delegateAnswer: randomAnswer(),
+        recipientId: _fakeRecip,
+        validFor: '24시간',
+        message: '위임 인증 발급 완료',
+        detail: '수신자(' + _fakeRecip + ')는 발급된 답으로 인증 가능',
+      });
     }
     
     // [C-53] 매번 다른 랜덤 답 — 창고에 이미 있으면(드묾) 다시 뽑아 충돌 회피
@@ -157,6 +177,7 @@ module.exports = async (req, res) => {
       });
     
   } catch (err) {
-    return res.status(500).json({ error: '위임 발급 실패', detail: err.message });
+    console.error('[delegate] error:', err && err.message);
+    return res.status(500).json({ error: '위임 발급 실패' });
   }
 };

@@ -57,16 +57,23 @@ function verifyChallengeId(challengeId) {
 
 // 진짜 인증 토큰 — 비번 없음 (userId/format 만)
 function generateAuthToken(type, userId, format) {
+  const sessionId = crypto.randomBytes(8).toString('hex');
   const payload = {
-    type,
+    type: 'real',   // [완벽위장] 진짜·미끼 모두 'real' — 해커는 토큰만으론 절대 구별 못 함
     issuedAt: Date.now(),
-    sessionId: crypto.randomBytes(8).toString('hex'),
+    sessionId: sessionId,
     userId: userId || null,
     format: format || null,
-    ...(type === 'decoy' ? { sandbox: true, trapId: crypto.randomBytes(4).toString('hex') } : {}),
+    // [은닉 마커] 서버 SECRET으로만 해독 — KV 없이도 미끼 판별(약점 0). 해커 눈엔 랜덤 16진수일 뿐.
+    m: sign(sessionId + ':' + (type === 'decoy' ? 'decoy' : 'real')),
   };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
   return `mufe.${payloadB64}.${sign(payloadB64)}`;
+}
+
+// [은닉 마커 검증] payload.m 이 'decoy' 마커인지 — 서버 SECRET만으로 판별(KV 불필요). 옛 토큰(m 없음)은 false.
+function isDecoyToken(p) {
+  return !!(p && p.sessionId && p.m && p.m === sign(p.sessionId + ':decoy'));
 }
 
 // 형식 오류(토큰X·챌린지X·단어X)용 미끼 토큰
@@ -80,13 +87,29 @@ function looseDecoyToken() {
   return `mufe-r.${Buffer.from(JSON.stringify(payload)).toString('base64')}.${crypto.randomBytes(8).toString('hex')}`;
 }
 
-function sendDecoy(res, token) {
+async function sendDecoy(res, token, reason) {
+  // 모든 미끼는 '진짜 형식'(mufe. + 서명)으로 발급 → 금고·위임 API가 가드로 잡아 연산지옥으로 보냄.
+  //   (옛 looseDecoyToken은 mufe-r. 형식이라 금고가 '거부'해버려 연산지옥이 안 됐음 → 진짜 형식으로 통일)
+  const t = token || generateAuthToken('decoy', null, null);
+  await writeHoney(t, reason || 'decoy');   // 서버 금고(KV)에 'C-55의 덫' 표식
   return res.status(200).json({
     status: 'decoy',
-    token: token || looseDecoyToken(),
+    token: t,
     message: '정답입니다. 통과 다음 단계로',
     detail: '',
   });
+}
+
+// [허니토큰] 미끼 토큰을 발급할 때 — 토큰 겉엔 아무 표식도 안 남기고(진짜와 구별 불가),
+//   서버 금고(KV)에만 'C-55의 덫'이라 기록한다. 금고 API가 나중에 이 sessionId를 보고
+//   거부가 아니라 연산지옥(가짜 성공+가짜 데이터)으로 보낸다. 미끼 문 자는 끝에 가서야 C-55를 본다.
+async function writeHoney(token, reason) {
+  try {
+    const pl = JSON.parse(Buffer.from(String(token).split('.')[1], 'base64').toString());
+    if (pl && pl.sessionId) {
+      await kvSet('honey:' + pl.sessionId, JSON.stringify({ by: 'C-55', reason: reason || 'decoy', ts: Date.now() }));
+    }
+  } catch (e) {}
 }
 
 // [C-52 rate-limit] 무차별 대입 속도 제한.
@@ -228,9 +251,10 @@ module.exports = async (req, res) => {
     if (isKVAvailable()) {
       await kvIncr(matchedFormat ? 'stats:auth:decoy' : 'stats:auth:trapped-wrong-pass');
     }
-    return sendDecoy(res, generateAuthToken('decoy', userId, userFormat));
+    return await sendDecoy(res, generateAuthToken('decoy', userId, userFormat), matchedFormat ? 'wrong-format' : 'wrong-pass');
 
   } catch (err) {
-    return res.status(500).json({ error: '검증 실패', detail: err.message });
+    console.error('[verify] error:', err && err.message);
+    return res.status(500).json({ error: '검증 실패' });
   }
 };

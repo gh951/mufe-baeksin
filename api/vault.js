@@ -26,6 +26,10 @@ const MAX_CONTENT  = 16384;                  // 금고 내용 최대 16KB (E2E �
 function sign(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('hex').slice(0, 16);
 }
+// [은닉 마커 검증] verify.js 와 동일 — payload.m 이 'decoy' 마커인지 서버 SECRET만으로 판별(KV 불필요)
+function isDecoyToken(p) {
+  return !!(p && p.sessionId && p.m && p.m === sign(p.sessionId + ':decoy'));
+}
 
 // verify.js 의 verifyToken 과 동일 — 서명/형식 검증 후 페이로드 반환
 function verifyToken(token, prefix) {
@@ -49,12 +53,19 @@ function vaultKeyFor(userData) {
 
 // 미끼 토큰 보유자에게 내려줄 *가짜 금고* (진짜처럼 보이지만 무의미한 잡음)
 function decoyVault() {
+  // 진짜 금고처럼 보이는 가짜. 해커가 항목을 풀어보면(base64 디코드) 끝에 C-55의 흔적을 본다.
+  const items = Array.from({ length: 4 }, () => ({
+    id: crypto.randomBytes(6).toString('hex'),
+    v: crypto.randomBytes(48).toString('base64'),
+  }));
+  // 함정 서명 — 겉 목록에선 다른 항목과 구별 안 되지만, 풀어보면 'C-55의 덫'이 드러남
+  items.push({
+    id: crypto.randomBytes(6).toString('hex'),
+    v: Buffer.from(JSON.stringify({ trapped: true, by: 'C-55', note: 'MUFE honeypot — this vault is fake. Your access is logged.' })).toString('base64'),
+  });
   return {
     content: '',
-    items: Array.from({ length: 3 }, () => ({
-      id: crypto.randomBytes(6).toString('hex'),
-      v: crypto.randomBytes(48).toString('base64'),
-    })),
+    items: items,
     updatedAt: Date.now() - Math.floor(Math.random() * 1e7),
   };
 }
@@ -85,10 +96,19 @@ module.exports = async (req, res) => {
       return res.status(200).json({ status: 'locked', message: '금고 잠김 — 세션이 만료됐어요. 다시 인증하세요' });
     }
 
-    // ② 미끼 토큰 보유자 → 가짜 금고 내려줌 (차단 X, 기만)
-    if (auth.type !== 'real') {
-      if (isKVAvailable()) await kvIncr('stats:vault:decoy-served');
-      return res.status(200).json({ status: 'unlocked', vault: decoyVault(), decoy: true });
+    // ② 미끼 토큰 보유자 → 가짜 금고 내려줌 (차단 X, 연산지옥 기만)
+    //   [허니토큰] type이 위장돼도 잡게: 서버 금고(honey KV)도 조회. 둘 중 하나라도 덫이면 가짜.
+    let _isHoney = isDecoyToken(auth) || (auth.type !== 'real');   // 은닉 마커(KV독립) 우선 + 옛 type 폴백
+    if (!_isHoney && auth.sessionId && isKVAvailable()) {
+      try { if (await kvGet('honey:' + auth.sessionId)) _isHoney = true; } catch (e) {}
+    }
+    if (_isHoney) {
+      if (isKVAvailable()) {
+        await kvIncr('stats:vault:decoy-served');
+        if (auth.sessionId) await kvIncr('honey-hits:' + auth.sessionId);   // 점진 차단용 — 찌른 횟수
+      }
+      // decoy:true 표식 제거 — 진짜 unlocked 와 형식 동일(해커가 응답 까봐도 구별 못 함)
+      return res.status(200).json({ status: 'unlocked', vault: decoyVault() });
     }
 
     // ③ 진짜 인증 통과 — 금고 키 정하기
