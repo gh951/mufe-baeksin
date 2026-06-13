@@ -1,8 +1,29 @@
-<!-- MUFE build AT-074934 - 2026-06-13 - 도장을 인증흐름서 분리: 통과후 전용 팝업(버튼식)에서만 실행, 재료 즉시폐기 -->
+<!-- MUFE build AV-132831 - 2026-06-13 - 분할금고+도장팝업+생체피크+클릭재킹 전부 포함 -->
 <!DOCTYPE html>
 <!-- MUFE 백신 — 양자·AI 시대 대응 보안 -->
 <html lang="ko">
 <head>
+<script>
+/* [#1 클릭재킹·탭재킹 방어] MUFE를 다른 사이트·앱의 보이지 않는 iframe 속에 숨겨
+   인증 버튼 탭을 가로채는 공격을 차단. 단독 실행만 허용. (추가형 — 정상 단독 실행엔 영향 0) */
+(function(){
+  try {
+    if (window.self !== window.top) {
+      try { document.documentElement.style.visibility = 'hidden'; } catch(_){}
+      window.top.location = window.self.location.href;   // iframe이면 최상위로 탈출
+    }
+  } catch(e) {
+    // top 접근 자체가 막힘(교차출처로 가둠) = 공격 신호 → 화면을 가리고 경고
+    try {
+      document.documentElement.style.visibility = 'hidden';
+      window.addEventListener('DOMContentLoaded', function(){
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#b91c1c;font-weight:700;line-height:1.6;">보안 경고<br>이 앱은 단독 실행만 허용됩니다.<br>다른 앱·사이트 안에서 열렸습니다.</div>';
+        document.documentElement.style.visibility = 'visible';
+      });
+    } catch(_){}
+  }
+})();
+</script>
 <script>
 /* [C-53 재적용] 카톡/인앱 브라우저 → 일반 브라우저 자동 탈출.
    카톡 WebView는 패스키(WebAuthn) 등을 막아서, Chrome/Safari로 내보냄.
@@ -13898,7 +13919,7 @@ window.mufeSplitUI = (function(){
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AT-074934 · 도장팝업분리';
+    var VER = 'BUILD 0611-AV-132831 · 분할금고복원';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
