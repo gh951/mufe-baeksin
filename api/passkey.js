@@ -125,6 +125,38 @@ module.exports = async (req, res) => {
       return res.status(200).json({ status: 'ok', token: issueToken(credHash) });
     }
 
+    // ── 4) 네이티브 보안칩(TEE) 서명 검증  [#5 · TEE 바인딩 2단계] ──
+    //   안드로이드 보안칩(StrongBox/TEE)이 만든 P-256 키로, challenge에 *직접* 서명한 것을 검증.
+    //   WebAuthn 래핑(clientDataJSON/authData) 없음 — 네이티브가 challenge 바이트에 SHA256withECDSA 서명.
+    //   생체 강제는 칩(setUserAuthenticationRequired=true)이 보장 → 서명이 존재한다는 것 자체가 생체 통과 증거.
+    //   공개키 등록·챌린지 발급은 위의 register·challenge 액션을 그대로 재사용한다(additive).
+    if (action === 'tee-verify') {
+      const spkiStored = await kvGet('pkpub:' + credHash);
+      if (!spkiStored) return res.status(200).json({ status: 'locked', message: '등록된 보안칩 공개키 없음 — 먼저 register' });
+
+      const storedCh = await kvGet('pkch:' + credHash);
+      await kvDel('pkch:' + credHash);                       // 1회용: 즉시 폐기 (재전송 차단)
+      if (!storedCh) return res.status(200).json({ status: 'locked', message: '챌린지 만료 — 다시 시도' });
+
+      if (typeof signature !== 'string' || signature.length < 40) {
+        return res.status(200).json({ status: 'locked', message: '서명 형식 오류' });
+      }
+
+      // 서명 대상 = challenge 문자열의 UTF-8 바이트 (네이티브 challenge.getBytes("UTF-8")와 동일)
+      const signed = Buffer.from(storedCh, 'utf8');
+      let ok = false;
+      try {
+        const pub = crypto.createPublicKey({ key: b64ToBuf(spkiStored), format: 'der', type: 'spki' });
+        ok = crypto.verify('sha256', signed, { key: pub, dsaEncoding: 'der' }, b64ToBuf(signature));
+      } catch (e) { ok = false; }
+
+      if (!ok) { await kvIncr('stats:tee:bad-sig'); return res.status(200).json({ status: 'locked', message: '보안칩 서명 검증 실패' }); }
+
+      await kvIncr('stats:tee:verified');
+      // 출입문 통과 토큰 발급 (금고 토큰과는 별개 — 본 인증/금고는 verify.js·proof.js가 따로 지킴)
+      return res.status(200).json({ status: 'ok', via: 'tee', token: issueToken(credHash) });
+    }
+
     return res.status(200).json({ status: 'error', message: '알 수 없는 action' });
   } catch (err) {
     console.error('[passkey] error:', err && err.message);
