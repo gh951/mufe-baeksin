@@ -19,6 +19,12 @@ function sign(data) {
 function hashPasscode(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`pass:${passcode}`).digest('hex');
 }
+// [#9] PBKDF2 20만회 — verify.js의 hashPasscodeV2와 *완전히 동일한* 규칙이어야 함(salt=userId 기반).
+const KDF_ITER = 200000;
+function hashPasscodeV2(passcode, userId) {
+  const salt = crypto.createHash('sha256').update(SECRET + '|' + (userId || '')).digest();
+  return 'p2:' + crypto.pbkdf2Sync(String(passcode), salt, KDF_ITER, 32, 'sha256').toString('hex');
+}
 function getUserId(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`uid:${passcode}`).digest('hex').slice(0, 16);
 }
@@ -51,8 +57,8 @@ module.exports = async (req, res) => {
     if (!passcode || passcode.length < 1) return res.status(400).json({ error: '비번을 입력해주세요' });
     if (!VALID_FORMATS.includes(format)) return res.status(400).json({ error: '유효한 형식을 입력해주세요' });
 
-    const passHash = hashPasscode(passcode);
     const userId = getUserId(passcode);
+    const passHash = hashPasscodeV2(passcode, userId);   // [#9] 새 가입은 처음부터 PBKDF2
 
     let existingUser = null;
     if (isKVAvailable()) existingUser = await kvGet(`user:${userId}`);

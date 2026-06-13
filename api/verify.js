@@ -20,6 +20,19 @@ function sign(data) {
 function hashPasscode(passcode) {
   return crypto.createHmac('sha256', SECRET).update(`pass:${passcode}`).digest('hex');
 }
+// [#9] PBKDF2 20만회 — 비번 대입 비용 격상(HMAC 1회 대비 수십만배). 의존성 0(crypto 내장).
+const KDF_ITER = 200000;
+function hashPasscodeV2(passcode, userId) {
+  const salt = crypto.createHash('sha256').update(SECRET + '|' + (userId || '')).digest();
+  return 'p2:' + crypto.pbkdf2Sync(String(passcode), salt, KDF_ITER, 32, 'sha256').toString('hex');
+}
+// 저장형식 자동 판별 — p2:=PBKDF2(신), 그 외=HMAC(구). 일정시간 비교(타이밍 누출 줄임).
+function verifyPass(passcode, userId, stored) {
+  if (!stored || typeof stored !== 'string') return false;
+  const cand = stored.startsWith('p2:') ? hashPasscodeV2(passcode, userId) : hashPasscode(passcode);
+  if (cand.length !== stored.length) return false;
+  try { return crypto.timingSafeEqual(Buffer.from(cand), Buffer.from(stored)); } catch (e) { return false; }
+}
 
 function verifyToken(token, prefix) {
   if (!token || !token.startsWith(prefix + '.')) return null;
@@ -162,7 +175,7 @@ module.exports = async (req, res) => {
 
     // 이행기 폴백: 창고에 없고 옛 토큰이 비번을 품고 있으면 그걸로 통과시키고 해시를 창고로 옮김
     if (!storedPassHash && userData.passcode) {
-      storedPassHash = hashPasscode(userData.passcode);
+      storedPassHash = hashPasscodeV2(userData.passcode, userId);
       try {
         if (isKVAvailable() && userId) {
           await kvSet(`user:${userId}`, { passHash: storedPassHash, format: userFormat, migratedAt: Date.now() });
@@ -181,16 +194,23 @@ module.exports = async (req, res) => {
       return sendDecoy(res);
     }
 
-    // 어떤 형식으로 입력했는지 — 비번 후보를 형식별로 떼어 해시 비교
+    // 어떤 형식으로 입력했는지 — 비번 후보를 형식별로 떼어 (버전 자동판별) 비교
     let matchedFormat = null;
+    let matchedCand = null;
     for (const fmt of ALL_FORMATS) {
       const cand = extractPasscode(userAnswer, caughtWord, fmt);
       if (cand == null) continue;
-      if (hashPasscode(cand) === storedPassHash) { matchedFormat = fmt; break; }
+      if (verifyPass(cand, userId, storedPassHash)) { matchedFormat = fmt; matchedCand = cand; break; }
     }
 
     // 등록한 형식과 일치 = 진짜 통과
     if (matchedFormat && matchedFormat === userFormat) {
+      // [#9] 옛 HMAC 해시면 → PBKDF2로 자동 격상 저장(1회). 실패해도 통과엔 영향 없음.
+      if (matchedCand != null && isKVAvailable() && userId && !(typeof storedPassHash === 'string' && storedPassHash.startsWith('p2:'))) {
+        try {
+          await kvSet(`user:${userId}`, { passHash: hashPasscodeV2(matchedCand, userId), format: userFormat, upgradedAt: Date.now() });
+        } catch (e) {}
+      }
       const realToken = generateAuthToken('real', userId, userFormat);
       if (isKVAvailable()) {
         await kvIncr('stats:auth:success');
