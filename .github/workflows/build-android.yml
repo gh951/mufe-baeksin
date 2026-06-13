@@ -104,46 +104,190 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: FLAG_SECURE + 표시팝업 + 자체검사
+      - name: FLAG_SECURE + TEE 생체바인딩(#5) + 자체검사
         run: |
           DEST=android/app/src/main/java/com/mufe/baeksin
           mkdir -p "$DEST"
           cat > "$DEST/MainActivity.java" << 'JAVA'
           package com.mufe.baeksin;
+
           import android.os.Bundle;
+          import android.util.Base64;
           import android.view.WindowManager;
+          import android.webkit.JavascriptInterface;
+          import android.security.keystore.KeyGenParameterSpec;
+          import android.security.keystore.KeyProperties;
+          import androidx.biometric.BiometricPrompt;
+          import androidx.core.content.ContextCompat;
           import com.getcapacitor.Bridge;
           import com.getcapacitor.BridgeActivity;
+          import java.security.KeyStore;
+          import java.security.KeyPairGenerator;
+          import java.security.PrivateKey;
+          import java.security.PublicKey;
+          import java.security.Signature;
+          import java.security.spec.ECGenParameterSpec;
+          import java.util.concurrent.Executor;
+          import org.json.JSONObject;
+
           public class MainActivity extends BridgeActivity {
+              private static final String ALIAS = "mufe_tee_bio_key";
               private boolean firstResume = true;
+
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
+                  // 화면 캡처 / 녹화 차단 (약점 #1의 '화면 구멍')
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                  // [#5] TEE 생체 바인딩 브릿지 — JS에서 window.MufeTee 로 호출
+                  try {
+                      if (getBridge() != null && getBridge().getWebView() != null) {
+                          getBridge().getWebView().addJavascriptInterface(new TeeBridge(), "MufeTee");
+                      }
+                  } catch (Exception e) {}
                   try {
                       new android.app.AlertDialog.Builder(this)
                           .setTitle("성공")
-                          .setMessage("MUFE v8 · 화면보안 ON")
+                          .setMessage("MUFE v9 · 화면보안 ON · 생체보안칩(TEE) 준비됨")
                           .setPositiveButton("확인", null)
                           .show();
                   } catch (Exception e) {}
               }
+
               @Override
               public void onResume() {
                   super.onResume();
                   if (firstResume) { firstResume = false; return; }
                   try {
                       Bridge b = getBridge();
-                      if (b != null && b.getWebView() != null) {
-                          b.getWebView().reload();
-                      }
+                      if (b != null && b.getWebView() != null) { b.getWebView().reload(); }
                   } catch (Exception e) {}
+              }
+
+              // ─────────────────────────────────────────────────────────
+              //  [#5] TEE 생체 바인딩 — 보안칩이 키를 쥐고, 생체 인증해야만 서명
+              //  서버(passkey.js)가 P-256 공개키로 그 서명을 검증 → 위조 불가
+              // ─────────────────────────────────────────────────────────
+              public class TeeBridge {
+                  // 보안칩에 P-256 키 생성(생체 필수). 공개키(spki, base64) 반환. "OK:..." | "ERR:..."
+                  @JavascriptInterface
+                  public String genKey() {
+                      try {
+                          KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
+                          ks.load(null);
+                          if (ks.containsAlias(ALIAS)) {
+                              PublicKey p = ks.getCertificate(ALIAS).getPublicKey();
+                              return "OK:" + Base64.encodeToString(p.getEncoded(), Base64.NO_WRAP);
+                          }
+                      } catch (Exception e) {}
+                      // StrongBox(전용 보안칩) 우선 시도 → 없으면 일반 TEE 폴백
+                      boolean[] tries = { true, false };
+                      for (int i = 0; i < tries.length; i++) {
+                          try {
+                              KeyPairGenerator kpg = KeyPairGenerator.getInstance(
+                                  KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore");
+                              KeyGenParameterSpec.Builder b = new KeyGenParameterSpec.Builder(
+                                      ALIAS, KeyProperties.PURPOSE_SIGN)
+                                  .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1"))
+                                  .setDigests(KeyProperties.DIGEST_SHA256)
+                                  .setUserAuthenticationRequired(true);   // ← 생체 없이는 키 사용 불가
+                              if (tries[i]) {
+                                  try { b.setIsStrongBoxBacked(true); } catch (Throwable t) {}
+                              }
+                              kpg.initialize(b.build());
+                              PublicKey p = kpg.generateKeyPair().getPublic();
+                              return "OK:" + Base64.encodeToString(p.getEncoded(), Base64.NO_WRAP);
+                          } catch (Exception e) {
+                              if (i == tries.length - 1) return "ERR:" + e.getMessage();
+                          }
+                      }
+                      return "ERR:unknown";
+                  }
+
+                  // challenge에 생체 인증 후 서명. 결과를 window.__mufeTeeCb(cbId, "OK:sig"|"ERR:..") 로 콜백
+                  @JavascriptInterface
+                  public void sign(final String challenge, final String cbId) {
+                      runOnUiThread(new Runnable() {
+                          public void run() {
+                              try {
+                                  KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
+                                  ks.load(null);
+                                  PrivateKey pk = (PrivateKey) ks.getKey(ALIAS, null);
+                                  if (pk == null) { cb(cbId, "ERR:no-key"); return; }
+                                  final Signature sig = Signature.getInstance("SHA256withECDSA");
+                                  sig.initSign(pk);
+                                  BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                                      .setTitle("MUFE 생체 인증")
+                                      .setSubtitle("보안칩 서명")
+                                      .setNegativeButtonText("취소")
+                                      .build();
+                                  Executor ex = ContextCompat.getMainExecutor(MainActivity.this);
+                                  BiometricPrompt bp = new BiometricPrompt(MainActivity.this, ex,
+                                      new BiometricPrompt.AuthenticationCallback() {
+                                          @Override
+                                          public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) {
+                                              try {
+                                                  Signature s2 = r.getCryptoObject().getSignature();
+                                                  s2.update(challenge.getBytes("UTF-8"));
+                                                  cb(cbId, "OK:" + Base64.encodeToString(s2.sign(), Base64.NO_WRAP));
+                                              } catch (Exception e) { cb(cbId, "ERR:" + e.getMessage()); }
+                                          }
+                                          @Override
+                                          public void onAuthenticationError(int code, CharSequence msg) {
+                                              cb(cbId, "ERR:" + msg);
+                                          }
+                                          @Override
+                                          public void onAuthenticationFailed() { /* 1회 불일치 — 재시도 허용 */ }
+                                      });
+                                  bp.authenticate(info, new BiometricPrompt.CryptoObject(sig));
+                              } catch (Exception e) { cb(cbId, "ERR:" + e.getMessage()); }
+                          }
+                      });
+                  }
+
+                  // 이 기기에 보안칩 키가 있는지
+                  @JavascriptInterface
+                  public boolean hasKey() {
+                      try {
+                          KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
+                          ks.load(null);
+                          return ks.containsAlias(ALIAS);
+                      } catch (Exception e) { return false; }
+                  }
+
+                  private void cb(final String cbId, final String result) {
+                      final String js = "window.__mufeTeeCb&&window.__mufeTeeCb("
+                          + JSONObject.quote(cbId) + "," + JSONObject.quote(result) + ")";
+                      runOnUiThread(new Runnable() {
+                          public void run() {
+                              try {
+                                  if (getBridge() != null && getBridge().getWebView() != null) {
+                                      getBridge().getWebView().evaluateJavascript(js, null);
+                                  }
+                              } catch (Exception e) {}
+                          }
+                      });
+                  }
               }
           }
           JAVA
-          grep -q "FLAG_SECURE" "$DEST/MainActivity.java" && echo "OK FLAG_SECURE" || { echo FAIL; exit 1; }
+          # 자체검사: FLAG_SECURE + TEE 브릿지가 모두 들어갔는지
+          grep -q "FLAG_SECURE" "$DEST/MainActivity.java" || { echo "FAIL: FLAG_SECURE 없음"; exit 1; }
+          grep -q "MufeTee" "$DEST/MainActivity.java" || { echo "FAIL: TEE 브릿지 없음"; exit 1; }
+          echo "OK: FLAG_SECURE + TEE 브릿지"
+
+          # androidx.biometric 의존성 추가 (생체 프롬프트 + CryptoObject 서명)
+          GRADLE=android/app/build.gradle
+          if ! grep -q 'androidx.biometric' "$GRADLE"; then
+            sed -i 's#dependencies {#dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"#' "$GRADLE"
+            echo "OK: androidx.biometric 의존성 추가"
+          fi
+
+          # 권한: 카메라(기존) + 생체(USE_BIOMETRIC)
           MANIFEST=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
+          grep -q 'android.permission.USE_BIOMETRIC' "$MANIFEST" || sed -i 's#<application#<uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <application#' "$MANIFEST"
+          echo "=== AndroidManifest 권한 ==="; grep 'uses-permission' "$MANIFEST" || true
 
       - name: APK 빌드
         run: |
