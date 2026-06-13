@@ -9160,6 +9160,7 @@
     function rnd(n){ var a=new Uint8Array(n); if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(a); return a; }
     function ab2b64(buf){ var b=new Uint8Array(buf),s=''; for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
     function b642ab(x){ var s=atob(x),a=new Uint8Array(s.length); for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a.buffer; }
+    function b64url2ab(x){ x=String(x).replace(/-/g,'+').replace(/_/g,'/'); while(x.length%4) x+='='; return b642ab(x); }
     function ab2b64url(buf){ return ab2b64(buf).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
     function concat(a,b){ var c=new Uint8Array(a.length+b.length); c.set(a,0); c.set(b,a.length); return c; }
     async function sha256(buf){ return new Uint8Array(await crypto.subtle.digest('SHA-256', buf)); }
@@ -9190,14 +9191,31 @@
       if(!spki) throw new Error('NO_PUBKEY');
       if(alg!==-7) throw new Error('ALG'+alg+'(ES256아님)');
       localStorage.setItem(KEY, JSON.stringify({ credId:ab2b64(cred.rawId), spki:ab2b64(spki) }));
+      // [#2] 서버에도 공개키 저장(추가형·실패무시) — 서버검증용. 실패해도 기존 동작 그대로.
+      try {
+        await fetch('/api/passkey',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'register',credId:ab2b64(cred.rawId),spki:ab2b64(spki)})});
+      } catch(e){}
     }
 
     async function login(){
       var recS=localStorage.getItem(KEY); if(!recS) throw new Error('NO_PASSKEY');
       var rec=JSON.parse(recS);
-      var ch=rnd(32), chB64=ab2b64url(ch.buffer);
+      // [#2] 기존 등록자 마이그레이션 — 서버에 공개키 없으면 올림(멱등·실패무시)
+      try { await fetch('/api/passkey',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'register',credId:rec.credId,spki:rec.spki})}); } catch(e){}
+      // [#2] 서버 챌린지 우선(재생공격 차단). 못 받으면 클라 챌린지 폴백 → 오류 0.
+      var serverCh=null;
+      try {
+        var _cr=await fetch('/api/passkey',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'challenge',credId:rec.credId})});
+        var _cj=await _cr.json(); if(_cj&&_cj.status==='challenge'&&_cj.challenge) serverCh=_cj.challenge;
+      } catch(e){}
+      var chBuf, chB64;
+      if(serverCh){ chBuf=new Uint8Array(b64url2ab(serverCh)); chB64=serverCh; }
+      else { var ch=rnd(32); chBuf=ch; chB64=ab2b64url(ch.buffer); }
       var asr=await navigator.credentials.get({ publicKey:{
-        challenge:ch,
+        challenge:chBuf,
         allowCredentials:[{ type:'public-key', id:new Uint8Array(b642ab(rec.credId)) }],
         userVerification:'required', timeout:60000, rpId:location.hostname
       }});
@@ -9216,6 +9234,18 @@
       var key=await crypto.subtle.importKey('spki', b642ab(rec.spki), {name:'ECDSA',namedCurve:'P-256'}, false, ['verify']);
       var ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'}, key, derToRaw(sig), concat(authData,hash));
       if(!ok) throw new Error('SIGNATURE');
+      // [#2] 서버 검증 병행 — 서버가 공개키로 재확인 + 패스키 토큰. 실패해도 클라검증 통과면 진입(폴백).
+      if(serverCh){
+        try {
+          var _vr=await fetch('/api/passkey',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ action:'verify', credId:rec.credId,
+              authData:ab2b64(asr.response.authenticatorData),
+              clientDataJSON:ab2b64(asr.response.clientDataJSON),
+              signature:ab2b64(asr.response.signature) })});
+          var _vj=await _vr.json();
+          if(_vj&&_vj.status==='ok'&&_vj.token){ window._mufePasskeyToken=_vj.token; }
+        } catch(e){}
+      }
       return true;
     }
 
@@ -13559,7 +13589,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AL · 무결성+';
+    var VER = 'BUILD 0611-AM · 패스키서버';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
