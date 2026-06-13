@@ -12998,8 +12998,8 @@ document.addEventListener('keydown', (e) => {
      ════════════════════════════════════════════════════════════ -->
 <!-- [C-46] 동공·홍채 478 좌표 추적용 MediaPipe FaceMesh (CGO와 동일 CDN). 못 불러오면 기존 rPPG로 정상 작동 -->
 <script src="/mediapipe/face_mesh/face_mesh.js" onerror="console.log('[MUFE] FaceMesh CDN 미로드 → 동공좌표 없이 기존 rPPG로 진행(정상)')"></script>
-<script src="mufe_core.js" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
-<script src="mufe_bridge.js"></script>
+<script src="mufe_core.js" integrity="sha384-JX/69SpHKWReYVyelsrwvQVQd9ksMd1K3giEVu5TcqJ/cHMFzsc9p6leyd/3lHqH" onerror="console.log('[MUFE] wasm 아직 없음 → 폴백 모드 (정상)')"></script>
+<script src="mufe_bridge.js" integrity="sha384-EtR3flmRbcoVRRdGAE2vseucDaFreUqUGu8oOKrDZG0K2Z8f8IBzIyjZ13vxfN/J"></script>
 <script>
   // Wasm 준비 + 상태 표시 (진단용)
   if (window.MUFE_WASM) {
@@ -13017,7 +13017,7 @@ document.addEventListener('keydown', (e) => {
      · 파일 없거나 실패해도 앱은 그대로 작동(연결 전과 동일).
      · window.MUFE_PQC 로 노출 → 다음 단계에서 인증 통신에 결합.
      ════════════════════════════════════════════════════════════ -->
-<script src="mufe_mlkem.js" onerror="console.log('[MUFE] ML-KEM 파일 미로드 → 양자내성 모듈 꺼짐(앱은 정상)')"></script>
+<script src="mufe_mlkem.js" integrity="sha384-DiJwiB4up4ZZb0mkFOCEStNtFxWIqH0R9wf2pHaDE6Izz04rT3/jlYa8wlZgk8hN" onerror="console.log('[MUFE] ML-KEM 파일 미로드 → 양자내성 모듈 꺼짐(앱은 정상)')"></script>
 <script>
 (function(){
   // 빌드 시 EXPORT_NAME="MUFE_MLKEM" (MODULARIZE) → 전역 팩토리 함수로 들어옴
@@ -13466,9 +13466,9 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     if (window._mufeMLDSA) return window._mufeMLDSA;
     // [추가] 앱에 내장된 번들 우선 사용 — 인터넷(esm.sh) 없이 폰 안에서 바로 실행 (인앱 브라우저 대응)
     if (window.mufeMLDSA && window.mufeMLDSA.keygen) { window._mufeMLDSA = window.mufeMLDSA; return window._mufeMLDSA; }
-    var m = await import('https://esm.sh/@noble/post-quantum@0.6.1/ml-dsa.js');
-    window._mufeMLDSA = m.ml_dsa65;
-    return window._mufeMLDSA;
+    // [0611-AJ] 외부 CDN(esm.sh) 폴백 제거 — 내장 번들만 사용(공급망 외부 의존 0).
+    //   내장이 없으면 '도장'만 실패하고 기존 인증은 그대로(호출부 try/catch가 흡수).
+    throw new Error('ML-DSA 내장 번들 미로딩');
   }
   async function deriveSeed(material){
     var enc = new TextEncoder();
@@ -13559,7 +13559,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AI · 차단';
+    var VER = 'BUILD 0611-AK · 무결성';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
