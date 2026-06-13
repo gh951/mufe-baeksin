@@ -5564,6 +5564,14 @@
             style="padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a843,#b8922f);color:#000;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;">금고에 저장</button>
           <span id="mufe-vault-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
         </div>
+        <div id="mufe-split-row" style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(212,168,67,.25);">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button id="mufe-split-btn" onclick="window.mufeSplitUI && window.mufeSplitUI.onClick()" disabled
+              style="padding:7px 13px;border:1px solid rgba(212,168,67,.5);border-radius:9px;background:transparent;color:#d4a843;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;">🔐 분할 금고 (서버+폰 2조각)</button>
+            <span id="mufe-split-msg" style="font-size:11px;color:rgba(255,255,255,.55);"></span>
+          </div>
+          <div id="mufe-split-words" style="display:none;margin-top:10px;padding:12px;border-radius:10px;background:rgba(0,0,0,.3);font-size:12px;line-height:1.8;color:#ffe9b0;word-break:keep-all;"></div>
+        </div>
       </div>
 
       <!-- ═══ 나만의 완전 잠금 카드 (E2E) — 쉬운 말 + 실수로 못 켜게(일부러 두 번 확인) ═══ -->
@@ -13273,12 +13281,127 @@ document.addEventListener('keydown', (e) => {
 <script>
 /* ═══ E2E 암호화 엔진 — 비번으로 내용을 잠가서 *서버도 못 읽게*. (envelope: master 열쇠를 비번열쇠로 봉인)
    기본 꺼짐. 켜야만 동작. ②단계(24단어 복구)는 같은 master에 자물쇠 하나만 더 얹으면 됨. ═══ */
+/* ═══ 분할 금고 키 엔진 (#7·#8) — BIP39 24단어 + P⊕S + AES-GCM ═══ */
+/* ===========================================================================
+ * MUFE 분할 금고 키 엔진  (#7·#8)
+ *   마스터키 K = 폰조각 P  ⊕  서버조각 S   (둘 다 있어야 K 복원)
+ *   · 방식A: P = 랜덤 32B → BIP39 24단어로 백업
+ *   · 방식B: P = PBKDF2(본비번) 결정론 파생 (본비번만 기억하면 복구)
+ *   · 금고 내용은 K로 AES-GCM 암호화 → 서버엔 암호문만
+ *
+ * Web Crypto(subtle) 기반 → 브라우저와 Node(webcrypto) 양쪽에서 동일 동작.
+ * 브라우저: window.mufeSplit = makeSplitEngine(WORDLIST_2048);
+ * =========================================================================== */
+function makeSplitEngine(WORDLIST) {
+  if (!Array.isArray(WORDLIST) || WORDLIST.length !== 2048) {
+    throw new Error('WORDLIST must be exactly 2048 words');
+  }
+  // 단어 → 인덱스 빠른 조회
+  const WORD_INDEX = Object.create(null);
+  for (let i = 0; i < 2048; i++) WORD_INDEX[WORDLIST[i]] = i;
+
+  // ── 환경 호환 (브라우저 / Node 18+) ──
+  const _c = (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.subtle)
+    ? globalThis.crypto
+    : require('crypto').webcrypto;
+  const SUBTLE = _c.subtle;
+
+  function getRandom(n) { const a = new Uint8Array(n); _c.getRandomValues(a); return a; }
+  function u8ToB64(u8) {
+    if (typeof btoa !== 'undefined') { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); }
+    return Buffer.from(u8).toString('base64');
+  }
+  function b64ToU8(b) {
+    if (typeof atob !== 'undefined') { const s = atob(b); const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+    return new Uint8Array(Buffer.from(b, 'base64'));
+  }
+  async function sha256(bytes) { return new Uint8Array(await SUBTLE.digest('SHA-256', bytes)); }
+
+  // ── BIP39: entropy(32B) → 24단어 ──
+  async function entropyToWords(entropy) {
+    if (!(entropy instanceof Uint8Array) || entropy.length !== 32) throw new Error('entropy must be 32 bytes');
+    let bits = '';
+    for (let i = 0; i < entropy.length; i++) bits += entropy[i].toString(2).padStart(8, '0'); // 256
+    const hash = await sha256(entropy);
+    const csLen = (entropy.length * 8) / 32; // 8
+    let hashBits = '';
+    for (let i = 0; i < hash.length; i++) hashBits += hash[i].toString(2).padStart(8, '0');
+    bits += hashBits.slice(0, csLen); // 256 + 8 = 264
+    const words = [];
+    for (let i = 0; i < bits.length; i += 11) words.push(WORDLIST[parseInt(bits.slice(i, i + 11), 2)]);
+    return words; // 24개
+  }
+
+  // ── BIP39: 24단어 → entropy(32B) (체크섬 검증, 틀리면 throw) ──
+  async function wordsToEntropy(words) {
+    if (!Array.isArray(words) || words.length !== 24) throw new Error('need 24 words');
+    let bits = '';
+    for (const w of words) {
+      const idx = WORD_INDEX[String(w).trim().toLowerCase()];
+      if (idx === undefined) throw new Error('BAD_WORD: ' + w);
+      bits += idx.toString(2).padStart(11, '0');
+    }
+    const entBits = (Math.floor(bits.length / 33)) * 32; // 256
+    const entropyBits = bits.slice(0, entBits);
+    const checksumBits = bits.slice(entBits);
+    const entropy = new Uint8Array(entBits / 8);
+    for (let i = 0; i < entropy.length; i++) entropy[i] = parseInt(entropyBits.slice(i * 8, i * 8 + 8), 2);
+    const hash = await sha256(entropy);
+    let hashBits = '';
+    for (let i = 0; i < hash.length; i++) hashBits += hash[i].toString(2).padStart(8, '0');
+    if (hashBits.slice(0, checksumBits.length) !== checksumBits) throw new Error('CHECKSUM'); // 오타 검출
+    return entropy;
+  }
+
+  // ── 방식B: 본비번 → P (결정론 파생). salt는 공개돼도 무방(사용자 고유 문자열). ──
+  async function derivePassP(passcode, saltStr) {
+    const enc = new TextEncoder();
+    const keyMat = await SUBTLE.importKey('raw', enc.encode(String(passcode)), 'PBKDF2', false, ['deriveBits']);
+    const bits = await SUBTLE.deriveBits({ name: 'PBKDF2', salt: enc.encode(String(saltStr || 'mufe-split')), iterations: 200000, hash: 'SHA-256' }, keyMat, 256);
+    return new Uint8Array(bits);
+  }
+
+  function randomP() { return getRandom(32); }
+
+  function xor(a, b) {
+    if (a.length !== b.length) throw new Error('xor length mismatch');
+    const r = new Uint8Array(a.length);
+    for (let i = 0; i < a.length; i++) r[i] = a[i] ^ b[i];
+    return r;
+  }
+
+  // ── AES-GCM 암복호 (K 32B). 출력: base64(iv12 || ciphertext) ──
+  async function encrypt(K, plaintext) {
+    const key = await SUBTLE.importKey('raw', K, 'AES-GCM', false, ['encrypt']);
+    const iv = getRandom(12);
+    const ct = new Uint8Array(await SUBTLE.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(String(plaintext))));
+    const out = new Uint8Array(iv.length + ct.length); out.set(iv); out.set(ct, iv.length);
+    return u8ToB64(out);
+  }
+  async function decrypt(K, b64) {
+    const raw = b64ToU8(b64);
+    const iv = raw.slice(0, 12), ct = raw.slice(12);
+    const key = await SUBTLE.importKey('raw', K, 'AES-GCM', false, ['decrypt']);
+    const pt = await SUBTLE.decrypt({ name: 'AES-GCM', iv }, key, ct); // 키 틀리면 throw
+    return new TextDecoder().decode(pt);
+  }
+
+  return { entropyToWords, wordsToEntropy, derivePassP, randomP, xor, encrypt, decrypt, u8ToB64, b64ToU8 };
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = makeSplitEngine;
+
+var MUFE_BIP39 = "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic affair afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below belt bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone bonus book boost border boring borrow boss bottom bounce box boy bracket brain brand brass brave bread breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp can canal cancel candy cannon canoe canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chalk champion change chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk churn cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic crop cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology economy edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact end endless endorse enemy energy enforce engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip era erase erode erosion error erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude excuse execute exercise exhaust exhibit exile exist exit exotic expand expect expire explain expose express extend extra eye eyebrow fabric face faculty fade faint faith fall false fame family famous fan fancy fantasy farm fashion fat fatal father fatigue fault favorite feature february federal fee feed feel female fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil fold follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garage garbage garden garlic garment gas gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guess guide guilt guitar gun gym habit hair half hammer hamster hand happy harbor hard harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn horror horse hospital host hotel hour hover hub huge human humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon idea identify idle ignore ill illegal illness image imitate immense immune impact impose improve impulse inch include income increase index indicate indoor industry infant inflict inform inhale inherit initial inject injury inmate inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kidney kind kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab label labor ladder lady lake lamp language laptop large later latin laugh laundry lava law lawn lawsuit layer lazy leader leaf learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics machine mad magic magnet maid mail main major make mammal man manage mandate mango mansion manual maple marble march margin marine market marriage mask mass master match material math matrix matter maximum maze meadow mean measure meat mechanic medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle mirror misery miss mistake mix mixed mixture mobile model modify mom moment monitor monkey monster month moon moral more morning mosquito mother motion motor mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery myth naive name napkin narrow nasty nation nature near neck need negative neglect neither nephew nerve nest net network neutral never news next nice night noble noise nominee noodle normal north nose notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure observe obtain obvious occur ocean october odor off offer office often oil okay old olive olympic omit once one onion online only open opera opinion oppose option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outer output outside oval oven over own owner oxygen oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patient patrol pattern pause pave payment peace peanut pear peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony pool popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose purse push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm rib ribbon rice rich ride ridge rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme school science scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling sick side siege sight sign silent silk silly silver similar simple since sing siren sister situate six size skate sketch ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock soda soft solar soldier solid solution solve someone song soon sorry sort soul sound soup source south space spare spatial spawn speak special speed spell spend sphere spice spider spike spin spirit split spoil sponsor spoon sport spot spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stool story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise surround survey suspect sustain swallow swamp swap swarm swear sweet swift swim swing switch sword symbol symptom syrup system table tackle tag tail talent talk tank tape target task taste tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tide tiger tilt timber time tiny tip tired tissue title toast tobacco today toddler toe together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck true truly trumpet trust truth try tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique unit universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban urge usage use used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel weather web wedding weekend weird welcome west wet whale what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word work world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo".split(" ");
+try { window.mufeSplitEngine = makeSplitEngine(MUFE_BIP39); } catch(e){ console.error("split engine init", e); }
 window.mufeE2E = (function(){
   var enc = new TextEncoder(), dec = new TextDecoder();
   var _pwKeyCache = null, _pwSecretCache = null, _mk = null;
   function b64e(buf){ var u=new Uint8Array(buf), s=''; for(var i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); }
   function b64d(str){ var s=atob(str), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
   async function pwKey(){
+    if (window._mufeSplitK && window._mufeSplitK.length === 32) {   // [분할금고] K(폰⊕서버) 우선
+      return await crypto.subtle.importKey('raw', window._mufeSplitK, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+    }
     var secret = window._mufeVaultPwSecret;
     if(!secret) return null;
     if(_pwKeyCache && _pwSecretCache===secret) return _pwKeyCache;
@@ -13429,6 +13552,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
   window.mufeVaultLoad = async function () {
     var auth = window._mufeVaultAuth;
     if (!auth || !auth.token) { setStatus('잠김', true); enable(false); return; }
+    try { if (window.mufeSplitUI) await window.mufeSplitUI.afterAuth(); } catch (e) {}
     try {
       var res = await fetch(window.location.origin + '/api/vault', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -13469,7 +13593,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
     var t = el('mufe-vault-text'); var content = t ? t.value : '';
     if (m) m.textContent = '저장 중…';
     // [E2E] 켜져 있고 비번 열쇠가 있으면 → 암호화해서 보냄 (서버가 못 읽음)
-    if (window.mufeE2E && window.mufeE2E.on() && window._mufeVaultPwSecret) {
+    if (window.mufeE2E && (window._mufeSplitK || (window.mufeE2E.on() && window._mufeVaultPwSecret))) {
       try { content = await window.mufeE2E.seal(content); }
       catch (e) { if (m) m.textContent = '🔒 암호화 실패: ' + ((e && e.message) || e); return; }
     }
@@ -13487,6 +13611,107 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
   };
 })();
 </script>
+<script>
+/* ═══ 분할 금고 API — 서버조각(share) + 폰조각(P) → 마스터키 K. 기존 비번 금고와 공존(추가형). ═══ */
+window.mufeSplit = (function(){
+  var E = window.mufeSplitEngine;
+  var SALT_B = 'mufe-split-b-v1';
+  function pwSecret(){ return window._mufeVaultPwSecret || ''; }
+  async function callVault(action, extra){
+    var auth = window._mufeVaultAuth; if(!auth || !auth.token) throw new Error('인증 먼저');
+    var body = Object.assign({ token:auth.token, userToken:auth.userToken, action:action }, extra||{});
+    var res = await fetch(window.location.origin + '/api/vault', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    return res.json();
+  }
+  // 분할 금고 켜기 — mode 'A'(랜덤+24단어) | 'B'(본비번 파생). A면 words(24개) 반환→화면에 적게 함.
+  async function setup(mode){
+    if(!E) throw new Error('엔진 미초기화');
+    mode = (mode==='B')?'B':'A';
+    var r = await callVault('share-init', { mode:mode });
+    if(r.status!=='ok') throw new Error('서버조각 실패: '+(r.message||r.status));
+    var S = E.b64ToU8(r.share), P, words=null;
+    if(r.mode==='A'){ P = E.randomP(); words = await E.entropyToWords(P); try{ localStorage.setItem('mufe-split-p', E.u8ToB64(P)); }catch(e){} }
+    else { P = await E.derivePassP(pwSecret(), SALT_B); }
+    window._mufeSplitK = E.xor(P,S);
+    return { mode:r.mode, words:words };
+  }
+  // 분할 금고 열기 — 폰조각 확보→K 세팅. opts.words 주면 24단어로 복구. 반환: 'ok'|'not-setup'|'need-recovery'
+  async function unlock(opts){
+    if(!E) throw new Error('엔진 미초기화');
+    opts = opts||{};
+    var r = await callVault('share-get');
+    if(r.status==='no-share') return 'not-setup';
+    if(r.status!=='ok') throw new Error('서버조각 조회 실패: '+(r.message||r.status));
+    var S = E.b64ToU8(r.share), P;
+    if(r.mode==='A'){
+      if(opts.words){ P = await E.wordsToEntropy(opts.words); try{ localStorage.setItem('mufe-split-p', E.u8ToB64(P)); }catch(e){} }
+      else { var pb=null; try{ pb=localStorage.getItem('mufe-split-p'); }catch(e){} if(!pb) return 'need-recovery'; P = E.b64ToU8(pb); }
+    } else { P = await E.derivePassP(pwSecret(), SALT_B); }
+    window._mufeSplitK = E.xor(P,S);
+    return 'ok';
+  }
+  function clear(){ window._mufeSplitK = null; }
+  return { setup:setup, unlock:unlock, clear:clear };
+})();
+</script>
+<script>
+/* ═══ 분할 금고 UI — 방식 선택 / 24단어 표시·복구 / 인증 후 자동 해제. 기존 금고와 공존(추가형). ═══ */
+window.mufeSplitUI = (function(){
+  function g(id){ return document.getElementById(id); }
+  function msg(t){ var m=g('mufe-split-msg'); if(m) m.textContent=t; }
+  function flag(){ try{ return localStorage.getItem('mufe-split-on')==='1'; }catch(e){ return false; } }
+  function setFlag(v){ try{ localStorage.setItem('mufe-split-on', v?'1':'0'); }catch(e){} }
+  function enable(on){ var b=g('mufe-split-btn'); if(b) b.disabled=!on; }
+  function showWords(words){
+    var d=g('mufe-split-words'); if(!d) return;
+    var rows = words.map(function(w,i){ return '<span style="display:inline-block;min-width:100px;">'+(i+1)+'. '+w+'</span>'; }).join('');
+    d.innerHTML = '<b style="color:#d4a843;">복구 24단어 — 종이에 적어 보관하세요 (화면 캡처 금지)</b><br>'+rows+
+      '<br><button onclick="document.getElementById(\'mufe-split-words\').style.display=\'none\'" style="margin-top:10px;padding:6px 12px;border:none;border-radius:8px;background:#d4a843;color:#000;font-weight:700;cursor:pointer;font-size:11px;font-family:inherit;">적었습니다 · 숨기기</button>';
+    d.style.display='block';
+  }
+  async function recover(){
+    var input = window.prompt('24단어 복구\n\n띄어쓰기로 24개 단어를 입력하세요:');
+    if(!input) return;
+    var words = input.trim().toLowerCase().split(/\s+/);
+    if(words.length!==24){ msg('24개가 아닙니다 — 현재 '+words.length+'개'); return; }
+    try{
+      var r = await window.mufeSplit.unlock({ words:words });
+      if(r==='ok'){ msg('🔐 24단어 복구 성공 — 다시 여는 중…'); if(typeof window.mufeVaultLoad==='function') await window.mufeVaultLoad(); }
+      else msg('복구 실패: '+r);
+    }catch(e){ msg('복구 실패 — 단어를 다시 확인하세요'); }
+  }
+  // 인증 후 자동 호출 — 켜진 사용자면 2조각으로 K 세팅, 아니면 버튼만 활성
+  async function afterAuth(){
+    enable(true);
+    if(!window.mufeSplit){ msg(''); return; }
+    if(!flag()){ msg('미설정 — 켜면 서버+폰 2조각이 모두 있어야 열립니다'); return; }
+    try{
+      var r = await window.mufeSplit.unlock();
+      if(r==='ok') msg('🔐 분할 잠금 해제됨 (2조각 결합)');
+      else if(r==='need-recovery'){ msg('이 기기에 폰 조각이 없습니다 — 24단어로 복구하세요'); recover(); }
+      else if(r==='not-setup'){ setFlag(false); msg('서버에 분할 정보가 없습니다 (다시 켜세요)'); }
+    }catch(e){ msg('분할 해제 실패: '+((e&&e.message)||e)); }
+  }
+  async function onClick(){
+    if(!window.mufeSplit){ msg('엔진 준비 안 됨'); return; }
+    if(flag()){
+      if(window.confirm('이미 분할 금고가 켜져 있습니다.\n확인 = 다른 기기에서 열기 위해 24단어로 복구\n취소 = 닫기')) recover();
+      return;
+    }
+    var useA = window.confirm('분할 금고를 켭니다 — 마스터키를 서버+폰 두 조각으로 나눕니다.\n\n[확인] 방식 A : 24단어 백업 (가장 강함. 폰을 잃으면 24단어로만 복구)\n[취소] 방식 B : 본비번 복구 (편리하지만 보안은 비번 강도에 의존)');
+    var mode = useA ? 'A' : 'B';
+    msg('분할 금고 설정 중…');
+    try{
+      var r = await window.mufeSplit.setup(mode);
+      setFlag(true);
+      if(r.mode==='A' && r.words){ showWords(r.words); msg('✅ 켜짐 — 아래 24단어를 꼭 적어두세요 (이후 저장분부터 2조각 보호)'); }
+      else msg('✅ 분할 금고 켜짐 — 본비번으로 복구 (이후 저장분부터 보호)');
+    }catch(e){ msg('설정 실패: '+((e&&e.message)||e)); }
+  }
+  return { afterAuth:afterAuth, onClick:onClick, recover:recover, flag:flag };
+})();
+</script>
+
 <script>
 /* ═══ B-web 도장 — 고보안 통과를 서버에 양자내성(ML-DSA) 서명으로 증명 → 금고 토큰. 비밀 미전송. 실패해도 기존 인증 불변. ═══ */
 (function(){
@@ -13589,7 +13814,7 @@ try { if (window.mufeLockRender) window.mufeLockRender(); } catch(e){}
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AM · 패스키서버';
+    var VER = 'BUILD 0611-AO · 분할금고+UI';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;

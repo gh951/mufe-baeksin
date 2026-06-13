@@ -114,6 +114,26 @@ module.exports = async (req, res) => {
       }
     }
 
+    // [#7·#8] 분할 금고 — 서버 조각(마스터키의 절반). 폰 조각과 둘 다 있어야 K 복원.
+    if (action === 'share-init') {
+      if (!isKVAvailable()) return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결' });
+      const shareKey = key + ':share';
+      let s = await kvGet(shareKey);
+      if (!s || !s.share) {
+        const mode = (req.body && req.body.mode === 'B') ? 'B' : 'A';   // A=랜덤+24단어, B=본비번 파생
+        s = { share: crypto.randomBytes(32).toString('base64'), mode, createdAt: Date.now() };
+        await kvSet(shareKey, s);
+        await kvIncr('stats:vault:share-init');
+      }
+      return res.status(200).json({ status: 'ok', share: s.share, mode: s.mode });
+    }
+    if (action === 'share-get') {
+      if (!isKVAvailable()) return res.status(200).json({ status: 'no-storage', message: '서버 저장소(KV) 미연결' });
+      const s = await kvGet(key + ':share');
+      if (!s || !s.share) return res.status(200).json({ status: 'no-share', message: '분할 금고 미설정' });
+      return res.status(200).json({ status: 'ok', share: s.share, mode: s.mode });
+    }
+
     // ── 저장 ──
     if (action === 'set') {
       const c = typeof content === 'string' ? content.slice(0, MAX_CONTENT) : '';
@@ -161,6 +181,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ status: 'unlocked', vault: record || { content: '', updatedAt: null } });
 
   } catch (err) {
-    return res.status(500).json({ status: 'error', detail: err.message });
+    console.error('[vault] error:', err && err.message);
+    return res.status(500).json({ status: 'error' });
   }
 };
