@@ -1,4 +1,4 @@
-<!-- MUFE build AW-143319 - 2026-06-13 - 분할금고 폰조각 저장제거(휘발)+자동prompt제거+끄기길+메시지가시성 -->
+<!-- MUFE build AX-150404 - 2026-06-13 - 24단어 큰 모달 표시 -->
 <!DOCTYPE html>
 <!-- MUFE 백신 — 양자·AI 시대 대응 보안 -->
 <html lang="ko">
@@ -13695,11 +13695,19 @@ window.mufeSplitUI = (function(){
   function setFlag(v){ try{ localStorage.setItem('mufe-split-on', v?'1':'0'); }catch(e){} }
   function enable(on){ var b=g('mufe-split-btn'); if(b) b.disabled=!on; }
   function showWords(words){
-    var d=g('mufe-split-words'); if(!d) return;
-    var rows = words.map(function(w,i){ return '<span style="display:inline-block;min-width:100px;">'+(i+1)+'. '+w+'</span>'; }).join('');
-    d.innerHTML = '<b style="color:#d4a843;">복구 24단어 — 종이에 적어 보관하세요 (화면 캡처 금지)</b><br>'+rows+
-      '<br><button onclick="document.getElementById(\'mufe-split-words\').style.display=\'none\'" style="margin-top:10px;padding:6px 12px;border:none;border-radius:8px;background:#d4a843;color:#000;font-weight:700;cursor:pointer;font-size:11px;font-family:inherit;">적었습니다 · 숨기기</button>';
-    d.style.display='block';
+    var prev=document.getElementById('mufe-split-words-modal'); if(prev) prev.remove();
+    var rows = words.map(function(w,i){ return '<span style="display:inline-block;width:48%;padding:5px 0;font-size:13.5px;">'+(i+1)+'. <b style="color:#ffe9b0;">'+w+'</b></span>'; }).join('');
+    var ov=document.createElement('div');
+    ov.id='mufe-split-words-modal';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483600;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;';
+    ov.innerHTML='<div style="max-width:460px;width:100%;max-height:88vh;overflow:auto;background:#12161f;border:1px solid rgba(212,168,67,.55);border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.65);box-sizing:border-box;">'+
+      '<div style="font-size:34px;text-align:center;">🔑</div>'+
+      '<div style="font-weight:800;color:#d4a843;text-align:center;font-size:18px;margin:6px 0 4px;">복구용 24단어</div>'+
+      '<div style="color:#ff9b9b;font-size:12.5px;text-align:center;line-height:1.55;margin-bottom:14px;">종이에 적어 안전한 곳에 보관하세요.<br>화면 캡처 금지 · <b>이 24단어가 유일한 복구 수단</b>입니다.</div>'+
+      '<div style="background:rgba(0,0,0,.4);border-radius:11px;padding:14px;line-height:1.6;word-break:keep-all;display:flex;flex-wrap:wrap;">'+rows+'</div>'+
+      '<button onclick="var m=document.getElementById(\'mufe-split-words-modal\'); if(m) m.remove();" style="width:100%;margin-top:16px;padding:13px;border:none;border-radius:11px;background:#d4a843;color:#000;font-weight:800;cursor:pointer;font-size:14px;font-family:inherit;">✅ 종이에 적었습니다 · 닫기</button>'+
+      '</div>';
+    document.body.appendChild(ov);
   }
   function needRecoveryUI(){
     msg('🔑 이 세션엔 폰 조각이 없습니다 — 아래 버튼으로 24단어를 넣어 여세요');
@@ -13931,7 +13939,7 @@ window.mufeSplitUI = (function(){
 /* 버전 표식 — 폰이 최신 파일을 받았는지 눈으로 확인 (캐시 헷갈림 방지) */
 (function(){
   try {
-    var VER = 'BUILD 0611-AW-143319 · 분할금고휘발';
+    var VER = 'BUILD 0611-AX-150404 · 24단어모달';
     var s = document.createElement('div');
     s.id = 'mufe-build';
     s.textContent = VER;
