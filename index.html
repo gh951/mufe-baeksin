@@ -12355,7 +12355,7 @@ function getGreenChannelAverage() {
   if (buf.length >= 60) {
     const pk = _mufeDetectPeaks(buf, _MUFE_AuthEngine._pulseT);
     // 신호강도 충분 + 실제 맥박 피크 2개+ + BPM 정상 → 살아있는 혈류
-    hasBloodFlow = pk.sigStd > 0.35 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180;
+    hasBloodFlow = pk.sigStd > 0.28 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180;
   }
 
   // 최종: 혈류(맥파)가 진짜 있고, 색도 피부 경향이어야 '살아있는 본인'

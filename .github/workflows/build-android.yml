@@ -154,15 +154,8 @@ jobs:
                   } catch (Exception e) {}
               }
 
-              @Override
-              public void onResume() {
-                  super.onResume();
-                  if (firstResume) { firstResume = false; return; }
-                  try {
-                      Bridge b = getBridge();
-                      if (b != null && b.getWebView() != null) { b.getWebView().reload(); }
-                  } catch (Exception e) {}
-              }
+              // [수정] onResume 자동 reload 제거 — 카메라 권한 팝업/멀티태스킹 복귀 시
+              //   화면이 reload되어 대문으로 튕기고 진행 중이던 인증/생체 측정이 날아가던 버그 해결.
 
               // ─────────────────────────────────────────────────────────
               //  [#5] TEE 생체 바인딩 — 보안칩이 키를 쥐고, 생체 인증해야만 서명
