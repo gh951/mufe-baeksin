@@ -11820,7 +11820,7 @@
     <!-- ═══ 2단계: 측정 화면 ═══ -->
     <div class="bio-measure-step" id="bioMeasureStep" style="display:none;">
       <div class="bio-modal-subtitle">
-        💡 얼굴을 <strong style="color:#fbbf24;">화면 안에 가까이</strong> 맞춰주세요 — 화면에서 30~40cm 거리
+        💡 <strong style="color:#fbbf24;">노란 네모 박스 안에 얼굴을 꽉 채워</strong> 주세요 — 밝은 곳에서 가만히
       </div>
 
       <div class="bio-video-container" id="bioVideoContainer">
@@ -12326,28 +12326,10 @@ function getGreenChannelAverage() {
   const W = 640, H = 480;
   _MUFE_BioScanner.ctx.drawImage(_MUFE_BioScanner.video, 0, 0, W, H);
   
-  // [AR 추적 적용] FaceMesh 478좌표로 이마·볼을 따라가며 샘플링 — 얼굴이 움직여도 같은 피부 추적(손떨림/움직임 강건).
-  //   landmark 없으면(웹/미검출) 기존 고정 중앙영역으로 폴백 → 아무도 안 깨짐(additive).
-  let rx = W * 0.25, ry = H * 0.15, rw = W * 0.50, rh = H * 0.60;
-  try {
-    const fl = window._mufeRppgFace;
-    if (fl && fl.length >= 478) {
-      // 이마(10·151·9)·양볼(234·454·50·280) — 눈·입 제외, 피부 많은 영역만 박스로
-      const ids = [10, 151, 9, 234, 454, 50, 280];
-      let minx = 1, miny = 1, maxx = 0, maxy = 0;
-      for (let k = 0; k < ids.length; k++) {
-        const p = fl[ids[k]]; if (!p) continue;
-        if (p.x < minx) minx = p.x; if (p.x > maxx) maxx = p.x;
-        if (p.y < miny) miny = p.y; if (p.y > maxy) maxy = p.y;
-      }
-      const bx = minx * W, by = miny * H, bw = (maxx - minx) * W, bh = (maxy - miny) * H;
-      if (bw > 20 && bh > 20) {
-        rx = Math.max(0, Math.round(bx)); ry = Math.max(0, Math.round(by));
-        rw = Math.min(W - rx, Math.round(bw)); rh = Math.min(H - ry, Math.round(bh));
-      }
-    }
-  } catch (e) { /* 좌표 문제 시 고정영역 폴백 */ }
-  const imgData = _MUFE_BioScanner.ctx.getImageData(rx, ry, rw, rh);
+  // 화면의 노란 가이드 박스(75%×85%)와 같은 영역에서 샘플링 — 박스에 얼굴 꽉 채우면 그 피부에서 측정
+  const imgData = _MUFE_BioScanner.ctx.getImageData(
+    W * 0.15, H * 0.10, W * 0.70, H * 0.80
+  );
   const pixels = imgData.data;
   let r = 0, g = 0, bl = 0, n = 0;
   
