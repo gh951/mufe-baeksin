@@ -11987,6 +11987,8 @@ async function startMUFESensor() {
     _MUFE_AuthEngine.startTime = Date.now();
     _MUFE_AuthEngine.isHuman = false;
     _MUFE_AuthEngine.authStatus = 'PROCESSING';
+    window._mufePulseSeen = 0;   // [재측정] 맥박 검출 카운터 0부터 — 이전 측정 누적 방지
+    window._mufeFaceSeen = 0;    // [재측정] 얼굴 감지 카운터 0부터
     _MUFE_AuthEngine._logged = false;
     // [C-45] 난수 광원 반사 초기화 + 광원 깜빡 시작
     _MUFE_AuthEngine.lightSamples = [];
@@ -12062,22 +12064,31 @@ function finishBioMeasurement() {
   //   노이즈·손떨림·정지화면·사진은 규칙적 맥박 피크가 안 잡혀 _mufePulseSeen이 안 쌓임 → 통과 불가.
   const success = (window._mufePulseSeen||0) >= 3;
   
+  // 카메라 종료 (성공·실패 공통)
+  stopMUFESensor();
+
+  // [수정] 실패 시 모달을 닫지 않고 '같은 화면에서 다시 측정' — 나왔다 들어갔다 무한루프 제거.
+  //   카메라에서 한 번에 결판: 심박 잡힐 때까지 이 화면에서 재측정한다. 성공해야 나간다.
+  if (!success) {
+    const _st = document.getElementById('bioStatus');
+    if (_st) { _st.textContent = '다시'; _st.className = 'bio-stat-value'; }
+    const _tt = document.getElementById('bioTimerText');
+    if (_tt) _tt.innerHTML = '💔 심박을 못 잡았어요 — <b>밝은 곳</b>에서 얼굴을 화면에 <b>크게·가만히</b> 두고 아래 <b>📷 측정</b>을 다시 눌러주세요';
+    const _b = document.getElementById('bioStartBtn');
+    if (_b) { _b.disabled = false; _b.textContent = '📷 다시 측정'; }
+    return;   // 콜백·모달닫기 호출 안 함 → 측정 화면 유지, 재진입 없음
+  }
+
+  // 성공 — 결과 콜백 + 모달 닫기
   const result = {
     success,
     bpm: _MUFE_AuthEngine.lastBPM,
     signalCount: _MUFE_AuthEngine.g_values.length,
     context: _MUFE_AuthEngine.bioContext,
   };
-  
-  // 카메라 종료
-  stopMUFESensor();
-  
-  // 콜백 호출
   if (_MUFE_AuthEngine.onCompleteCallback) {
     _MUFE_AuthEngine.onCompleteCallback(result);
   }
-  
-  // 모달 닫음
   setTimeout(() => {
     document.getElementById('bioAuthModal').classList.remove('active');
   }, 800);
