@@ -13327,6 +13327,7 @@ document.addEventListener('keydown', (e) => {
      ※ 비번 입력칸 등은 정상 동작하도록 예외 처리. 더하기 전용.
    ════════════════════════════════════════════════════════════ */
 (function () {
+  if (localStorage.getItem('mufe-guard') === 'off') return;   // [디버그] mufe-guard='off'면 이 캡쳐방지층 해제 (대표님 소스·콘솔 백업용)
   function isEditable(el) {
     if (!el) return false;
     var t = (el.tagName || '').toUpperCase();
