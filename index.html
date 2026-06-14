@@ -11989,6 +11989,7 @@ async function startMUFESensor() {
     _MUFE_AuthEngine.authStatus = 'PROCESSING';
     window._mufePulseSeen = 0;   // [재측정] 맥박 검출 카운터 0부터 — 이전 측정 누적 방지
     window._mufeFaceSeen = 0;    // [재측정] 얼굴 감지 카운터 0부터
+    _MUFE_AuthEngine._earlyDone = false;   // [재측정] 즉시통과 플래그 리셋
     _MUFE_AuthEngine._logged = false;
     // [C-45] 난수 광원 반사 초기화 + 광원 깜빡 시작
     _MUFE_AuthEngine.lightSamples = [];
@@ -12424,11 +12425,16 @@ function calculateMUFEBpm() {
   const pk = _mufeDetectPeaks(signals, times);
 
   // 피부 + 신호강도 충분(약신호·평탄 거부) + 실제 맥박 피크 2개+ + BPM 정상 — 모두여야 살아있는 사람
-  if (_MUFE_AuthEngine.skinDetected && pk.sigStd > 0.35 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180) {
+  if (_MUFE_AuthEngine.skinDetected && pk.sigStd > 0.28 && pk.peaks >= 2 && pk.bpm >= 40 && pk.bpm <= 180) {
     _MUFE_AuthEngine.lastBPM = Math.round(pk.bpm);
     window._mufePulseSeen = (window._mufePulseSeen||0) + 1;   // 진짜 맥박 피크 검출 — 노이즈·정지화면은 규칙적 피크가 없어 안 올라감
     _MUFE_AuthEngine.lightReflexPassed = analyzeLightReflex();
     _MUFE_AuthEngine.isHuman = _MUFE_AuthEngine.lightReflexPassed;
+    // [수정] 맥박이 충분히(3회+) 잡히면 10초를 안 기다리고 즉시 통과 — 측정이 빨리 끝나고, 잡힐 때까지 헛돌지 않음
+    if ((window._mufePulseSeen||0) >= 3 && !_MUFE_AuthEngine._earlyDone) {
+      _MUFE_AuthEngine._earlyDone = true;
+      try { finishBioMeasurement(); } catch(e){}
+    }
   } else {
     _MUFE_AuthEngine.isHuman = false;
     if (!_MUFE_AuthEngine.skinDetected) _MUFE_AuthEngine.lastBPM = 0;
