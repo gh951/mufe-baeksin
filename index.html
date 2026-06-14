@@ -13327,6 +13327,12 @@ document.addEventListener('keydown', (e) => {
      ※ 비번 입력칸 등은 정상 동작하도록 예외 처리. 더하기 전용.
    ════════════════════════════════════════════════════════════ */
 (function () {
+  // [디버그] 주소창 ?guard=off / ?guard=on 으로 가드를 켜고 끔 — 콘솔을 못 열어도 URL만으로 제어.
+  try {
+    var _g = new URLSearchParams(location.search).get('guard');
+    if (_g === 'off') localStorage.setItem('mufe-guard', 'off');
+    else if (_g === 'on') localStorage.removeItem('mufe-guard');
+  } catch (e) {}
   if (localStorage.getItem('mufe-guard') === 'off') return;   // [디버그] mufe-guard='off'면 이 캡쳐방지층 해제 (대표님 소스·콘솔 백업용)
   function isEditable(el) {
     if (!el) return false;
