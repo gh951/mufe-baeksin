@@ -11864,6 +11864,7 @@
       </div>
 
       <div class="bio-buttons">
+        <button class="bio-btn bio-btn-start" id="bioRetryBtn" onclick="bioRetryMeasure()" style="display:none;">📷 다시 측정</button>
         <button class="bio-btn bio-btn-stop" onclick="closeBioAuthModal()">중지 + 닫기</button>
       </div>
     </div>
@@ -11990,6 +11991,7 @@ async function startMUFESensor() {
     window._mufePulseSeen = 0;   // [재측정] 맥박 검출 카운터 0부터 — 이전 측정 누적 방지
     window._mufeFaceSeen = 0;    // [재측정] 얼굴 감지 카운터 0부터
     _MUFE_AuthEngine._earlyDone = false;   // [재측정] 즉시통과 플래그 리셋
+    { const _r = document.getElementById('bioRetryBtn'); if (_r) _r.style.display = 'none'; }   // 측정 시작 → 다시버튼 숨김
     _MUFE_AuthEngine._logged = false;
     // [C-45] 난수 광원 반사 초기화 + 광원 깜빡 시작
     _MUFE_AuthEngine.lightSamples = [];
@@ -12055,7 +12057,18 @@ async function startMUFESensor() {
   }
 }
 
-// 10초 측정 완료 — 결과 판정 + 콜백
+// [추가] 측정 화면에서 '다시 측정' — 모달 안 닫고 그 자리에서 재시작 (나왔다 들어갔다 없음)
+function bioRetryMeasure() {
+  const _r = document.getElementById('bioRetryBtn');
+  if (_r) _r.style.display = 'none';
+  const _st = document.getElementById('bioStatus');
+  if (_st) { _st.textContent = '측정 중'; _st.className = 'bio-stat-value active'; }
+  const _tt = document.getElementById('bioTimerText');
+  if (_tt) _tt.textContent = '⏱ 측정 준비 중…';
+  startMUFESensor();
+}
+
+// 측정 완료 — 결과 판정 + 콜백
 function finishBioMeasurement() {
   // [C-47] 진단 로그 — 어떤 조건이 막는지 한눈에
   console.log('[MUFE-BIO] 판정 — 광반사(isHuman):', _MUFE_AuthEngine.isHuman, '| BPM:', _MUFE_AuthEngine.lastBPM, '| 신호수:', _MUFE_AuthEngine.g_values.length, '| 광표본:', _MUFE_AuthEngine.lightSamples.length, '| skin:', _MUFE_AuthEngine.skinDetected, '| 얼굴감지:', (window._mufeFaceSeen||0), '| 맥박감지:', (window._mufePulseSeen||0));
@@ -12075,8 +12088,8 @@ function finishBioMeasurement() {
     if (_st) { _st.textContent = '다시'; _st.className = 'bio-stat-value'; }
     const _tt = document.getElementById('bioTimerText');
     if (_tt) _tt.innerHTML = '💔 심박을 못 잡았어요 — <b>밝은 곳</b>에서 얼굴을 화면에 <b>크게·가만히</b> 두고 아래 <b>📷 측정</b>을 다시 눌러주세요';
-    const _b = document.getElementById('bioStartBtn');
-    if (_b) { _b.disabled = false; _b.textContent = '📷 다시 측정'; }
+    const _b = document.getElementById('bioRetryBtn');
+    if (_b) _b.style.display = '';
     return;   // 콜백·모달닫기 호출 안 함 → 측정 화면 유지, 재진입 없음
   }
 
