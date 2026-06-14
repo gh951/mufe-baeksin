@@ -12236,6 +12236,7 @@ function _mufeOnFaceMeshResults(results){
   // 혈류(맥파)+피부 감지될 때만 좌표 채움 — 혈류 없으면 캡처 안 함(정지 원칙 동일)
   const flowing = _MUFE_AuthEngine.hasBloodFlow && _MUFE_AuthEngine.skinDetected;
   if (fl && fl.length >= 478){
+    window._mufeRppgFace = fl;   // [AR 추적] rPPG 측정 영역을 얼굴에 고정시키기 위해 최신 478좌표 보관
     window._mufeFaceSeen = (window._mufeFaceSeen||0) + 1;   // [C-47v2] 진짜 얼굴(478 좌표) 감지 — 책상·천장·벽은 절대 안 올라감
     if (flowing){
       window._mufePupilCoords = _mufeBuildPupilSignature(fl);
@@ -12300,10 +12301,28 @@ function getGreenChannelAverage() {
   const W = 640, H = 480;
   _MUFE_BioScanner.ctx.drawImage(_MUFE_BioScanner.video, 0, 0, W, H);
   
-  // 얼굴 중앙 영역 샘플링
-  const imgData = _MUFE_BioScanner.ctx.getImageData(
-    W * 0.25, H * 0.15, W * 0.50, H * 0.60
-  );
+  // [AR 추적 적용] FaceMesh 478좌표로 이마·볼을 따라가며 샘플링 — 얼굴이 움직여도 같은 피부 추적(손떨림/움직임 강건).
+  //   landmark 없으면(웹/미검출) 기존 고정 중앙영역으로 폴백 → 아무도 안 깨짐(additive).
+  let rx = W * 0.25, ry = H * 0.15, rw = W * 0.50, rh = H * 0.60;
+  try {
+    const fl = window._mufeRppgFace;
+    if (fl && fl.length >= 478) {
+      // 이마(10·151·9)·양볼(234·454·50·280) — 눈·입 제외, 피부 많은 영역만 박스로
+      const ids = [10, 151, 9, 234, 454, 50, 280];
+      let minx = 1, miny = 1, maxx = 0, maxy = 0;
+      for (let k = 0; k < ids.length; k++) {
+        const p = fl[ids[k]]; if (!p) continue;
+        if (p.x < minx) minx = p.x; if (p.x > maxx) maxx = p.x;
+        if (p.y < miny) miny = p.y; if (p.y > maxy) maxy = p.y;
+      }
+      const bx = minx * W, by = miny * H, bw = (maxx - minx) * W, bh = (maxy - miny) * H;
+      if (bw > 20 && bh > 20) {
+        rx = Math.max(0, Math.round(bx)); ry = Math.max(0, Math.round(by));
+        rw = Math.min(W - rx, Math.round(bw)); rh = Math.min(H - ry, Math.round(bh));
+      }
+    }
+  } catch (e) { /* 좌표 문제 시 고정영역 폴백 */ }
+  const imgData = _MUFE_BioScanner.ctx.getImageData(rx, ry, rw, rh);
   const pixels = imgData.data;
   let r = 0, g = 0, bl = 0, n = 0;
   
